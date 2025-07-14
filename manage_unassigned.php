@@ -86,10 +86,16 @@ $unassigned = $DB->get_records_sql("
 
 // Get course users and already assigned users
 $available_users = get_available_users_for_assignment();
-$name_suggestions = get_name_based_suggestions($unassigned, $available_users);
 
-// Sort unassigned records: suggested matches first, then non-suggested
-$sorted_unassigned = sort_records_by_suggestions($unassigned, $name_suggestions);
+// Get both types of suggestions
+$name_suggestions = get_name_based_suggestions($unassigned, $available_users);
+$email_suggestions = get_email_based_suggestions($unassigned, $available_users, $name_suggestions);
+
+// Merge suggestions with type information
+$all_suggestions = merge_suggestions_with_types($name_suggestions, $email_suggestions);
+
+// Sort unassigned records: name suggestions first, then email suggestions, then non-suggested
+$sorted_unassigned = sort_records_by_suggestion_types($unassigned, $all_suggestions);
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('unassigned_records', 'mod_teamsattendance'));
@@ -101,12 +107,18 @@ if (empty($unassigned)) {
     echo $OUTPUT->notification(get_string('no_unassigned', 'mod_teamsattendance'), 'notifymessage');
 } else {
     // Show suggestions summary
-    $suggestion_count = count(array_filter($name_suggestions));
-    if ($suggestion_count > 0) {
-        echo $OUTPUT->notification(
-            get_string('suggestions_found', 'mod_teamsattendance', $suggestion_count), 
-            'notifysuccess'
-        );
+    $name_suggestion_count = count(array_filter($name_suggestions));
+    $email_suggestion_count = count(array_filter($email_suggestions));
+    $total_suggestion_count = $name_suggestion_count + $email_suggestion_count;
+    
+    if ($total_suggestion_count > 0) {
+        $summary_text = get_string('suggestions_summary', 'mod_teamsattendance', [
+            'total' => $total_suggestion_count,
+            'name_matches' => $name_suggestion_count,
+            'email_matches' => $email_suggestion_count
+        ]);
+        
+        echo $OUTPUT->notification($summary_text, 'notifysuccess');
         
         // Bulk apply suggestions form
         echo html_writer::start_tag('form', array(
@@ -141,14 +153,27 @@ if (empty($unassigned)) {
     $table->attributes['class'] = 'generaltable manage-unassigned-table';
 
     foreach ($sorted_unassigned as $record) {
-        // Check for name-based suggestion
-        $suggested_user = isset($name_suggestions[$record->id]) ? $name_suggestions[$record->id] : null;
-        $has_suggestion = !empty($suggested_user);
+        // Check for suggestions
+        $suggestion_info = isset($all_suggestions[$record->id]) ? $all_suggestions[$record->id] : null;
+        $has_suggestion = !empty($suggestion_info);
         
         $suggestion_cell = '';
+        $row_class = 'no-match-row'; // Default
         
-        if ($suggested_user) {
+        if ($suggestion_info) {
+            $suggested_user = $suggestion_info['user'];
+            $suggestion_type = $suggestion_info['type'];
+            
+            // Determine row class based on suggestion type
+            $row_class = ($suggestion_type === 'name') ? 'suggested-match-row' : 'email-match-row';
+            
+            // Create suggestion type label
+            $type_label = ($suggestion_type === 'name') ? 
+                get_string('name_match_suggestion', 'mod_teamsattendance') : 
+                get_string('email_match_suggestion', 'mod_teamsattendance');
+            
             $suggestion_cell = html_writer::tag('div', 
+                html_writer::tag('div', $type_label, array('class' => 'suggestion-type-label text-info small mb-1')) .
                 html_writer::tag('strong', fullname($suggested_user), array('class' => 'text-success')) .
                 html_writer::empty_tag('br') .
                 html_writer::tag('small', $suggested_user->email, array('class' => 'text-muted')) .
@@ -212,9 +237,10 @@ if (empty($unassigned)) {
 
         // Create the row with appropriate styling class
         $row = new html_table_row();
-        $row->attributes['class'] = $has_suggestion ? 'suggested-match-row' : 'no-match-row';
+        $row->attributes['class'] = $row_class;
         $row->attributes['data-record-id'] = $record->id;
         $row->attributes['data-has-suggestion'] = $has_suggestion ? '1' : '0';
+        $row->attributes['data-suggestion-type'] = $suggestion_info ? $suggestion_info['type'] : 'none';
         
         $row->cells = array(
             $record->teams_user_id,
@@ -230,7 +256,7 @@ if (empty($unassigned)) {
     echo html_writer::table($table);
     
     // Close bulk suggestions form and add apply button
-    if ($suggestion_count > 0) {
+    if ($total_suggestion_count > 0) {
         echo html_writer::tag('div', 
             html_writer::empty_tag('input', array(
                 'type' => 'submit',
@@ -250,11 +276,8 @@ if (empty($unassigned)) {
 
 echo $OUTPUT->footer();
 
-/**
- * Get available users for assignment (excluding already assigned ones)
- *
- * @return array Array of user objects
- */
+// ========================= HELPER FUNCTIONS =========================
+
 function get_available_users_for_assignment() {
     global $DB, $COURSE, $teamsattendance;
     
@@ -280,26 +303,15 @@ function get_available_users_for_assignment() {
     return $available_users;
 }
 
-/**
- * Get name-based matching suggestions (excluding previously applied suggestions)
- *
- * @param array $unassigned_records Unassigned records from Teams
- * @param array $available_users Available Moodle users
- * @return array Array of record_id => user_object suggestions
- */
 function get_name_based_suggestions($unassigned_records, $available_users) {
     $suggestions = array();
     
     foreach ($unassigned_records as $record) {
-        // Skip if suggestion was already applied for this record
         if (was_suggestion_applied($record->id)) {
             continue;
         }
         
-        // Parse Teams user name (assuming format like "LastName, FirstName" or "FirstName LastName")
         $teams_name = trim($record->teams_user_id);
-        
-        // Try different name parsing approaches
         $parsed_names = parse_teams_name($teams_name);
         
         if (!empty($parsed_names)) {
@@ -313,50 +325,143 @@ function get_name_based_suggestions($unassigned_records, $available_users) {
     return $suggestions;
 }
 
-/**
- * Sort records by suggestion status: suggested first, then non-suggested
- *
- * @param array $unassigned_records All unassigned records
- * @param array $name_suggestions Suggestion mappings
- * @return array Sorted records
- */
-function sort_records_by_suggestions($unassigned_records, $name_suggestions) {
-    $suggested = array();
+function get_email_based_suggestions($unassigned_records, $available_users, $name_suggestions) {
+    $suggestions = array();
+    
+    foreach ($unassigned_records as $record) {
+        // Skip if already has a name-based suggestion
+        if (isset($name_suggestions[$record->id])) {
+            continue;
+        }
+        
+        if (was_suggestion_applied($record->id)) {
+            continue;
+        }
+        
+        $teams_user_id = trim($record->teams_user_id);
+        
+        // Check if teams_user_id looks like an email
+        if (filter_var($teams_user_id, FILTER_VALIDATE_EMAIL)) {
+            $best_match = find_best_email_match($teams_user_id, $available_users);
+            if ($best_match) {
+                $suggestions[$record->id] = $best_match;
+            }
+        }
+    }
+    
+    return $suggestions;
+}
+
+function find_best_email_match($teams_email, $available_users) {
+    $email_parts = explode('@', strtolower($teams_email));
+    if (count($email_parts) !== 2) {
+        return null;
+    }
+    
+    $local_part = $email_parts[0]; // Part before @
+    
+    $best_match = null;
+    $best_score = 0;
+    
+    foreach ($available_users as $user) {
+        $score = calculate_email_similarity($local_part, $user);
+        
+        if ($score > $best_score && $score >= 0.7) { // 70% similarity threshold for email matching
+            $best_score = $score;
+            $best_match = $user;
+        }
+    }
+    
+    return $best_match;
+}
+
+function calculate_email_similarity($local_part, $user) {
+    $firstname = strtolower($user->firstname);
+    $lastname = strtolower($user->lastname);
+    
+    // Remove non-alphanumeric characters and normalize
+    $local_part = preg_replace('/[^a-z0-9]/', '', $local_part);
+    $firstname = preg_replace('/[^a-z0-9]/', '', $firstname);
+    $lastname = preg_replace('/[^a-z0-9]/', '', $lastname);
+    
+    $scores = array();
+    
+    // Test different email patterns
+    $patterns = array(
+        $firstname . $lastname,           // nome.cognome
+        $lastname . $firstname,           // cognome.nome
+        $firstname[0] . $lastname,        // n.cognome (initial + lastname)
+        $lastname . $firstname[0],        // cognome.n (lastname + initial)
+        $firstname . $lastname[0],        // nome.c (firstname + initial)
+        $firstname,                       // solo nome
+        $lastname,                        // solo cognome
+        $firstname[0] . $lastname[0],     // n.c (initials)
+    );
+    
+    foreach ($patterns as $pattern) {
+        if (!empty($pattern)) {
+            $similarity = similarity_score($local_part, $pattern);
+            $scores[] = $similarity;
+        }
+    }
+    
+    // Return the best score
+    return empty($scores) ? 0 : max($scores);
+}
+
+function merge_suggestions_with_types($name_suggestions, $email_suggestions) {
+    $merged = array();
+    
+    // Add name-based suggestions
+    foreach ($name_suggestions as $record_id => $user) {
+        $merged[$record_id] = array(
+            'user' => $user,
+            'type' => 'name',
+            'priority' => 1
+        );
+    }
+    
+    // Add email-based suggestions
+    foreach ($email_suggestions as $record_id => $user) {
+        $merged[$record_id] = array(
+            'user' => $user,
+            'type' => 'email',
+            'priority' => 2
+        );
+    }
+    
+    return $merged;
+}
+
+function sort_records_by_suggestion_types($unassigned_records, $all_suggestions) {
+    $name_suggested = array();
+    $email_suggested = array();
     $not_suggested = array();
     
     foreach ($unassigned_records as $record) {
-        if (isset($name_suggestions[$record->id])) {
-            $suggested[] = $record;
+        if (isset($all_suggestions[$record->id])) {
+            $suggestion_type = $all_suggestions[$record->id]['type'];
+            if ($suggestion_type === 'name') {
+                $name_suggested[] = $record;
+            } else {
+                $email_suggested[] = $record;
+            }
         } else {
             $not_suggested[] = $record;
         }
     }
     
-    // Merge arrays: suggested first, then not suggested
-    return array_merge($suggested, $not_suggested);
+    // Merge arrays: name suggestions first, then email suggestions, then not suggested
+    return array_merge($name_suggested, $email_suggested, $not_suggested);
 }
 
-/**
- * Mark a suggestion as applied to prevent it from being shown again
- *
- * @param int $record_id The record ID
- * @param int $user_id The assigned user ID
- */
 function mark_suggestion_as_applied($record_id, $user_id) {
     global $DB;
     
-    // Store in a custom table or use user preferences
-    // For this implementation, we'll use a simple preference system
     $preference_name = 'teamsattendance_suggestion_applied_' . $record_id;
     set_user_preference($preference_name, $user_id);
 }
 
-/**
- * Check if a suggestion was already applied for a record
- *
- * @param int $record_id The record ID
- * @return bool True if suggestion was applied
- */
 function was_suggestion_applied($record_id) {
     $preference_name = 'teamsattendance_suggestion_applied_' . $record_id;
     $applied_user_id = get_user_preferences($preference_name, null);
@@ -364,12 +469,6 @@ function was_suggestion_applied($record_id) {
     return !is_null($applied_user_id);
 }
 
-/**
- * Parse Teams user name into possible first/last name combinations
- *
- * @param string $teams_name Name from Teams
- * @return array Array of possible name combinations
- */
 function parse_teams_name($teams_name) {
     $names = array();
     
@@ -420,13 +519,6 @@ function parse_teams_name($teams_name) {
     return $names;
 }
 
-/**
- * Find best matching user based on name similarity
- *
- * @param array $parsed_names Array of possible name combinations
- * @param array $available_users Available Moodle users
- * @return object|null Best matching user object or null
- */
 function find_best_name_match($parsed_names, $available_users) {
     $best_match = null;
     $best_score = 0;
@@ -445,13 +537,6 @@ function find_best_name_match($parsed_names, $available_users) {
     return $best_match;
 }
 
-/**
- * Calculate name similarity between parsed name and user
- *
- * @param array $parsed_name Parsed name array with firstname/lastname
- * @param object $user Moodle user object
- * @return float Similarity score (0-1)
- */
 function calculate_name_similarity($parsed_name, $user) {
     $firstname_similarity = similarity_score(
         strtolower($parsed_name['firstname']), 
@@ -467,13 +552,6 @@ function calculate_name_similarity($parsed_name, $user) {
     return ($firstname_similarity + $lastname_similarity) / 2;
 }
 
-/**
- * Calculate similarity between two strings
- *
- * @param string $str1 First string
- * @param string $str2 Second string
- * @return float Similarity score (0-1)
- */
 function similarity_score($str1, $str2) {
     // Use Levenshtein distance for similarity
     $max_len = max(strlen($str1), strlen($str2));
@@ -483,12 +561,6 @@ function similarity_score($str1, $str2) {
     return 1 - ($distance / $max_len);
 }
 
-/**
- * Get filtered user list for dropdown (only available users) - SORTED ALPHABETICALLY
- *
- * @param array $available_users Available users
- * @return array Array of userid => fullname for dropdown
- */
 function get_filtered_users_list($available_users) {
     $userlist = array();
     $sortable_users = array();
@@ -523,16 +595,19 @@ function get_filtered_users_list($available_users) {
     return $userlist;
 }
 
-/**
- * Add custom CSS for row styling
- */
 function add_custom_css() {
     echo html_writer::start_tag('style', array('type' => 'text/css'));
     echo '
-        /* Styling for suggested match rows */
+        /* Styling for name-based suggested match rows */
         .manage-unassigned-table tr.suggested-match-row {
             background-color: #d4edda !important; /* Light green background */
             border-left: 4px solid #28a745; /* Green left border */
+        }
+        
+        /* Styling for email-based suggested match rows */
+        .manage-unassigned-table tr.email-match-row {
+            background-color: #e8d5ff !important; /* Light purple background */
+            border-left: 4px solid #8b5cf6; /* Purple left border */
         }
         
         /* Styling for no match rows */
@@ -544,6 +619,10 @@ function add_custom_css() {
         /* Hover effects */
         .manage-unassigned-table tr.suggested-match-row:hover {
             background-color: #c3e6cb !important; /* Slightly darker green on hover */
+        }
+        
+        .manage-unassigned-table tr.email-match-row:hover {
+            background-color: #ddd6fe !important; /* Slightly darker purple on hover */
         }
         
         .manage-unassigned-table tr.no-match-row:hover {
@@ -571,15 +650,27 @@ function add_custom_css() {
             border-left: 4px solid #28a745;
         }
         
+        .legend-email {
+            background-color: #e8d5ff;
+            border-left: 4px solid #8b5cf6;
+        }
+        
         .legend-no-match {
             background-color: #fff3cd;
             border-left: 4px solid #ffc107;
         }
         
         /* Make suggested checkboxes more prominent */
-        .suggested-match-row input[type="checkbox"] {
+        .suggested-match-row input[type="checkbox"],
+        .email-match-row input[type="checkbox"] {
             transform: scale(1.2);
             margin-right: 5px;
+        }
+        
+        /* Styling for suggestion type labels */
+        .suggestion-type-label {
+            font-weight: bold;
+            font-style: italic;
         }
     ';
     echo html_writer::end_tag('style');
@@ -588,8 +679,12 @@ function add_custom_css() {
     echo html_writer::start_tag('div', array('class' => 'color-legend'));
     echo html_writer::tag('strong', get_string('color_legend', 'mod_teamsattendance') . ': ');
     echo html_writer::tag('span', 
-        get_string('suggested_matches', 'mod_teamsattendance'), 
+        get_string('name_based_matches', 'mod_teamsattendance'), 
         array('class' => 'legend-item legend-suggested')
+    );
+    echo html_writer::tag('span', 
+        get_string('email_based_matches', 'mod_teamsattendance'), 
+        array('class' => 'legend-item legend-email')
     );
     echo html_writer::tag('span', 
         get_string('no_matches', 'mod_teamsattendance'), 
@@ -598,9 +693,6 @@ function add_custom_css() {
     echo html_writer::end_tag('div');
 }
 
-/**
- * Add JavaScript functions for form interaction
- */
 function add_javascript_functions() {
     echo html_writer::start_tag('script', array('type' => 'text/javascript'));
     echo '
