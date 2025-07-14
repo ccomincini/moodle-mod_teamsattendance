@@ -46,6 +46,8 @@ if ($action === 'apply_bulk_suggestions' && confirm_sesskey()) {
             $record->manually_assigned = 1;
             
             if ($DB->update_record('teamsattendance_data', $record)) {
+                // Mark this record as having had its suggestion applied
+                mark_suggestion_as_applied($recordid, $suggested_userid);
                 $applied_count++;
             }
         }
@@ -65,6 +67,8 @@ if ($action === 'assign' && $recordid && $userid && confirm_sesskey()) {
     $record->manually_assigned = 1; // Mark as manually assigned
     
     if ($DB->update_record('teamsattendance_data', $record)) {
+        // Mark suggestion as applied if this was a suggested assignment
+        mark_suggestion_as_applied($recordid, $userid);
         redirect($PAGE->url, get_string('user_assigned', 'mod_teamsattendance'));
     } else {
         redirect($PAGE->url, get_string('user_assignment_failed', 'mod_teamsattendance'));
@@ -84,8 +88,14 @@ $unassigned = $DB->get_records_sql("
 $available_users = get_available_users_for_assignment();
 $name_suggestions = get_name_based_suggestions($unassigned, $available_users);
 
+// Sort unassigned records: suggested matches first, then non-suggested
+$sorted_unassigned = sort_records_by_suggestions($unassigned, $name_suggestions);
+
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('unassigned_records', 'mod_teamsattendance'));
+
+// Add CSS for row styling
+add_custom_css();
 
 if (empty($unassigned)) {
     echo $OUTPUT->notification(get_string('no_unassigned', 'mod_teamsattendance'), 'notifymessage');
@@ -127,9 +137,14 @@ if (empty($unassigned)) {
         get_string('assign_user', 'mod_teamsattendance')
     );
 
-    foreach ($unassigned as $record) {
+    // Set table attributes for styling
+    $table->attributes['class'] = 'generaltable manage-unassigned-table';
+
+    foreach ($sorted_unassigned as $record) {
         // Check for name-based suggestion
         $suggested_user = isset($name_suggestions[$record->id]) ? $name_suggestions[$record->id] : null;
+        $has_suggestion = !empty($suggested_user);
+        
         $suggestion_cell = '';
         
         if ($suggested_user) {
@@ -195,13 +210,21 @@ if (empty($unassigned)) {
         
         $assign_form .= html_writer::end_tag('form');
 
-        $table->data[] = array(
+        // Create the row with appropriate styling class
+        $row = new html_table_row();
+        $row->attributes['class'] = $has_suggestion ? 'suggested-match-row' : 'no-match-row';
+        $row->attributes['data-record-id'] = $record->id;
+        $row->attributes['data-has-suggestion'] = $has_suggestion ? '1' : '0';
+        
+        $row->cells = array(
             $record->teams_user_id,
             format_time($record->attendance_duration),
             $record->actual_attendance . '%',
             $suggestion_cell,
             $assign_form
         );
+
+        $table->data[] = $row;
     }
 
     echo html_writer::table($table);
@@ -258,7 +281,7 @@ function get_available_users_for_assignment() {
 }
 
 /**
- * Get name-based matching suggestions
+ * Get name-based matching suggestions (excluding previously applied suggestions)
  *
  * @param array $unassigned_records Unassigned records from Teams
  * @param array $available_users Available Moodle users
@@ -268,6 +291,11 @@ function get_name_based_suggestions($unassigned_records, $available_users) {
     $suggestions = array();
     
     foreach ($unassigned_records as $record) {
+        // Skip if suggestion was already applied for this record
+        if (was_suggestion_applied($record->id)) {
+            continue;
+        }
+        
         // Parse Teams user name (assuming format like "LastName, FirstName" or "FirstName LastName")
         $teams_name = trim($record->teams_user_id);
         
@@ -283,6 +311,57 @@ function get_name_based_suggestions($unassigned_records, $available_users) {
     }
     
     return $suggestions;
+}
+
+/**
+ * Sort records by suggestion status: suggested first, then non-suggested
+ *
+ * @param array $unassigned_records All unassigned records
+ * @param array $name_suggestions Suggestion mappings
+ * @return array Sorted records
+ */
+function sort_records_by_suggestions($unassigned_records, $name_suggestions) {
+    $suggested = array();
+    $not_suggested = array();
+    
+    foreach ($unassigned_records as $record) {
+        if (isset($name_suggestions[$record->id])) {
+            $suggested[] = $record;
+        } else {
+            $not_suggested[] = $record;
+        }
+    }
+    
+    // Merge arrays: suggested first, then not suggested
+    return array_merge($suggested, $not_suggested);
+}
+
+/**
+ * Mark a suggestion as applied to prevent it from being shown again
+ *
+ * @param int $record_id The record ID
+ * @param int $user_id The assigned user ID
+ */
+function mark_suggestion_as_applied($record_id, $user_id) {
+    global $DB;
+    
+    // Store in a custom table or use user preferences
+    // For this implementation, we'll use a simple preference system
+    $preference_name = 'teamsattendance_suggestion_applied_' . $record_id;
+    set_user_preference($preference_name, $user_id);
+}
+
+/**
+ * Check if a suggestion was already applied for a record
+ *
+ * @param int $record_id The record ID
+ * @return bool True if suggestion was applied
+ */
+function was_suggestion_applied($record_id) {
+    $preference_name = 'teamsattendance_suggestion_applied_' . $record_id;
+    $applied_user_id = get_user_preferences($preference_name, null);
+    
+    return !is_null($applied_user_id);
 }
 
 /**
@@ -419,6 +498,81 @@ function get_filtered_users_list($available_users) {
 }
 
 /**
+ * Add custom CSS for row styling
+ */
+function add_custom_css() {
+    echo html_writer::start_tag('style', array('type' => 'text/css'));
+    echo '
+        /* Styling for suggested match rows */
+        .manage-unassigned-table tr.suggested-match-row {
+            background-color: #d4edda !important; /* Light green background */
+            border-left: 4px solid #28a745; /* Green left border */
+        }
+        
+        /* Styling for no match rows */
+        .manage-unassigned-table tr.no-match-row {
+            background-color: #fff3cd !important; /* Light orange background */
+            border-left: 4px solid #ffc107; /* Orange left border */
+        }
+        
+        /* Hover effects */
+        .manage-unassigned-table tr.suggested-match-row:hover {
+            background-color: #c3e6cb !important; /* Slightly darker green on hover */
+        }
+        
+        .manage-unassigned-table tr.no-match-row:hover {
+            background-color: #ffeaa7 !important; /* Slightly darker orange on hover */
+        }
+        
+        /* Legend for color coding */
+        .color-legend {
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+        }
+        
+        .legend-item {
+            display: inline-block;
+            margin-right: 20px;
+            padding: 5px 10px;
+            border-radius: 3px;
+        }
+        
+        .legend-suggested {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+        
+        .legend-no-match {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+        
+        /* Make suggested checkboxes more prominent */
+        .suggested-match-row input[type="checkbox"] {
+            transform: scale(1.2);
+            margin-right: 5px;
+        }
+    ';
+    echo html_writer::end_tag('style');
+    
+    // Add color legend
+    echo html_writer::start_tag('div', array('class' => 'color-legend'));
+    echo html_writer::tag('strong', get_string('color_legend', 'mod_teamsattendance') . ': ');
+    echo html_writer::tag('span', 
+        get_string('suggested_matches', 'mod_teamsattendance'), 
+        array('class' => 'legend-item legend-suggested')
+    );
+    echo html_writer::tag('span', 
+        get_string('no_matches', 'mod_teamsattendance'), 
+        array('class' => 'legend-item legend-no-match')
+    );
+    echo html_writer::end_tag('div');
+}
+
+/**
  * Add JavaScript functions for form interaction
  */
 function add_javascript_functions() {
@@ -462,6 +616,21 @@ function add_javascript_functions() {
             
             return confirm(confirmMessage);
         }
+        
+        // Add visual feedback when suggestions are selected/deselected
+        document.addEventListener("DOMContentLoaded", function() {
+            var checkboxes = document.querySelectorAll("input[name^=\'suggestions[\']");
+            checkboxes.forEach(function(checkbox) {
+                checkbox.addEventListener("change", function() {
+                    var row = this.closest("tr");
+                    if (this.checked) {
+                        row.style.boxShadow = "0 0 10px rgba(40, 167, 69, 0.5)";
+                    } else {
+                        row.style.boxShadow = "none";
+                    }
+                });
+            });
+        });
     ';
     echo html_writer::end_tag('script');
 }
