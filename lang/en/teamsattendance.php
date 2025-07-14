@@ -1,126 +1,168 @@
 <?php
-// English language file for Teams Meeting Attendance plugin.
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+/**
+ * English strings for teamsattendance
+ *
+ * @package    mod_teamsattendance
+ * @copyright  2025 Invisiblefarm srl
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
+
+// Plugin information
 $string['pluginname'] = 'Teams Meeting Attendance';
+$string['pluginadministration'] = 'Teams Meeting Attendance Administration';
 $string['modulename'] = 'Teams Meeting Attendance';
-$string['modulenameplural'] = 'Teams Meeting Attendance';
+$string['modulenameplural'] = 'Teams Meeting Attendances';
+
+// Basic strings
+$string['description'] = 'Description';
+$string['activityname'] = 'Activity name';
+$string['meetingdetails'] = 'Meeting details';
+$string['completionsettings'] = 'Completion settings';
+$string['minutes'] = 'minutes';
+
+// Meeting configuration
+$string['meetingurl'] = 'Teams Meeting URL';
+$string['meetingurl_help'] = 'Select the Teams meeting to track attendance for.';
+$string['organizer_email'] = 'Meeting Organizer Email';
+$string['organizer_email_help'] = 'Email address of the person who organized the Teams meeting. This is needed to fetch attendance reports.';
+$string['meeting_start_time'] = 'Meeting Start Time';
+$string['meeting_start_time_help'] = 'The start time of the meeting session for filtering attendance reports.';
+$string['meeting_end_time'] = 'Meeting End Time';
+$string['meeting_end_time_help'] = 'The end time of the meeting session for filtering attendance reports.';
 $string['expected_duration'] = 'Expected Duration';
-$string['expected_duration_error'] = 'Expected duration must be greater than 0.';
-$string['expected_duration_help'] = 'The expected duration is automatically calculated from the meeting start and end times. This value is used to calculate attendance percentages.';
-$string['minutes'] = 'Minutes';
-$string['hours'] = 'Hours';
-$string['completion_threshold'] = 'Completion Threshold';
-$string['meetingid'] = 'Meeting ID';
+$string['expected_duration_help'] = 'The expected duration of the meeting in minutes. This is automatically calculated from the start and end times.';
+$string['required_attendance'] = 'Required Attendance (%)';
+$string['required_attendance_help'] = 'The minimum percentage of attendance required for completion. Students must attend at least this percentage of the expected meeting duration.';
+
+// Completion
+$string['completionattendance'] = 'Student must meet attendance requirement';
+$string['completionattendance_help'] = 'When enabled, students must meet the minimum attendance percentage to complete this activity.';
+$string['completionattendance_desc'] = 'Student must meet the required attendance percentage';
+
+// View page
 $string['attendance_register'] = 'Attendance Register';
 $string['close_register'] = 'Close Register';
 $string['reopen_register'] = 'Reopen Register';
-$string['register_closed'] = 'The attendance register has been closed.';
-$string['register_reopened'] = 'The attendance register has been reopened.';
+$string['fetch_attendance'] = 'Fetch Attendance Data';
+$string['fetch_warning'] = 'This will fetch the latest attendance data from Microsoft Teams. The process may take a few moments.';
+$string['last_fetch_time'] = 'Last updated: {$a}';
+$string['exporttocsv'] = 'Export to CSV';
+$string['exporttoxlsx'] = 'Export to Excel';
+
+// Table headers
 $string['cognome'] = 'Last Name';
 $string['nome'] = 'First Name';
 $string['codice_fiscale'] = 'ID Number';
-$string['tempo_totale'] = 'Total Time (min)';
-$string['soglia_raggiunta'] = 'Threshold Reached';
-$string['verify_completion_task'] = 'Verify Completion Task';
-$string['activityname'] = 'Activity Name';
-$string['description'] = 'Description';
-$string['meetingdetails'] = 'Meeting Details';
-$string['completion_threshold_error'] = 'Completion threshold must be between 0 and 100.';
-$string['fetch_attendance'] = 'Fetch Attendance';
-$string['fetch_warning'] = 'Re-fetching attendance will update the attendance data from Teams. Manual user assignments will be preserved.';
-$string['last_fetch_time'] = 'Last updated: {$a}';
-$string['task_fetch_attendance'] = 'Fetch Teams Meeting Attendance';
-$string['fetch_attendance_success'] = 'Attendance data has been updated successfully.';
-$string['fetch_attendance_error'] = 'Error fetching attendance data. Please try again.';
-$string['event_attendance_updated'] = 'Attendance updated';
-$string['required_attendance'] = 'Required Attendance (%)';
-$string['required_attendance_help'] = 'Enter the minimum attendance percentage required for students to complete this activity. Students must attend at least this percentage of the meeting duration to meet the completion criteria.';
-$string['settingsheader'] = 'Microsoft Teams API Settings';
-$string['settingsheader_desc'] = 'Configure the Microsoft Teams API settings for attendance tracking.';
-$string['tenantid'] = 'Tenant ID';
-$string['tenantid_desc'] = 'Your Microsoft Azure AD tenant ID. This is required for API authentication.';
-$string['apiendpoint'] = 'API Endpoint';
-$string['apiendpoint_desc'] = 'The Microsoft Graph API endpoint URL.';
-$string['apiversion'] = 'API Version';
-$string['apiversion_desc'] = 'The Microsoft Graph API version to use.';
-$string['missingtenantid'] = 'Tenant ID is not configured. Please contact your administrator.';
-$string['meetingurl'] = 'Teams Meeting';
-$string['meetingurl_help'] = 'Select the Teams meeting to track attendance for from the available meetings in this course.';
-$string['meetingurl_required'] = 'You must select a Teams meeting.';
-$string['invalid_meetingurl'] = 'Invalid Teams meeting URL.';
-$string['organizer_email'] = 'Meeting Organizer Email';
-$string['organizer_email_help'] = 'Enter the email address of the meeting organizer. This is required to fetch attendance reports from Microsoft Teams.';
-$string['organizer_email_required'] = 'You must enter the meeting organizer\'s email address.';
-$string['invalid_email'] = 'Invalid email address format.';
-$string['meeting_start_time'] = 'Meeting Start Time';
-$string['meeting_start_time_help'] = 'Specify the start time of the meeting. This is used to filter attendance reports and calculate the expected duration.';
-$string['meeting_start_time_required'] = 'Meeting start time is required.';
-$string['meeting_end_time'] = 'Meeting End Time';
-$string['meeting_end_time_help'] = 'Specify the end time of the meeting. This is used to filter attendance reports and calculate the expected duration.';
-$string['meeting_end_time_required'] = 'Meeting end time is required.';
-$string['end_time_after_start'] = 'End time must be after start time.';
-$string['invalid_meeting_duration'] = 'Invalid meeting duration. Please check the start and end times.';
-$string['completionsettings'] = 'Completion Settings';
-$string['attendance_percentage'] = 'Attendance Percentage';
-$string['total_duration'] = 'Total Duration';
-$string['fetch_attendance_warnings'] = 'There were {$a} warnings while fetching attendance data.';
-$string['completionattendance'] = 'Require attendance';
-$string['completionattendance_desc'] = 'Student must meet the required attendance percentage to complete this activity';
-$string['completionattendance_help'] = 'If enabled, the activity is considered complete when the student meets the required attendance percentage.';
-$string['manage_unassigned'] = 'Manage Unassigned Records';
-$string['unassigned_records'] = 'Unassigned Attendance Records';
-$string['teams_user'] = 'Teams User';
-$string['assign_user'] = 'Assign User';
-$string['select_user'] = 'Select Moodle User';
-$string['no_unassigned'] = 'No unassigned records found.';
-$string['user_assigned'] = 'User successfully assigned.';
-$string['user_assignment_failed'] = 'Failed to assign user.';
-$string['unassigned_users_alert'] = 'There are {$a} attendance records with unassigned users. Please review and allocate them.';
-$string['manage_unassigned'] = 'Manage unassigned users';
-$string['assign'] = 'Assign';
-$string['select_user_first'] = 'Please select a user first.';
-$string['confirm_assignment'] = 'Are you sure you want to assign this record to {user}?';
-$string['manual_assignments'] = 'Manual Assignments';
-$string['no_manual_assignments'] = 'No manual assignments found.';
-$string['assigned_user'] = 'Assigned User';
-$string['actions'] = 'Actions';
-$string['reassign'] = 'Reassign';
-$string['select_different_user'] = 'Select different user';
-$string['mark_automatic'] = 'Mark as Automatic';
-$string['user_reassigned'] = 'User successfully reassigned.';
-$string['user_reassignment_failed'] = 'Failed to reassign user.';
-$string['cannot_reassign_automatic'] = 'Cannot reassign automatically assigned records.';
-$string['marked_as_automatic'] = 'Record marked as automatic assignment.';
-$string['mark_automatic_failed'] = 'Failed to mark record as automatic.';
-$string['confirm_reassignment'] = 'Are you sure you want to reassign this record to {user}?';
-$string['confirm_mark_automatic'] = 'Are you sure you want to mark this assignment as automatic? This will remove the manual assignment flag.';
-$string['manage_manual_assignments'] = 'Manage Manual Assignments';
+$string['role'] = 'Role';
+$string['tempo_totale'] = 'Total Time';
+$string['attendance_percentage'] = 'Attendance %';
+$string['soglia_raggiunta'] = 'Threshold Met';
 $string['assignment_type'] = 'Assignment Type';
+$string['teams_user'] = 'Teams User';
+$string['suggested_match'] = 'Suggested Match';
+$string['assign_user'] = 'Assign User';
+
+// Assignment types
 $string['manual'] = 'Manual';
 $string['automatic'] = 'Automatic';
-$string['manually_assigned_tooltip'] = 'This user was manually assigned by a teacher';
-$string['automatically_assigned_tooltip'] = 'This user was automatically assigned based on Teams data';
-$string['role'] = 'Roles';
-$string['pluginadministration'] = 'Teams Meeting Attendance Administration';
-// Export strings
-$string['exporttocsv'] = 'Export to CSV';
-$string['exporttoxlsx'] = 'Export to Excel (xlsx)';
+$string['manually_assigned_tooltip'] = 'This user was manually assigned by an administrator';
+$string['automatically_assigned_tooltip'] = 'This user was automatically matched based on email address';
 
-// New strings for improved matching functionality
-$string['suggested_match'] = 'Suggested Match';
+// Unassigned management
+$string['unassigned_records'] = 'Manage Unassigned Records';
+$string['manage_unassigned'] = 'Manage Unassigned Records';
+$string['manage_manual_assignments'] = 'Manage Manual Assignments';
+$string['no_unassigned'] = 'All attendance records have been assigned to users.';
+$string['unassigned_users_alert'] = 'There are {$a} unassigned attendance records that need manual review.';
+
+// Suggestions system - UPDATED FOR DUAL MATCHING
 $string['suggestions_found'] = '{$a} automatic matching suggestions found based on names';
-$string['no_suggestion'] = 'No suggestion';
+$string['suggestions_summary'] = 'Found {$a->total} total suggestions: {$a->name_matches} based on name similarity, {$a->email_matches} based on email patterns';
+$string['name_match_suggestion'] = 'Name-based suggestion (homonymy match)';
+$string['email_match_suggestion'] = 'Email-based suggestion (deduced from email address)';
+$string['no_suggestion'] = 'No automatic suggestion';
 $string['apply_suggestion'] = 'Apply this suggestion';
 $string['apply_selected_suggestions'] = 'Apply Selected Suggestions';
-$string['bulk_assignments_applied'] = '{$a} user assignments applied successfully';
-$string['no_assignments_applied'] = 'No assignments were applied';
-$string['select_suggestions_first'] = 'Please select at least one suggestion to apply';
-$string['confirm_bulk_assignment'] = 'Are you sure you want to apply {count} suggested assignments?';
+$string['bulk_assignments_applied'] = '{$a} assignments have been applied successfully.';
+$string['no_assignments_applied'] = 'No assignments were applied.';
 
-// New strings for visual styling
+// Color legend - UPDATED FOR THREE COLORS
 $string['color_legend'] = 'Color Legend';
-$string['suggested_matches'] = 'Suggested Matches';
-$string['no_matches'] = 'No Automatic Matches';
+$string['name_based_matches'] = 'Name-based suggestions (homonymy)';
+$string['email_based_matches'] = 'Email-based suggestions (from email)';
+$string['suggested_matches'] = 'Suggested matches';
+$string['no_matches'] = 'No automatic matches';
 
-// Error strings
-$string['required_attendance_error'] = 'Required attendance must be between 0 and 100.';
+// User assignment
+$string['select_user'] = 'Select user...';
+$string['assign'] = 'Assign';
+$string['user_assigned'] = 'User has been assigned successfully.';
+$string['user_assignment_failed'] = 'Failed to assign user. Please try again.';
+
+// JavaScript messages
+$string['select_user_first'] = 'Please select a user first.';
+$string['confirm_assignment'] = 'Are you sure you want to assign this record to {user}?';
+$string['select_suggestions_first'] = 'Please select at least one suggestion to apply.';
+$string['confirm_bulk_assignment'] = 'Are you sure you want to apply {count} selected suggestions?';
+
+// Error messages
+$string['meetingurl_required'] = 'Teams meeting URL is required.';
+$string['invalid_meetingurl'] = 'Please enter a valid Teams meeting URL.';
+$string['organizer_email_required'] = 'Meeting organizer email is required.';
+$string['invalid_email'] = 'Please enter a valid email address.';
+$string['meeting_start_time_required'] = 'Meeting start time is required.';
+$string['meeting_end_time_required'] = 'Meeting end time is required.';
+$string['end_time_after_start'] = 'End time must be after start time.';
+$string['invalid_meeting_duration'] = 'Invalid meeting duration.';
+$string['required_attendance_error'] = 'Required attendance must be between 0 and 100 percent.';
+
+// Help strings
+$string['required_attendance_help'] = 'Enter the minimum percentage of attendance required for students to complete this activity. Value must be between 0 and 100.';
+$string['expected_duration_help'] = 'This field shows the expected duration of the meeting in minutes, automatically calculated from the start and end times you set above.';
+$string['meetingurl_help'] = 'Select the Teams meeting from the available meetings in this course. If no meetings are available, you need to create a Teams meeting activity first.';
+$string['organizer_email_help'] = 'Enter the email address of the person who organized the Teams meeting. This email is used to authenticate with Microsoft Teams API and fetch attendance reports.';
+$string['meeting_start_time_help'] = 'Set the start time for this meeting session. This will be used to filter attendance reports to only include participants within this timeframe.';
+$string['meeting_end_time_help'] = 'Set the end time for this meeting session. This will be used to filter attendance reports to only include participants within this timeframe.';
+$string['completionattendance_help'] = 'If enabled, students will need to meet the minimum attendance percentage specified above to mark this activity as complete.';
+
+// API and system messages
+$string['missingapicredentials'] = 'Microsoft Graph API credentials are missing. Please configure the auth_oidc plugin.';
+$string['missingtenantid'] = 'Tenant ID is missing. Please configure it in the plugin settings.';
+$string['invalidaccesstoken'] = 'Failed to obtain valid access token from Microsoft Graph API.';
+$string['sessionnotfound'] = 'Teams attendance session not found.';
+$string['invalidattendanceformat'] = 'Invalid attendance data format received from Microsoft Teams API.';
+$string['attendancefetchfailed'] = 'Failed to fetch attendance data from Microsoft Teams.';
+$string['fetch_attendance_success'] = 'Attendance data has been successfully fetched from Microsoft Teams.';
+
+// Completion descriptions
+$string['completionattendance_desc'] = 'Student must achieve the required attendance percentage';
+
+// Capabilities
+$string['teamsattendance:view'] = 'View Teams attendance reports';
+$string['teamsattendance:manageattendance'] = 'Manage Teams attendance data';
+$string['teamsattendance:addinstance'] = 'Add Teams attendance activity';
+
+// Privacy
+$string['privacy:metadata'] = 'The Teams Meeting Attendance plugin stores attendance data fetched from Microsoft Teams.';
+$string['privacy:metadata:teamsattendance_data'] = 'Attendance records for Teams meetings';
+$string['privacy:metadata:teamsattendance_data:userid'] = 'The ID of the user';
+$string['privacy:metadata:teamsattendance_data:attendance_duration'] = 'Duration of attendance in the meeting';
+$string['privacy:metadata:teamsattendance_data:actual_attendance'] = 'Actual attendance percentage';
+$string['privacy:metadata:teamsattendance_data:completion_met'] = 'Whether completion criteria was met';
