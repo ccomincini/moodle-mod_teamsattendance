@@ -112,3 +112,8 @@ $string['bulk_assignments_applied'] = '{$a} user assignments applied successfull
 $string['no_assignments_applied'] = 'No assignments were applied';
 $string['select_suggestions_first'] = 'Please select at least one suggestion to apply';
 $string['confirm_bulk_assignment'] = 'Are you sure you want to apply {count} suggested assignments?';
+
+// New strings for visual styling
+$string['color_legend'] = 'Color Legend';
+$string['suggested_matches'] = 'Suggested Matches';
+$string['no_matches'] = 'No Automatic Matches';
