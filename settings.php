@@ -16,29 +16,54 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+// Only add settings if we're in the admin tree and this is a full tree build
 if ($ADMIN->fulltree) {
-    // Use a unique page name to avoid conflicts
-    $pagename = 'mod_teamsattendance_settings_v110';
-    
-    $settings = new admin_settingpage($pagename, get_string('pluginname', 'mod_teamsattendance'));
-    $ADMIN->add('modsettings', $settings);
+    // Create a unique settings page name that won't conflict
+    $settingspage = new admin_settingpage(
+        'mod_teamsattendance_settings',  // Unique page name
+        get_string('pluginname', 'mod_teamsattendance'),
+        'moodle/site:config'
+    );
 
-    $settings->add(new admin_setting_heading('mod_teamsattendance/settingsheader',
-        get_string('settingsheader', 'mod_teamsattendance'),
-        get_string('settingsheader_desc', 'mod_teamsattendance')));
+    // Add the settings page to the module settings section
+    if ($settingspage) {
+        $ADMIN->add('modsettings', $settingspage);
 
-    $settings->add(new admin_setting_configtext('mod_teamsattendance/tenantid',
-        get_string('tenantid', 'mod_teamsattendance'),
-        get_string('tenantid_desc', 'mod_teamsattendance'),
-        '', PARAM_TEXT));
+        // Add header for Microsoft Teams API settings
+        $settingspage->add(new admin_setting_heading(
+            'mod_teamsattendance/settingsheader',
+            get_string('settingsheader', 'mod_teamsattendance'),
+            get_string('settingsheader_desc', 'mod_teamsattendance')
+        ));
 
-    $settings->add(new admin_setting_configtext('mod_teamsattendance/apiendpoint',
-        get_string('apiendpoint', 'mod_teamsattendance'),
-        get_string('apiendpoint_desc', 'mod_teamsattendance'),
-        'https://graph.microsoft.com/v1.0', PARAM_URL));
+        // Tenant ID setting
+        $settingspage->add(new admin_setting_configtext(
+            'mod_teamsattendance/tenantid',
+            get_string('tenantid', 'mod_teamsattendance'),
+            get_string('tenantid_desc', 'mod_teamsattendance'),
+            '',
+            PARAM_TEXT,
+            50
+        ));
 
-    $settings->add(new admin_setting_configtext('mod_teamsattendance/apiversion',
-        get_string('apiversion', 'mod_teamsattendance'),
-        get_string('apiversion_desc', 'mod_teamsattendance'),
-        'v1.0', PARAM_TEXT));
+        // API Endpoint setting
+        $settingspage->add(new admin_setting_configtext(
+            'mod_teamsattendance/apiendpoint',
+            get_string('apiendpoint', 'mod_teamsattendance'),
+            get_string('apiendpoint_desc', 'mod_teamsattendance'),
+            'https://graph.microsoft.com/v1.0',
+            PARAM_URL,
+            50
+        ));
+
+        // API Version setting
+        $settingspage->add(new admin_setting_configtext(
+            'mod_teamsattendance/apiversion',
+            get_string('apiversion', 'mod_teamsattendance'),
+            get_string('apiversion_desc', 'mod_teamsattendance'),
+            'v1.0',
+            PARAM_TEXT,
+            20
+        ));
+    }
 }
