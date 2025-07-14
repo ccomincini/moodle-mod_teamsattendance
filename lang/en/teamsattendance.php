@@ -98,6 +98,17 @@ $string['manually_assigned_tooltip'] = 'This user was manually assigned by a tea
 $string['automatically_assigned_tooltip'] = 'This user was automatically assigned based on Teams data';
 $string['role'] = 'Roles';
 $string['pluginadministration'] = 'Teams Meeting Attendance Administration';
-// Added string for export button
-$string['exporttocsv'] = 'Export to CSV'; // Changed to CSV as the export is CSV
-$string['exporttoxlsx'] = 'Export to Excel (xslx'; // Changed to CSV as the export is CSV
+// Export strings
+$string['exporttocsv'] = 'Export to CSV';
+$string['exporttoxlsx'] = 'Export to Excel (xlsx)';
+
+// New strings for improved matching functionality
+$string['suggested_match'] = 'Suggested Match';
+$string['suggestions_found'] = '{$a} automatic matching suggestions found based on names';
+$string['no_suggestion'] = 'No suggestion';
+$string['apply_suggestion'] = 'Apply this suggestion';
+$string['apply_selected_suggestions'] = 'Apply Selected Suggestions';
+$string['bulk_assignments_applied'] = '{$a} user assignments applied successfully';
+$string['no_assignments_applied'] = 'No assignments were applied';
+$string['select_suggestions_first'] = 'Please select at least one suggestion to apply';
+$string['confirm_bulk_assignment'] = 'Are you sure you want to apply {count} suggested assignments?';
