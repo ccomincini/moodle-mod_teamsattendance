@@ -1,126 +1,168 @@
 <?php
-// Italian language file for Teams Meeting Attendance plugin.
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+/**
+ * Italian strings for teamsattendance
+ *
+ * @package    mod_teamsattendance
+ * @copyright  2025 Invisiblefarm srl
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
+
+// Plugin information
 $string['pluginname'] = 'Presenze Riunioni Teams';
+$string['pluginadministration'] = 'Amministrazione Presenze Riunioni Teams';
 $string['modulename'] = 'Presenze Riunioni Teams';
+$string['modulenameplural'] = 'Presenze Riunioni Teams';
+
+// Basic strings
+$string['description'] = 'Descrizione';
+$string['activityname'] = 'Nome attività';
+$string['meetingdetails'] = 'Dettagli riunione';
+$string['completionsettings'] = 'Impostazioni completamento';
+$string['minutes'] = 'minuti';
+
+// Meeting configuration
+$string['meetingurl'] = 'URL Riunione Teams';
+$string['meetingurl_help'] = 'Seleziona la riunione Teams per cui tracciare le presenze.';
+$string['organizer_email'] = 'Email Organizzatore Riunione';
+$string['organizer_email_help'] = 'Indirizzo email della persona che ha organizzato la riunione Teams. Necessario per recuperare i report delle presenze.';
+$string['meeting_start_time'] = 'Ora Inizio Riunione';
+$string['meeting_start_time_help'] = 'L\'ora di inizio della sessione di riunione per filtrare i report delle presenze.';
+$string['meeting_end_time'] = 'Ora Fine Riunione';
+$string['meeting_end_time_help'] = 'L\'ora di fine della sessione di riunione per filtrare i report delle presenze.';
 $string['expected_duration'] = 'Durata Prevista';
-$string['expected_duration_error'] = 'La durata prevista deve essere maggiore di 0.';
-$string['expected_duration_help'] = 'La durata prevista viene calcolata automaticamente dagli orari di inizio e fine della riunione. Questo valore viene utilizzato per calcolare le percentuali di presenza.';
-$string['minutes'] = 'Minuti';
-$string['hours'] = 'Ore';
-$string['completion_threshold'] = 'Soglia di Completamento';
-$string['meetingid'] = 'ID Riunione';
+$string['expected_duration_help'] = 'La durata prevista della riunione in minuti. Viene calcolata automaticamente dagli orari di inizio e fine.';
+$string['required_attendance'] = 'Presenza Richiesta (%)';
+$string['required_attendance_help'] = 'La percentuale minima di presenza richiesta per il completamento. Gli studenti devono partecipare almeno per questa percentuale della durata prevista della riunione.';
+
+// Completion
+$string['completionattendance'] = 'Lo studente deve soddisfare il requisito di presenza';
+$string['completionattendance_help'] = 'Se abilitato, gli studenti devono raggiungere la percentuale minima di presenza per completare questa attività.';
+$string['completionattendance_desc'] = 'Lo studente deve raggiungere la percentuale di presenza richiesta';
+
+// View page
 $string['attendance_register'] = 'Registro Presenze';
 $string['close_register'] = 'Chiudi Registro';
 $string['reopen_register'] = 'Riapri Registro';
-$string['register_closed'] = 'Il registro delle presenze è stato chiuso.';
-$string['register_reopened'] = 'Il registro delle presenze è stato riaperto.';
+$string['fetch_attendance'] = 'Recupera Dati Presenze';
+$string['fetch_warning'] = 'Questo recupererà gli ultimi dati di presenza da Microsoft Teams. Il processo potrebbe richiedere alcuni momenti.';
+$string['last_fetch_time'] = 'Ultimo aggiornamento: {$a}';
+$string['exporttocsv'] = 'Esporta in CSV';
+$string['exporttoxlsx'] = 'Esporta in Excel';
+
+// Table headers
 $string['cognome'] = 'Cognome';
 $string['nome'] = 'Nome';
-$string['codice_fiscale'] = 'Codice Fiscale';
-$string['tempo_totale'] = 'Tempo Totale (min)';
-$string['soglia_raggiunta'] = 'Soglia Raggiunta';
-$string['verify_completion_task'] = 'Verifica Attività Completamento';
-$string['activityname'] = 'Nome Attività';
-$string['description'] = 'Descrizione';
-$string['meetingdetails'] = 'Dettagli Riunione';
-$string['completion_threshold_error'] = 'La soglia di completamento deve essere compresa tra 0 e 100.';
-$string['modulenameplural'] = 'Presenze Riunioni Teams';
-$string['fetch_attendance'] = 'Recupera Presenze';
-$string['fetch_warning'] = 'Il recupero delle presenze aggiornerà i dati di presenza da Teams. Le assegnazioni manuali degli utenti saranno preservate.';
-$string['last_fetch_time'] = 'Ultimo aggiornamento: {$a}';
-$string['task_fetch_attendance'] = 'Recupera Presenze Riunioni Teams';
-$string['fetch_attendance_success'] = 'I dati delle presenze sono stati aggiornati con successo.';
-$string['fetch_attendance_error'] = 'Errore durante il recupero delle presenze. Per favore riprova.';
-$string['event_attendance_updated'] = 'Presenza aggiornata';
-$string['required_attendance'] = 'Percentuale Di Presenza Richiesta (%)';
-$string['required_attendance_help'] = 'Inserisci la percentuale minima di presenza richiesta per gli studenti per completare questa attività. Gli studenti devono partecipare almeno a questa percentuale della durata della riunione per soddisfare i criteri di completamento.';
-$string['meetingurl'] = 'Meeting Teams';
-$string['meetingurl_help'] = 'Seleziona la riunione Teams per cui tracciare le presenze tra le riunioni disponibili in questo corso.';
-$string['meetingurl_required'] = 'Devi selezionare un meeting Teams.';
-$string['invalid_meetingurl'] = 'URL del meeting Teams non valido.';
-$string['organizer_email'] = 'Email Organizzatore Meeting';
-$string['organizer_email_help'] = 'Inserisci l\'indirizzo email dell\'organizzatore del meeting. Questo è necessario per recuperare i report delle presenze da Microsoft Teams.';
-$string['organizer_email_required'] = 'Devi inserire l\'indirizzo email dell\'organizzatore del meeting.';
-$string['invalid_email'] = 'Formato indirizzo email non valido.';
-$string['meeting_start_time'] = 'Ora Inizio Meeting';
-$string['meeting_start_time_help'] = 'Specifica l\'ora di inizio della riunione. Viene utilizzata per filtrare i report delle presenze e calcolare la durata prevista.';
-$string['meeting_start_time_required'] = 'L\'ora di inizio della riunione è obbligatoria.';
-$string['meeting_end_time'] = 'Ora Fine Meeting';
-$string['meeting_end_time_help'] = 'Specifica l\'ora di fine della riunione. Viene utilizzata per filtrare i report delle presenze e calcolare la durata prevista.';
-$string['meeting_end_time_required'] = 'L\'ora di fine della riunione è obbligatoria.';
-$string['end_time_after_start'] = 'L\'ora di fine deve essere successiva all\'ora di inizio.';
-$string['invalid_meeting_duration'] = 'Durata della riunione non valida. Controlla gli orari di inizio e fine.';
-$string['completionsettings'] = 'Impostazioni di Completamento';
-$string['attendance_percentage'] = 'Percentuale Presenza';
-$string['total_duration'] = 'Durata Totale';
-$string['fetch_attendance_warnings'] = 'Ci sono stati {$a} avvisi durante il recupero dei dati di presenza.';
-$string['completionattendance'] = 'Richiedi presenza';
-$string['completionattendance_desc'] = 'Lo studente deve raggiungere la percentuale di presenza richiesta per completare questa attività';
-$string['completionattendance_help'] = 'Se abilitato, l\'attività è considerata completata quando lo studente raggiunge la percentuale di presenza richiesta.';
-$string['manage_unassigned'] = 'Gestisci Record Non Assegnati';
-$string['unassigned_records'] = 'Record di Presenza Non Assegnati';
-$string['teams_user'] = 'Utente Teams';
-$string['assign_user'] = 'Assegna Utente';
-$string['select_user'] = 'Seleziona Utente Moodle';
-$string['no_unassigned'] = 'Nessun record non assegnato trovato.';
-$string['user_assigned'] = 'Utente assegnato con successo.';
-$string['user_assignment_failed'] = 'Impossibile assegnare l\'utente.';
-$string['assign'] = 'Assegna';
-$string['select_user_first'] = 'Seleziona prima un utente.';
-$string['confirm_assignment'] = 'Sei sicuro di voler assegnare questo record a {user}?';
-$string['manual_assignments'] = 'Assegnazioni Manuali';
-$string['no_manual_assignments'] = 'Nessuna assegnazione manuale trovata.';
-$string['assigned_user'] = 'Utente Assegnato';
-$string['actions'] = 'Azioni';
-$string['reassign'] = 'Riassegna';
-$string['select_different_user'] = 'Seleziona utente diverso';
-$string['mark_automatic'] = 'Segna come Automatico';
-$string['user_reassigned'] = 'Utente riassegnato con successo.';
-$string['user_reassignment_failed'] = 'Impossibile riassegnare l\'utente.';
-$string['cannot_reassign_automatic'] = 'Impossibile riassegnare record assegnati automaticamente.';
-$string['marked_as_automatic'] = 'Record segnato come assegnazione automatica.';
-$string['mark_automatic_failed'] = 'Impossibile segnare il record come automatico.';
-$string['confirm_reassignment'] = 'Sei sicuro di voler riassegnare questo record a {user}?';
-$string['confirm_mark_automatic'] = 'Sei sicuro di voler segnare questa assegnazione come automatica? Questo rimuoverà il flag di assegnazione manuale.';
-$string['manage_manual_assignments'] = 'Gestisci Assegnazioni Manuali';
-$string['assignment_type'] = 'Tipo Assegnazione';
-$string['manual'] = 'Manuale';
-$string['automatic'] = 'Automatica';
-$string['manually_assigned_tooltip'] = 'Questo utente è stato assegnato manualmente da un insegnante';
-$string['automatically_assigned_tooltip'] = 'Questo utente è stato assegnato automaticamente basato sui dati di Teams';
-$string['settingsheader'] = 'Impostazioni API Microsoft Teams';
-$string['settingsheader_desc'] = 'Configura le impostazioni dell\'API Microsoft Teams per il tracciamento delle presenze.';
-$string['tenantid'] = 'ID Tenant';
-$string['tenantid_desc'] = 'Il tuo ID tenant Microsoft Azure AD. Necessario per l\'autenticazione API.';
-$string['apiendpoint'] = 'Endpoint API';
-$string['apiendpoint_desc'] = 'L\'URL dell\'endpoint Microsoft Graph API.';
-$string['apiversion'] = 'Versione API';
-$string['apiversion_desc'] = 'La versione dell\'API Microsoft Graph da utilizzare.';
-$string['missingtenantid'] = 'ID Tenant non configurato. Contatta l\'amministratore.';
-$string['unassigned_users_alert'] = 'Ci sono {$a} record di presenza non assegnati.';
-$string['unassigned_users_alert_desc'] = 'Questi record sono stati creati ma non sono stati assegnati a un utente Moodle. Per gestirli, puoi visitare la pagina di gestione delle presenze non assegnate.';
+$string['codice_fiscale'] = 'Codice ID';
 $string['role'] = 'Ruolo';
-$string['pluginadministration'] = 'Amministrazione Plugin';
-// Export strings
-$string['exporttocsv'] = 'Esporta la tabella come file CSV';
-$string['exporttoxlsx'] = 'Esporta la tabella come file excel (xlsx)';
-
-// New strings for improved matching functionality
+$string['tempo_totale'] = 'Tempo Totale';
+$string['attendance_percentage'] = 'Presenza %';
+$string['soglia_raggiunta'] = 'Soglia Raggiunta';
+$string['assignment_type'] = 'Tipo Assegnazione';
+$string['teams_user'] = 'Utente Teams';
 $string['suggested_match'] = 'Corrispondenza Suggerita';
+$string['assign_user'] = 'Assegna Utente';
+
+// Assignment types
+$string['manual'] = 'Manuale';
+$string['automatic'] = 'Automatico';
+$string['manually_assigned_tooltip'] = 'Questo utente è stato assegnato manualmente da un amministratore';
+$string['automatically_assigned_tooltip'] = 'Questo utente è stato associato automaticamente basandosi sull\'indirizzo email';
+
+// Unassigned management
+$string['unassigned_records'] = 'Gestisci Record Non Assegnati';
+$string['manage_unassigned'] = 'Gestisci Record Non Assegnati';
+$string['manage_manual_assignments'] = 'Gestisci Assegnazioni Manuali';
+$string['no_unassigned'] = 'Tutti i record di presenza sono stati assegnati agli utenti.';
+$string['unassigned_users_alert'] = 'Ci sono {$a} record di presenza non assegnati che necessitano revisione manuale.';
+
+// Suggestions system - UPDATED FOR DUAL MATCHING
 $string['suggestions_found'] = '{$a} suggerimenti automatici di corrispondenza trovati basati sui nomi';
-$string['no_suggestion'] = 'Nessun suggerimento';
+$string['suggestions_summary'] = 'Trovati {$a->total} suggerimenti totali: {$a->name_matches} basati su somiglianza dei nomi, {$a->email_matches} basati su pattern email';
+$string['name_match_suggestion'] = 'Corrispondenza suggerita per omonimia';
+$string['email_match_suggestion'] = 'Corrispondenza suggerita dedotta da indirizzo e-mail';
+$string['no_suggestion'] = 'Nessun suggerimento automatico';
 $string['apply_suggestion'] = 'Applica questo suggerimento';
 $string['apply_selected_suggestions'] = 'Applica Suggerimenti Selezionati';
-$string['bulk_assignments_applied'] = '{$a} assegnazioni utente applicate con successo';
-$string['no_assignments_applied'] = 'Nessuna assegnazione è stata applicata';
-$string['select_suggestions_first'] = 'Seleziona almeno un suggerimento da applicare';
-$string['confirm_bulk_assignment'] = 'Sei sicuro di voler applicare {count} assegnazioni suggerite?';
+$string['bulk_assignments_applied'] = '{$a} assegnazioni sono state applicate con successo.';
+$string['no_assignments_applied'] = 'Nessuna assegnazione è stata applicata.';
 
-// New strings for visual styling
+// Color legend - UPDATED FOR THREE COLORS
 $string['color_legend'] = 'Legenda Colori';
-$string['suggested_matches'] = 'Corrispondenze Suggerite';
-$string['no_matches'] = 'Nessuna Corrispondenza Automatica';
+$string['name_based_matches'] = 'Suggerimenti basati sui nomi (omonimia)';
+$string['email_based_matches'] = 'Suggerimenti basati sull\'email (dall\'indirizzo)';
+$string['suggested_matches'] = 'Corrispondenze suggerite';
+$string['no_matches'] = 'Nessuna corrispondenza automatica';
 
-// Error strings
-$string['required_attendance_error'] = 'La percentuale di presenza richiesta deve essere compresa tra 0 e 100.';
+// User assignment
+$string['select_user'] = 'Seleziona utente...';
+$string['assign'] = 'Assegna';
+$string['user_assigned'] = 'L\'utente è stato assegnato con successo.';
+$string['user_assignment_failed'] = 'Fallimento nell\'assegnazione dell\'utente. Riprova.';
+
+// JavaScript messages
+$string['select_user_first'] = 'Per favore seleziona prima un utente.';
+$string['confirm_assignment'] = 'Sei sicuro di voler assegnare questo record a {user}?';
+$string['select_suggestions_first'] = 'Per favore seleziona almeno un suggerimento da applicare.';
+$string['confirm_bulk_assignment'] = 'Sei sicuro di voler applicare {count} suggerimenti selezionati?';
+
+// Error messages
+$string['meetingurl_required'] = 'L\'URL della riunione Teams è richiesto.';
+$string['invalid_meetingurl'] = 'Per favore inserisci un URL valido per la riunione Teams.';
+$string['organizer_email_required'] = 'L\'email dell\'organizzatore della riunione è richiesta.';
+$string['invalid_email'] = 'Per favore inserisci un indirizzo email valido.';
+$string['meeting_start_time_required'] = 'L\'ora di inizio della riunione è richiesta.';
+$string['meeting_end_time_required'] = 'L\'ora di fine della riunione è richiesta.';
+$string['end_time_after_start'] = 'L\'ora di fine deve essere successiva all\'ora di inizio.';
+$string['invalid_meeting_duration'] = 'Durata della riunione non valida.';
+$string['required_attendance_error'] = 'La presenza richiesta deve essere tra 0 e 100 percento.';
+
+// Help strings
+$string['required_attendance_help'] = 'Inserisci la percentuale minima di presenza richiesta agli studenti per completare questa attività. Il valore deve essere tra 0 e 100.';
+$string['expected_duration_help'] = 'Questo campo mostra la durata prevista della riunione in minuti, calcolata automaticamente dagli orari di inizio e fine impostati sopra.';
+$string['meetingurl_help'] = 'Seleziona la riunione Teams dalle riunioni disponibili in questo corso. Se non sono disponibili riunioni, devi prima creare un\'attività riunione Teams.';
+$string['organizer_email_help'] = 'Inserisci l\'indirizzo email della persona che ha organizzato la riunione Teams. Questa email viene utilizzata per autenticarsi con l\'API Microsoft Teams e recuperare i report delle presenze.';
+$string['meeting_start_time_help'] = 'Imposta l\'ora di inizio per questa sessione di riunione. Verrà utilizzata per filtrare i report delle presenze per includere solo i partecipanti in questo intervallo di tempo.';
+$string['meeting_end_time_help'] = 'Imposta l\'ora di fine per questa sessione di riunione. Verrà utilizzata per filtrare i report delle presenze per includere solo i partecipanti in questo intervallo di tempo.';
+$string['completionattendance_help'] = 'Se abilitato, gli studenti dovranno raggiungere la percentuale minima di presenza specificata sopra per contrassegnare questa attività come completata.';
+
+// API and system messages
+$string['missingapicredentials'] = 'Le credenziali API Microsoft Graph sono mancanti. Per favore configura il plugin auth_oidc.';
+$string['missingtenantid'] = 'L\'ID tenant è mancante. Per favore configuralo nelle impostazioni del plugin.';
+$string['invalidaccesstoken'] = 'Fallimento nell\'ottenere un token di accesso valido dall\'API Microsoft Graph.';
+$string['sessionnotfound'] = 'Sessione di presenza Teams non trovata.';
+$string['invalidattendanceformat'] = 'Formato dati di presenza non valido ricevuto dall\'API Microsoft Teams.';
+$string['attendancefetchfailed'] = 'Fallimento nel recuperare i dati di presenza da Microsoft Teams.';
+$string['fetch_attendance_success'] = 'I dati di presenza sono stati recuperati con successo da Microsoft Teams.';
+
+// Completion descriptions
+$string['completionattendance_desc'] = 'Lo studente deve raggiungere la percentuale di presenza richiesta';
+
+// Capabilities
+$string['teamsattendance:view'] = 'Visualizza report presenze Teams';
+$string['teamsattendance:manageattendance'] = 'Gestisci dati presenze Teams';
+$string['teamsattendance:addinstance'] = 'Aggiungi attività presenze Teams';
+
+// Privacy
+$string['privacy:metadata'] = 'Il plugin Presenze Riunioni Teams memorizza dati di presenza recuperati da Microsoft Teams.';
+$string['privacy:metadata:teamsattendance_data'] = 'Record di presenza per riunioni Teams';
+$string['privacy:metadata:teamsattendance_data:userid'] = 'L\'ID dell\'utente';
+$string['privacy:metadata:teamsattendance_data:attendance_duration'] = 'Durata della presenza nella riunione';
+$string['privacy:metadata:teamsattendance_data:actual_attendance'] = 'Percentuale di presenza effettiva';
+$string['privacy:metadata:teamsattendance_data:completion_met'] = 'Se i criteri di completamento sono stati soddisfatti';
