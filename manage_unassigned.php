@@ -1,177 +1,163 @@
-        );
-    }
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Manage unassigned Teams attendance records
+ *
+ * @package    mod_teamsattendance
+ * @copyright  2025 Invisiblefarm srl
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+require_once('../../config.php');
+require_once($CFG->dirroot.'/mod/teamsattendance/lib.php');
+
+// Load our modular components
+require_once($CFG->dirroot . '/mod/teamsattendance/classes/suggestion_engine.php');
+require_once($CFG->dirroot . '/mod/teamsattendance/classes/user_assignment_handler.php');
+require_once($CFG->dirroot . '/mod/teamsattendance/classes/ui_renderer.php');
+
+// Get parameters
+$id = required_param('id', PARAM_INT); // Course module ID
+$action = optional_param('action', '', PARAM_ALPHA);
+$recordid = optional_param('recordid', 0, PARAM_INT);
+$userid = optional_param('userid', 0, PARAM_INT);
+
+// Initialize Moodle objects
+$cm = get_coursemodule_from_id('teamsattendance', $id, 0, false, MUST_EXIST);
+$course = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
+$teamsattendance = $DB->get_record('teamsattendance', array('id' => $cm->instance), '*', MUST_EXIST);
+
+// Security checks
+require_login($course, true, $cm);
+require_capability('mod/teamsattendance:manageattendance', context_module::instance($cm->id));
+
+// Setup page
+$PAGE->set_url('/mod/teamsattendance/manage_unassigned.php', array('id' => $cm->id));
+$PAGE->set_title(format_string($teamsattendance->name));
+$PAGE->set_heading(format_string($course->fullname));
+
+// Initialize our modular components
+$assignment_handler = new user_assignment_handler($cm, $teamsattendance, $course);
+$ui_renderer = new ui_renderer($cm, $PAGE->url);
+
+// ========================= ACTION HANDLERS =========================
+
+// Handle bulk application of suggested matches
+if ($action === 'apply_bulk_suggestions' && confirm_sesskey()) {
+    $suggestions = optional_param_array('suggestions', array(), PARAM_INT);
+    $result = $assignment_handler->apply_bulk_suggestions($suggestions);
     
-    // Sort by lastname first, then firstname (Italian standard)
-    usort($sortable_users, function($a, $b) {
-        $lastname_comparison = strcasecmp($a['lastname'], $b['lastname']);
-        if ($lastname_comparison === 0) {
-            return strcasecmp($a['firstname'], $b['firstname']);
+    if ($result['applied_count'] > 0) {
+        $message = get_string('bulk_assignments_applied', 'mod_teamsattendance', $result['applied_count']);
+        if (!empty($result['errors'])) {
+            $message .= ' ' . get_string('some_errors_occurred', 'mod_teamsattendance');
         }
-        return $lastname_comparison;
-    });
-    
-    // Build the final array for the dropdown
-    foreach ($sortable_users as $user_data) {
-        $userlist[$user_data['id']] = $user_data['display_name'];
+        redirect($PAGE->url, $message);
+    } else {
+        $error_message = get_string('no_assignments_applied', 'mod_teamsattendance');
+        if (!empty($result['errors'])) {
+            $error_message .= ' ' . implode('; ', $result['errors']);
+        }
+        redirect($PAGE->url, $error_message);
     }
-    
-    return $userlist;
 }
 
-function add_custom_css() {
-    echo html_writer::start_tag('style', array('type' => 'text/css'));
-    echo '
-        /* Styling for name-based suggested match rows */
-        .manage-unassigned-table tr.suggested-match-row {
-            background-color: #d4edda !important; /* Light green background */
-            border-left: 4px solid #28a745; /* Green left border */
-        }
-        
-        /* Styling for email-based suggested match rows */
-        .manage-unassigned-table tr.email-match-row {
-            background-color: #e8d5ff !important; /* Light purple background */
-            border-left: 4px solid #8b5cf6; /* Purple left border */
-        }
-        
-        /* Styling for no match rows */
-        .manage-unassigned-table tr.no-match-row {
-            background-color: #fff3cd !important; /* Light orange background */
-            border-left: 4px solid #ffc107; /* Orange left border */
-        }
-        
-        /* Hover effects */
-        .manage-unassigned-table tr.suggested-match-row:hover {
-            background-color: #c3e6cb !important; /* Slightly darker green on hover */
-        }
-        
-        .manage-unassigned-table tr.email-match-row:hover {
-            background-color: #ddd6fe !important; /* Slightly darker purple on hover */
-        }
-        
-        .manage-unassigned-table tr.no-match-row:hover {
-            background-color: #ffeaa7 !important; /* Slightly darker orange on hover */
-        }
-        
-        /* Legend for color coding */
-        .color-legend {
-            margin: 15px 0;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: #f8f9fa;
-        }
-        
-        .legend-item {
-            display: inline-block;
-            margin-right: 20px;
-            padding: 5px 10px;
-            border-radius: 3px;
-        }
-        
-        .legend-suggested {
-            background-color: #d4edda;
-            border-left: 4px solid #28a745;
-        }
-        
-        .legend-email {
-            background-color: #e8d5ff;
-            border-left: 4px solid #8b5cf6;
-        }
-        
-        .legend-no-match {
-            background-color: #fff3cd;
-            border-left: 4px solid #ffc107;
-        }
-        
-        /* Make suggested checkboxes more prominent */
-        .suggested-match-row input[type="checkbox"],
-        .email-match-row input[type="checkbox"] {
-            transform: scale(1.2);
-            margin-right: 5px;
-        }
-        
-        /* Styling for suggestion type labels */
-        .suggestion-type-label {
-            font-weight: bold;
-            font-style: italic;
-        }
-    ';
-    echo html_writer::end_tag('style');
+// Handle single user assignment
+if ($action === 'assign' && $recordid && $userid && confirm_sesskey()) {
+    $result = $assignment_handler->assign_single_user($recordid, $userid);
     
-    // Add color legend
-    echo html_writer::start_tag('div', array('class' => 'color-legend'));
-    echo html_writer::tag('strong', get_string('color_legend', 'mod_teamsattendance') . ': ');
-    echo html_writer::tag('span', 
-        get_string('name_based_matches', 'mod_teamsattendance'), 
-        array('class' => 'legend-item legend-suggested')
-    );
-    echo html_writer::tag('span', 
-        get_string('email_based_matches', 'mod_teamsattendance'), 
-        array('class' => 'legend-item legend-email')
-    );
-    echo html_writer::tag('span', 
-        get_string('no_matches', 'mod_teamsattendance'), 
-        array('class' => 'legend-item legend-no-match')
-    );
-    echo html_writer::end_tag('div');
+    if ($result['success']) {
+        redirect($PAGE->url, get_string('user_assigned', 'mod_teamsattendance'));
+    } else {
+        redirect($PAGE->url, get_string('user_assignment_failed', 'mod_teamsattendance') . ': ' . $result['error']);
+    }
 }
 
-function add_javascript_functions() {
-    echo html_writer::start_tag('script', array('type' => 'text/javascript'));
-    echo '
-        function enableAssignButton(recordId) {
-            var select = document.getElementById("user_selector_" + recordId);
-            var button = document.getElementById("assign_btn_" + recordId);
-            
-            if (select.value !== "") {
-                button.disabled = false;
-            } else {
-                button.disabled = true;
-            }
-        }
-        
-        function confirmAssignment(form) {
-            var select = form.querySelector("select[name=\'userid\']");
-            var selectedOption = select.options[select.selectedIndex];
-            
-            if (select.value === "") {
-                alert("' . get_string('select_user_first', 'mod_teamsattendance') . '");
-                return false;
-            }
-            
-            var userName = selectedOption.text;
-            var confirmMessage = "' . get_string('confirm_assignment', 'mod_teamsattendance') . '".replace("{user}", userName);
-            
-            return confirm(confirmMessage);
-        }
-        
-        function confirmBulkAssignment() {
-            var checkedBoxes = document.querySelectorAll("input[name^=\'suggestions[\']:checked");
-            
-            if (checkedBoxes.length === 0) {
-                alert("' . get_string('select_suggestions_first', 'mod_teamsattendance') . '");
-                return false;
-            }
-            
-            var confirmMessage = "' . get_string('confirm_bulk_assignment', 'mod_teamsattendance') . '".replace("{count}", checkedBoxes.length);
-            
-            return confirm(confirmMessage);
-        }
-        
-        // Add visual feedback when suggestions are selected/deselected
-        document.addEventListener("DOMContentLoaded", function() {
-            var checkboxes = document.querySelectorAll("input[name^=\'suggestions[\']");
-            checkboxes.forEach(function(checkbox) {
-                checkbox.addEventListener("change", function() {
-                    var row = this.closest("tr");
-                    if (this.checked) {
-                        row.style.boxShadow = "0 0 10px rgba(40, 167, 69, 0.5)";
-                    } else {
-                        row.style.boxShadow = "none";
-                    }
-                });
-            });
-        });
-    ';
-    echo html_writer::end_tag('script');
+// ========================= DATA PREPARATION =========================
+
+// Get unassigned records and available users
+$unassigned_records = $assignment_handler->get_unassigned_records();
+$available_users = $assignment_handler->get_available_users();
+
+// Generate suggestions if we have unassigned records
+$all_suggestions = array();
+$sorted_unassigned = array();
+
+if (!empty($unassigned_records)) {
+    // Initialize suggestion engine
+    $suggestion_engine = new suggestion_engine($available_users);
+    
+    // Generate suggestions
+    $all_suggestions = $suggestion_engine->generate_suggestions($unassigned_records);
+    
+    // Sort records by suggestion priority
+    $sorted_unassigned = $suggestion_engine->sort_records_by_suggestion_types($unassigned_records, $all_suggestions);
+    
+    // Get suggestion statistics
+    $suggestion_stats = $suggestion_engine->get_suggestion_statistics($all_suggestions);
+} else {
+    $suggestion_stats = array('total' => 0, 'name_based' => 0, 'email_based' => 0);
 }
+
+// Get assignment statistics
+$assignment_stats = $assignment_handler->get_assignment_statistics();
+
+// ========================= PAGE OUTPUT =========================
+
+echo $OUTPUT->header();
+echo $OUTPUT->heading(get_string('unassigned_records', 'mod_teamsattendance'));
+
+// Add custom CSS
+echo $ui_renderer->render_custom_css();
+
+// Add color legend
+echo $ui_renderer->render_color_legend();
+
+// Show assignment statistics
+if ($assignment_stats['total_records'] > 0) {
+    echo $ui_renderer->render_statistics_box($assignment_stats);
+}
+
+if (empty($unassigned_records)) {
+    // No unassigned records
+    echo $ui_renderer->render_no_unassigned_state();
+} else {
+    // Show suggestions summary
+    echo $ui_renderer->render_suggestions_summary($all_suggestions);
+    
+    // Start bulk suggestions form if we have suggestions
+    if ($suggestion_stats['total'] > 0) {
+        echo $ui_renderer->start_bulk_suggestions_form();
+    }
+    
+    // Render action buttons
+    echo $ui_renderer->render_action_buttons($suggestion_stats['total'] > 0);
+    
+    // Render main table
+    echo $ui_renderer->render_unassigned_table($sorted_unassigned, $all_suggestions, $available_users);
+    
+    // End bulk suggestions form if we have suggestions
+    if ($suggestion_stats['total'] > 0) {
+        echo $ui_renderer->end_bulk_suggestions_form($suggestion_stats['total']);
+    }
+    
+    // Add JavaScript functionality
+    echo $ui_renderer->render_javascript();
+    echo $ui_renderer->render_additional_javascript();
+}
+
+echo $OUTPUT->footer();
