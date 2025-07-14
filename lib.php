@@ -198,14 +198,18 @@ function teamsattendance_add_instance($data, $mform)
     $record->start_datetime = isset($data->start_datetime) ? $data->start_datetime : 0;
     $record->end_datetime = isset($data->end_datetime) ? $data->end_datetime : 0;
 
-    // Convert duration to seconds if hours were selected
-    $duration = $data->expected_duration;
-    if ($data->duration_unit === 'hours') {
-        $duration *= 3600; // Convert hours to seconds
+    // Calculate duration from start and end datetime (automatically calculated in form)
+    // The expected_duration from the form is already in minutes, convert to seconds for storage
+    if (isset($data->expected_duration) && $data->expected_duration > 0) {
+        $record->expected_duration = $data->expected_duration * 60; // Convert minutes to seconds
+    } else if (!empty($data->start_datetime) && !empty($data->end_datetime)) {
+        // Fallback: calculate from datetime if expected_duration is not provided
+        $duration_seconds = $data->end_datetime - $data->start_datetime;
+        $record->expected_duration = $duration_seconds;
     } else {
-        $duration *= 60; // Convert minutes to seconds
+        // Default duration if no datetime provided
+        $record->expected_duration = 3600; // 1 hour in seconds
     }
-    $record->expected_duration = $duration;
 
     $record->required_attendance = $data->required_attendance;
     $record->status = 'open'; // Open by default
@@ -243,14 +247,19 @@ function teamsattendance_update_instance($data, $mform)
     $record->start_datetime = isset($data->start_datetime) ? $data->start_datetime : 0;
     $record->end_datetime = isset($data->end_datetime) ? $data->end_datetime : 0;
 
-    // Convert duration to seconds if hours were selected
-    $duration = $data->expected_duration;
-    if ($data->duration_unit === 'hours') {
-        $duration *= 3600; // Convert hours to seconds
+    // Calculate duration from start and end datetime (automatically calculated in form)
+    // The expected_duration from the form is already in minutes, convert to seconds for storage
+    if (isset($data->expected_duration) && $data->expected_duration > 0) {
+        $record->expected_duration = $data->expected_duration * 60; // Convert minutes to seconds
+    } else if (!empty($data->start_datetime) && !empty($data->end_datetime)) {
+        // Fallback: calculate from datetime if expected_duration is not provided
+        $duration_seconds = $data->end_datetime - $data->start_datetime;
+        $record->expected_duration = $duration_seconds;
     } else {
-        $duration *= 60; // Convert minutes to seconds
+        // Keep existing duration if no new data provided
+        $existing = $DB->get_record('teamsattendance', ['id' => $data->instance], 'expected_duration');
+        $record->expected_duration = $existing ? $existing->expected_duration : 3600;
     }
-    $record->expected_duration = $duration;
 
     $record->required_attendance = $data->required_attendance;
     $record->timemodified = time();
@@ -591,5 +600,3 @@ function mod_teamsattendance_get_completion_active_rule_descriptions($cm)
     }
     return $descriptions;
 }
-
-
