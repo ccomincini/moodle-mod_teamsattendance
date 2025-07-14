@@ -18,18 +18,18 @@
  * Version metadata for the mod_teamsattendance plugin.
  *
  * @package   mod_teamsattendance
- * @copyright 2025, author_fullname <author_link>
+ * @copyright 2025, Carlo Comincini <carlo@comincini.it>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2025062300; // The current plugin version (Date: YYYYMMDDXX).
+$plugin->version = 2025071400; // The current plugin version (Date: YYYYMMDDXX).
 $plugin->requires = 2022112800; // Requires this Moodle version.
 $plugin->supported = [39, 40];   // Available as of Moodle 3.9.0 or later.
 $plugin->component = 'mod_teamsattendance'; // Full name of the plugin (used for diagnostics).
 $plugin->maturity = MATURITY_STABLE; // This version's maturity level.
-$plugin->release = 'v1.0.7'; // Human-readable version name.
+$plugin->release = 'v1.1.0'; // Human-readable version name.
 
 // Register the module's icon
 $plugin->icon = 'pix/icon.svg';
