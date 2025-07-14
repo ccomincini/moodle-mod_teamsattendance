@@ -21,6 +21,7 @@ $id = required_param('id', PARAM_INT); // Course module ID
 $action = optional_param('action', '', PARAM_ALPHA);
 $recordid = optional_param('recordid', 0, PARAM_INT);
 $userid = optional_param('userid', 0, PARAM_INT);
+$apply_suggestions = optional_param('apply_suggestions', 0, PARAM_INT);
 
 $cm = get_coursemodule_from_id('teamsattendance', $id, 0, false, MUST_EXIST);
 $course = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
@@ -33,7 +34,31 @@ $PAGE->set_url('/mod/teamsattendance/manage_unassigned.php', array('id' => $cm->
 $PAGE->set_title(format_string($teamsattendance->name));
 $PAGE->set_heading(format_string($course->fullname));
 
-// Handle user assignment
+// Handle bulk application of suggested matches
+if ($action === 'apply_bulk_suggestions' && confirm_sesskey()) {
+    $suggestions = optional_param_array('suggestions', array(), PARAM_INT);
+    $applied_count = 0;
+    
+    foreach ($suggestions as $recordid => $suggested_userid) {
+        if ($recordid && $suggested_userid) {
+            $record = $DB->get_record('teamsattendance_data', array('id' => $recordid), '*', MUST_EXIST);
+            $record->userid = $suggested_userid;
+            $record->manually_assigned = 1;
+            
+            if ($DB->update_record('teamsattendance_data', $record)) {
+                $applied_count++;
+            }
+        }
+    }
+    
+    if ($applied_count > 0) {
+        redirect($PAGE->url, get_string('bulk_assignments_applied', 'mod_teamsattendance', $applied_count));
+    } else {
+        redirect($PAGE->url, get_string('no_assignments_applied', 'mod_teamsattendance'));
+    }
+}
+
+// Handle single user assignment
 if ($action === 'assign' && $recordid && $userid && confirm_sesskey()) {
     $record = $DB->get_record('teamsattendance_data', array('id' => $recordid), '*', MUST_EXIST);
     $record->userid = $userid;
@@ -55,22 +80,73 @@ $unassigned = $DB->get_records_sql("
     ORDER BY tad.teams_user_id
 ", array($teamsattendance->id, $CFG->siteguest));
 
+// Get course users and already assigned users
+$available_users = get_available_users_for_assignment();
+$name_suggestions = get_name_based_suggestions($unassigned, $available_users);
+
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('unassigned_records', 'mod_teamsattendance'));
 
 if (empty($unassigned)) {
     echo $OUTPUT->notification(get_string('no_unassigned', 'mod_teamsattendance'), 'notifymessage');
 } else {
+    // Show suggestions summary
+    $suggestion_count = count(array_filter($name_suggestions));
+    if ($suggestion_count > 0) {
+        echo $OUTPUT->notification(
+            get_string('suggestions_found', 'mod_teamsattendance', $suggestion_count), 
+            'notifysuccess'
+        );
+        
+        // Bulk apply suggestions form
+        echo html_writer::start_tag('form', array(
+            'method' => 'post',
+            'action' => $PAGE->url->out(),
+            'id' => 'bulk_suggestions_form'
+        ));
+        
+        echo html_writer::empty_tag('input', array(
+            'type' => 'hidden',
+            'name' => 'action',
+            'value' => 'apply_bulk_suggestions'
+        ));
+        
+        echo html_writer::empty_tag('input', array(
+            'type' => 'hidden',
+            'name' => 'sesskey',
+            'value' => sesskey()
+        ));
+    }
+    
     $table = new html_table();
     $table->head = array(
         get_string('teams_user', 'mod_teamsattendance'),
         get_string('tempo_totale', 'mod_teamsattendance'),
         get_string('attendance_percentage', 'mod_teamsattendance'),
+        get_string('suggested_match', 'mod_teamsattendance'),
         get_string('assign_user', 'mod_teamsattendance')
     );
 
     foreach ($unassigned as $record) {
-        // Create a form for user assignment with confirmation
+        // Check for name-based suggestion
+        $suggested_user = isset($name_suggestions[$record->id]) ? $name_suggestions[$record->id] : null;
+        $suggestion_cell = '';
+        
+        if ($suggested_user) {
+            $suggestion_cell = html_writer::tag('div', 
+                html_writer::tag('strong', fullname($suggested_user), array('class' => 'text-success')) .
+                html_writer::tag('br') .
+                html_writer::tag('small', $suggested_user->email, array('class' => 'text-muted')) .
+                html_writer::tag('br') .
+                html_writer::checkbox('suggestions[' . $record->id . ']', $suggested_user->id, true, 
+                    get_string('apply_suggestion', 'mod_teamsattendance'))
+            );
+        } else {
+            $suggestion_cell = html_writer::tag('em', get_string('no_suggestion', 'mod_teamsattendance'), 
+                array('class' => 'text-muted'));
+        }
+        
+        // Create manual assignment form
         $assign_form = html_writer::start_tag('form', array(
             'method' => 'post',
             'action' => $PAGE->url->out(),
@@ -97,7 +173,7 @@ if (empty($unassigned)) {
         ));
         
         $assign_form .= html_writer::select(
-            get_users_list(),
+            get_filtered_users_list($available_users),
             'userid',
             null,
             array('' => get_string('select_user', 'mod_teamsattendance')),
@@ -114,7 +190,7 @@ if (empty($unassigned)) {
             'value' => get_string('assign', 'mod_teamsattendance'),
             'id' => 'assign_btn_' . $record->id,
             'disabled' => 'disabled',
-            'class' => 'btn btn-primary'
+            'class' => 'btn btn-primary btn-sm'
         ));
         
         $assign_form .= html_writer::end_tag('form');
@@ -123,13 +199,229 @@ if (empty($unassigned)) {
             $record->teams_user_id,
             format_time($record->attendance_duration),
             $record->actual_attendance . '%',
+            $suggestion_cell,
             $assign_form
         );
     }
 
     echo html_writer::table($table);
     
-    // Add JavaScript for confirmation and button enabling
+    // Close bulk suggestions form and add apply button
+    if ($suggestion_count > 0) {
+        echo html_writer::tag('div', 
+            html_writer::empty_tag('input', array(
+                'type' => 'submit',
+                'value' => get_string('apply_selected_suggestions', 'mod_teamsattendance'),
+                'class' => 'btn btn-success btn-lg',
+                'onclick' => 'return confirmBulkAssignment();'
+            )),
+            array('class' => 'text-center mt-3')
+        );
+        
+        echo html_writer::end_tag('form');
+    }
+    
+    // Add JavaScript for functionality
+    add_javascript_functions();
+}
+
+echo $OUTPUT->footer();
+
+/**
+ * Get available users for assignment (excluding already assigned ones)
+ *
+ * @return array Array of user objects
+ */
+function get_available_users_for_assignment() {
+    global $DB, $COURSE, $teamsattendance;
+    
+    $context = context_course::instance($COURSE->id);
+    $enrolled_users = get_enrolled_users($context);
+    
+    // Get already assigned user IDs for this session
+    $assigned_userids = $DB->get_fieldset_select(
+        'teamsattendance_data',
+        'userid',
+        'sessionid = ? AND userid != ?',
+        array($teamsattendance->id, $GLOBALS['CFG']->siteguest)
+    );
+    
+    // Filter out already assigned users
+    $available_users = array();
+    foreach ($enrolled_users as $user) {
+        if (!in_array($user->id, $assigned_userids)) {
+            $available_users[$user->id] = $user;
+        }
+    }
+    
+    return $available_users;
+}
+
+/**
+ * Get name-based matching suggestions
+ *
+ * @param array $unassigned_records Unassigned records from Teams
+ * @param array $available_users Available Moodle users
+ * @return array Array of record_id => user_object suggestions
+ */
+function get_name_based_suggestions($unassigned_records, $available_users) {
+    $suggestions = array();
+    
+    foreach ($unassigned_records as $record) {
+        // Parse Teams user name (assuming format like "LastName, FirstName" or "FirstName LastName")
+        $teams_name = trim($record->teams_user_id);
+        
+        // Try different name parsing approaches
+        $parsed_names = parse_teams_name($teams_name);
+        
+        if (!empty($parsed_names)) {
+            $best_match = find_best_name_match($parsed_names, $available_users);
+            if ($best_match) {
+                $suggestions[$record->id] = $best_match;
+            }
+        }
+    }
+    
+    return $suggestions;
+}
+
+/**
+ * Parse Teams user name into possible first/last name combinations
+ *
+ * @param string $teams_name Name from Teams
+ * @return array Array of possible name combinations
+ */
+function parse_teams_name($teams_name) {
+    $names = array();
+    
+    // Remove common separators and clean up
+    $clean_name = preg_replace('/[,;|]/', ' ', $teams_name);
+    $clean_name = preg_replace('/\s+/', ' ', trim($clean_name));
+    
+    if (empty($clean_name)) {
+        return $names;
+    }
+    
+    $parts = explode(' ', $clean_name);
+    $parts = array_filter($parts); // Remove empty parts
+    
+    if (count($parts) >= 2) {
+        // Try "LastName, FirstName" format
+        if (strpos($teams_name, ',') !== false) {
+            $comma_parts = array_map('trim', explode(',', $teams_name));
+            if (count($comma_parts) >= 2) {
+                $names[] = array(
+                    'firstname' => $comma_parts[1],
+                    'lastname' => $comma_parts[0]
+                );
+            }
+        }
+        
+        // Try "FirstName LastName" format
+        $names[] = array(
+            'firstname' => $parts[0],
+            'lastname' => $parts[count($parts) - 1]
+        );
+        
+        // Try "LastName FirstName" format
+        $names[] = array(
+            'firstname' => $parts[count($parts) - 1],
+            'lastname' => $parts[0]
+        );
+        
+        // If more than 2 parts, try middle combinations
+        if (count($parts) > 2) {
+            $names[] = array(
+                'firstname' => $parts[0] . ' ' . $parts[1],
+                'lastname' => $parts[count($parts) - 1]
+            );
+        }
+    }
+    
+    return $names;
+}
+
+/**
+ * Find best matching user based on name similarity
+ *
+ * @param array $parsed_names Array of possible name combinations
+ * @param array $available_users Available Moodle users
+ * @return object|null Best matching user object or null
+ */
+function find_best_name_match($parsed_names, $available_users) {
+    $best_match = null;
+    $best_score = 0;
+    
+    foreach ($parsed_names as $name_combo) {
+        foreach ($available_users as $user) {
+            $score = calculate_name_similarity($name_combo, $user);
+            
+            if ($score > $best_score && $score >= 0.8) { // Minimum 80% similarity
+                $best_score = $score;
+                $best_match = $user;
+            }
+        }
+    }
+    
+    return $best_match;
+}
+
+/**
+ * Calculate name similarity between parsed name and user
+ *
+ * @param array $parsed_name Parsed name array with firstname/lastname
+ * @param object $user Moodle user object
+ * @return float Similarity score (0-1)
+ */
+function calculate_name_similarity($parsed_name, $user) {
+    $firstname_similarity = similarity_score(
+        strtolower($parsed_name['firstname']), 
+        strtolower($user->firstname)
+    );
+    
+    $lastname_similarity = similarity_score(
+        strtolower($parsed_name['lastname']), 
+        strtolower($user->lastname)
+    );
+    
+    // Weight both names equally
+    return ($firstname_similarity + $lastname_similarity) / 2;
+}
+
+/**
+ * Calculate similarity between two strings
+ *
+ * @param string $str1 First string
+ * @param string $str2 Second string
+ * @return float Similarity score (0-1)
+ */
+function similarity_score($str1, $str2) {
+    // Use Levenshtein distance for similarity
+    $max_len = max(strlen($str1), strlen($str2));
+    if ($max_len == 0) return 1.0;
+    
+    $distance = levenshtein($str1, $str2);
+    return 1 - ($distance / $max_len);
+}
+
+/**
+ * Get filtered user list for dropdown (only available users)
+ *
+ * @param array $available_users Available users
+ * @return array Array of userid => fullname for dropdown
+ */
+function get_filtered_users_list($available_users) {
+    $userlist = array();
+    foreach ($available_users as $user) {
+        $userlist[$user->id] = fullname($user) . ' (' . $user->email . ')';
+    }
+    return $userlist;
+}
+
+/**
+ * Add JavaScript functions for form interaction
+ */
+function add_javascript_functions() {
     echo html_writer::start_tag('script', array('type' => 'text/javascript'));
     echo '
         function enableAssignButton(recordId) {
@@ -157,27 +449,19 @@ if (empty($unassigned)) {
             
             return confirm(confirmMessage);
         }
+        
+        function confirmBulkAssignment() {
+            var checkedBoxes = document.querySelectorAll("input[name^=\'suggestions[\']:checked");
+            
+            if (checkedBoxes.length === 0) {
+                alert("' . get_string('select_suggestions_first', 'mod_teamsattendance') . '");
+                return false;
+            }
+            
+            var confirmMessage = "' . get_string('confirm_bulk_assignment', 'mod_teamsattendance') . '".replace("{count}", checkedBoxes.length);
+            
+            return confirm(confirmMessage);
+        }
     ';
     echo html_writer::end_tag('script');
 }
-
-echo $OUTPUT->footer();
-
-/**
- * Get a list of users for the selector
- *
- * @return array Array of userid => fullname
- */
-function get_users_list() {
-    global $DB, $COURSE;
-    
-    $context = context_course::instance($COURSE->id);
-    $users = get_enrolled_users($context);
-    
-    $userlist = array();
-    foreach ($users as $user) {
-        $userlist[$user->id] = fullname($user) . ' (' . $user->email . ')';
-    }
-    
-    return $userlist;
-} 
