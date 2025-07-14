@@ -112,3 +112,8 @@ $string['bulk_assignments_applied'] = '{$a} assegnazioni utente applicate con su
 $string['no_assignments_applied'] = 'Nessuna assegnazione è stata applicata';
 $string['select_suggestions_first'] = 'Seleziona almeno un suggerimento da applicare';
 $string['confirm_bulk_assignment'] = 'Sei sicuro di voler applicare {count} assegnazioni suggerite?';
+
+// New strings for visual styling
+$string['color_legend'] = 'Legenda Colori';
+$string['suggested_matches'] = 'Corrispondenze Suggerite';
+$string['no_matches'] = 'Nessuna Corrispondenza Automatica';
