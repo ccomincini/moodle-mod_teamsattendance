@@ -17,7 +17,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 if ($ADMIN->fulltree) {
-    $settings = new admin_settingpage('modsettingteamsattendance', get_string('pluginname', 'mod_teamsattendance'));
+    // Use a unique page name to avoid conflicts
+    $pagename = 'mod_teamsattendance_settings_v110';
+    
+    $settings = new admin_settingpage($pagename, get_string('pluginname', 'mod_teamsattendance'));
     $ADMIN->add('modsettings', $settings);
 
     $settings->add(new admin_setting_heading('mod_teamsattendance/settingsheader',
