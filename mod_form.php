@@ -1,5 +1,5 @@
 <?php
-// This file is part of the Zoom plugin for Moodle - http://moodle.org/
+// This file is part of the Teams Meeting Attendance plugin for Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -175,15 +175,26 @@ class mod_teamsattendance_mod_form extends moodleform_mod {
      */
     
     public function set_data($defaultvalues) {
-        if (isset($defaultvalues->start_datetime) && isset($defaultvalues->end_datetime)) {
-            // Calculate duration from start and end times (always in minutes)
+        // Ensure we're working with an object
+        if (is_array($defaultvalues)) {
+            $defaultvalues = (object) $defaultvalues;
+        }
+        
+        // Calculate duration from start and end times if available
+        if (isset($defaultvalues->start_datetime) && isset($defaultvalues->end_datetime) 
+            && $defaultvalues->start_datetime > 0 && $defaultvalues->end_datetime > 0) {
+            // Calculate duration from start and end times (always in minutes for display)
             $duration_minutes = ($defaultvalues->end_datetime - $defaultvalues->start_datetime) / 60;
             $defaultvalues->expected_duration = round($duration_minutes);
-        } elseif (isset($defaultvalues->expected_duration)) {
-            // Fallback: convert from stored seconds to minutes for display
+        } elseif (isset($defaultvalues->expected_duration) && $defaultvalues->expected_duration > 0) {
+            // Convert from stored seconds to minutes for display
             $seconds = $defaultvalues->expected_duration;
             $defaultvalues->expected_duration = round($seconds / 60);
+        } else {
+            // Default value if nothing is set
+            $defaultvalues->expected_duration = 60; // 60 minutes default
         }
+        
         parent::set_data($defaultvalues);
     }
 
@@ -230,7 +241,7 @@ class mod_teamsattendance_mod_form extends moodleform_mod {
                 $errors['end_datetime'] = get_string('end_time_after_start', 'mod_teamsattendance');
             }
             
-            // Automatically calculate duration for storage (in minutes)
+            // Automatically calculate duration for validation
             $duration_minutes = ($data['end_datetime'] - $data['start_datetime']) / 60;
             if ($duration_minutes <= 0) {
                 $errors['end_datetime'] = get_string('invalid_meeting_duration', 'mod_teamsattendance');
