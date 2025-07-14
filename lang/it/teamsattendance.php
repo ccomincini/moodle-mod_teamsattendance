@@ -98,6 +98,17 @@ $string['unassigned_users_alert'] = 'Ci sono {$a} record di presenza non assegna
 $string['unassigned_users_alert_desc'] = 'Questi record sono stati creati ma non sono stati assegnati a un utente Moodle. Per gestirli, puoi visitare la pagina di gestione delle presenze non assegnate.';
 $string['role'] = 'Ruolo';
 $string['pluginadministration'] = 'Amministrazione Plugin';
-// Added string for export button
-$string['exporttocsv'] = 'Esporta la tabella come file CSV'; // Changed to CSV as the export is CSV
-$string['exporttoxlsx'] = 'Esporta la tabella come file excel (xlsx)'; // Changed to CSV as the export is CSV
+// Export strings
+$string['exporttocsv'] = 'Esporta la tabella come file CSV';
+$string['exporttoxlsx'] = 'Esporta la tabella come file excel (xlsx)';
+
+// New strings for improved matching functionality
+$string['suggested_match'] = 'Corrispondenza Suggerita';
+$string['suggestions_found'] = '{$a} suggerimenti automatici di corrispondenza trovati basati sui nomi';
+$string['no_suggestion'] = 'Nessun suggerimento';
+$string['apply_suggestion'] = 'Applica questo suggerimento';
+$string['apply_selected_suggestions'] = 'Applica Suggerimenti Selezionati';
+$string['bulk_assignments_applied'] = '{$a} assegnazioni utente applicate con successo';
+$string['no_assignments_applied'] = 'Nessuna assegnazione è stata applicata';
+$string['select_suggestions_first'] = 'Seleziona almeno un suggerimento da applicare';
+$string['confirm_bulk_assignment'] = 'Sei sicuro di voler applicare {count} assegnazioni suggerite?';
