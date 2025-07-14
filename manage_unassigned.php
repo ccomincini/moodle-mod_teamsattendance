@@ -29,6 +29,7 @@ require_once($CFG->dirroot.'/mod/teamsattendance/lib.php');
 require_once($CFG->dirroot . '/mod/teamsattendance/classes/suggestion_engine.php');
 require_once($CFG->dirroot . '/mod/teamsattendance/classes/user_assignment_handler.php');
 require_once($CFG->dirroot . '/mod/teamsattendance/classes/ui_renderer.php');
+require_once($CFG->dirroot . '/mod/teamsattendance/classes/ui_assets_manager.php');
 
 // Get parameters
 $id = required_param('id', PARAM_INT); // Course module ID
@@ -113,24 +114,14 @@ if (!empty($unassigned_records)) {
     $suggestion_stats = array('total' => 0, 'name_based' => 0, 'email_based' => 0);
 }
 
-// Get assignment statistics
-$assignment_stats = $assignment_handler->get_assignment_statistics();
-
 // ========================= PAGE OUTPUT =========================
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('unassigned_records', 'mod_teamsattendance'));
 
-// Add custom CSS
-echo $ui_renderer->render_custom_css();
-
-// Add color legend
-echo $ui_renderer->render_color_legend();
-
-// Show assignment statistics
-if ($assignment_stats['total_records'] > 0) {
-    echo $ui_renderer->render_statistics_box($assignment_stats);
-}
+// Add custom CSS and color legend
+echo ui_assets_manager::render_custom_css();
+echo ui_assets_manager::render_color_legend();
 
 if (empty($unassigned_records)) {
     // No unassigned records
@@ -144,9 +135,6 @@ if (empty($unassigned_records)) {
         echo $ui_renderer->start_bulk_suggestions_form();
     }
     
-    // Render action buttons
-    echo $ui_renderer->render_action_buttons($suggestion_stats['total'] > 0);
-    
     // Render main table
     echo $ui_renderer->render_unassigned_table($sorted_unassigned, $all_suggestions, $available_users);
     
@@ -156,8 +144,7 @@ if (empty($unassigned_records)) {
     }
     
     // Add JavaScript functionality
-    echo $ui_renderer->render_javascript();
-    echo $ui_renderer->render_additional_javascript();
+    echo ui_assets_manager::render_javascript();
 }
 
 echo $OUTPUT->footer();
