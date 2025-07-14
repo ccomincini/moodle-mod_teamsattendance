@@ -150,9 +150,9 @@ if (empty($unassigned)) {
         if ($suggested_user) {
             $suggestion_cell = html_writer::tag('div', 
                 html_writer::tag('strong', fullname($suggested_user), array('class' => 'text-success')) .
-                html_writer::tag('br') .
+                html_writer::empty_tag('br') .
                 html_writer::tag('small', $suggested_user->email, array('class' => 'text-muted')) .
-                html_writer::tag('br') .
+                html_writer::empty_tag('br') .
                 html_writer::checkbox('suggestions[' . $record->id . ']', $suggested_user->id, true, 
                     get_string('apply_suggestion', 'mod_teamsattendance'))
             );
