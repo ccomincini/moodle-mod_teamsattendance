@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<XMLDB PATH="mod/teamsattendance/db" VERSION="2024031500" COMMENT="XMLDB file for Teams Meeting Attendance">
+    <TABLES>
+        <TABLE NAME="teamsattendance" COMMENT="Stores Teams meeting session data">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="course" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Course ID"/>
+                <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="intro" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="introformat" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+                <FIELD NAME="meetingurl" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="organizer_email" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="expected_duration" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+                <FIELD NAME="required_attendance" TYPE="int" LENGTH="3" NOTNULL="true" DEFAULT="75" SEQUENCE="false"/>
+                <FIELD NAME="completionattendance" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Whether attendance is required for completion"/>
+                <FIELD NAME="status" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="open" SEQUENCE="false"/>
+                <FIELD NAME="start_datetime" TYPE="int" LENGTH="10" NOTNULL="false" DEFAULT="0" SEQUENCE="false" COMMENT="Start datetime for filtering attendance reports"/>
+                <FIELD NAME="end_datetime" TYPE="int" LENGTH="10" NOTNULL="false" DEFAULT="0" SEQUENCE="false" COMMENT="End datetime for filtering attendance reports"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+                <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="course" TYPE="foreign" FIELDS="course" REFTABLE="course" REFFIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="course" UNIQUE="false" FIELDS="course"/>
+            </INDEXES>
+        </TABLE>
+        <TABLE NAME="teamsattendance_data" COMMENT="Stores attendance data for Teams meetings">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="sessionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="FK to teamsattendance.id"/>
+                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The user ID of the participant"/>
+                <FIELD NAME="teams_user_id" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="The Teams user identifier (email or ID)"/>
+                <FIELD NAME="attendance_duration" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Duration of attendance in seconds"/>
+                <FIELD NAME="actual_attendance" TYPE="int" LENGTH="3" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Actual percentage of attendance"/>
+                <FIELD NAME="completion_met" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Whether the completion criteria were met (1 for yes, 0 for no)"/>
+                <FIELD NAME="role" TYPE="char" LENGTH="50" NOTNULL="true" DEFAULT="Attendee" SEQUENCE="false" COMMENT="User's role in the meeting"/>
+                <FIELD NAME="manually_assigned" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Whether the user was manually assigned (1) or automatically assigned (0)"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="sessionid_teams_user_id" TYPE="unique" FIELDS="sessionid, teams_user_id"/>
+                <KEY NAME="sessionid" TYPE="foreign" FIELDS="sessionid" REFTABLE="teamsattendance" REFFIELDS="id"/>
+                <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="userid" UNIQUE="false" FIELDS="userid"/>
+            </INDEXES>
+        </TABLE>
+        <TABLE NAME="teamsattendance_reports" COMMENT="Stores reports generated for Teams meetings">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="data_id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="FK to teamsattendance_data.id"/>
+                <FIELD NAME="report_id" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="The Teams report identifier"/>
+                <FIELD NAME="join_time" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Timestamp when user joined the meeting"/>
+                <FIELD NAME="leave_time" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Timestamp when user left the meeting"/>
+                <FIELD NAME="attendance_duration" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Duration of attendance in seconds"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="data_id" TYPE="foreign" FIELDS="data_id" REFTABLE="teamsattendance_data" REFFIELDS="id"/>
+                <KEY NAME="data_id_report_id" TYPE="unique" FIELDS="data_id, report_id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="data_id" UNIQUE="false" FIELDS="data_id"/>
+            </INDEXES>
+        </TABLE>    
+    </TABLES>
+</XMLDB>
