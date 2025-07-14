@@ -37,6 +37,39 @@ class ui_assets_manager {
     public static function render_custom_css() {
         $css = html_writer::start_tag('style', array('type' => 'text/css'));
         $css .= '
+        /* Table column width control */
+        .manage-unassigned-table {
+            table-layout: fixed;
+            width: 100%;
+        }
+        
+        .manage-unassigned-table th:nth-child(1),
+        .manage-unassigned-table td:nth-child(1) {
+            width: 25%; /* Utente Teams */
+        }
+        
+        .manage-unassigned-table th:nth-child(2),
+        .manage-unassigned-table td:nth-child(2) {
+            width: 12%; /* Tempo Totale */
+            text-align: center;
+        }
+        
+        .manage-unassigned-table th:nth-child(3),
+        .manage-unassigned-table td:nth-child(3) {
+            width: 12%; /* Presenza % */
+            text-align: center;
+        }
+        
+        .manage-unassigned-table th:nth-child(4),
+        .manage-unassigned-table td:nth-child(4) {
+            width: 26%; /* Corrispondenza Suggerita (resto: 100% - 25% - 12% - 12% - 25% = 26%) */
+        }
+        
+        .manage-unassigned-table th:nth-child(5),
+        .manage-unassigned-table td:nth-child(5) {
+            width: 25%; /* Assegna Utente */
+        }
+        
         /* Styling for name-based suggested match rows */
         .manage-unassigned-table tr.suggested-match-row {
             background-color: #d4edda !important;
@@ -66,6 +99,30 @@ class ui_assets_manager {
         
         .manage-unassigned-table tr.no-match-row:hover {
             background-color: #ffeaa7 !important;
+        }
+        
+        /* Text overflow handling for long content */
+        .manage-unassigned-table td:nth-child(1) {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .manage-unassigned-table td:nth-child(4) {
+            overflow: visible; /* Allow suggestion content to wrap */
+            word-wrap: break-word;
+        }
+        
+        /* Form elements sizing in last column */
+        .manage-unassigned-table td:nth-child(5) select {
+            width: 100%;
+            max-width: 200px;
+            margin-bottom: 5px;
+        }
+        
+        .manage-unassigned-table td:nth-child(5) input[type="submit"] {
+            width: auto;
+            min-width: 70px;
         }
         
         /* Legend for color coding */
@@ -110,6 +167,39 @@ class ui_assets_manager {
         .suggestion-type-label {
             font-weight: bold;
             font-style: italic;
+            font-size: 0.85em;
+            margin-bottom: 3px;
+        }
+        
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 768px) {
+            .manage-unassigned-table th:nth-child(1),
+            .manage-unassigned-table td:nth-child(1) {
+                width: 30%;
+            }
+            
+            .manage-unassigned-table th:nth-child(2),
+            .manage-unassigned-table td:nth-child(2),
+            .manage-unassigned-table th:nth-child(3),
+            .manage-unassigned-table td:nth-child(3) {
+                width: 10%;
+                font-size: 0.9em;
+            }
+            
+            .manage-unassigned-table th:nth-child(4),
+            .manage-unassigned-table td:nth-child(4) {
+                width: 25%;
+            }
+            
+            .manage-unassigned-table th:nth-child(5),
+            .manage-unassigned-table td:nth-child(5) {
+                width: 25%;
+            }
+            
+            .manage-unassigned-table td:nth-child(5) select {
+                max-width: 150px;
+                font-size: 0.9em;
+            }
         }
         ';
         $css .= html_writer::end_tag('style');
