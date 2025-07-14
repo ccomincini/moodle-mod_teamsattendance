@@ -484,16 +484,42 @@ function similarity_score($str1, $str2) {
 }
 
 /**
- * Get filtered user list for dropdown (only available users)
+ * Get filtered user list for dropdown (only available users) - SORTED ALPHABETICALLY
  *
  * @param array $available_users Available users
  * @return array Array of userid => fullname for dropdown
  */
 function get_filtered_users_list($available_users) {
     $userlist = array();
+    $sortable_users = array();
+    
+    // Create array with sortable full names
     foreach ($available_users as $user) {
-        $userlist[$user->id] = fullname($user) . ' (' . $user->email . ')';
+        $fullname = fullname($user);
+        $display_name = $fullname . ' (' . $user->email . ')';
+        $sortable_users[] = array(
+            'id' => $user->id,
+            'fullname' => $fullname,
+            'display_name' => $display_name,
+            'lastname' => $user->lastname,
+            'firstname' => $user->firstname
+        );
     }
+    
+    // Sort by lastname first, then firstname (Italian standard)
+    usort($sortable_users, function($a, $b) {
+        $lastname_comparison = strcasecmp($a['lastname'], $b['lastname']);
+        if ($lastname_comparison === 0) {
+            return strcasecmp($a['firstname'], $b['firstname']);
+        }
+        return $lastname_comparison;
+    });
+    
+    // Build the final array for the dropdown
+    foreach ($sortable_users as $user_data) {
+        $userlist[$user_data['id']] = $user_data['display_name'];
+    }
+    
     return $userlist;
 }
 
