@@ -50,3 +50,223 @@
     border-color: #007bff;
     color: #495057;
 }
+
+/**
+ * CSS Fix for unassigned manager dark theme issues
+ * 
+ * Removes dark theme overrides and ensures visibility
+ * in standard Moodle themes
+ */
+
+/* Reset background colors to default */
+body.path-mod-teamsattendance .manage-unassigned-container,
+.manage-unassigned-container {
+    background-color: transparent !important;
+    color: inherit !important;
+}
+
+/* Fix table visibility */
+.unassigned-records-table,
+.unassigned-records-table th,
+.unassigned-records-table td {
+    background-color: transparent !important;
+    color: inherit !important;
+    border-color: var(--bs-border-color, #dee2e6) !important;
+}
+
+/* Fix card backgrounds */
+.performance-dashboard .card,
+.filter-section .card {
+    background-color: var(--bs-card-bg, #fff) !important;
+    color: var(--bs-card-color, inherit) !important;
+}
+
+/* Fix buttons visibility */
+.btn-suggestion,
+.btn-apply-selected {
+    background-color: var(--bs-primary, #0d6efd) !important;
+    color: #fff !important;
+}
+
+/* Fix form controls */
+.form-control,
+.form-select {
+    background-color: var(--bs-body-bg, #fff) !important;
+    color: var(--bs-body-color, #212529) !important;
+    border-color: var(--bs-border-color, #dee2e6) !important;
+}
+
+/* Fix alerts */
+.alert {
+    background-color: var(--bs-alert-bg, inherit) !important;
+    color: var(--bs-alert-color, inherit) !important;
+}
+
+/* Existing styles from unassigned_manager.css */
+.unassigned-records-container {
+    margin-top: 20px;
+}
+
+.unassigned-filters {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.unassigned-stats {
+    margin-bottom: 30px;
+}
+
+.unassigned-table-wrapper {
+    overflow-x: auto;
+}
+
+.bulk-actions-bar {
+    position: sticky;
+    bottom: 0;
+    background-color: #fff;
+    border-top: 2px solid #dee2e6;
+    padding: 15px;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    z-index: 100;
+}
+
+/* Existing styles from unassigned_manager_fix.css */
+.unassigned-stats .card {
+    height: 100%;
+}
+
+.unassigned-stats .card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* NEW: Statistics cards with equal height */
+.unassigned-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.unassigned-stats .col-md-3 {
+    display: flex;
+    flex: 1 1 calc(25% - 0.75rem);
+    min-width: 200px;
+    padding: 0;
+}
+
+.unassigned-stats .card {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.unassigned-stats .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 120px;
+    text-align: center;
+}
+
+.unassigned-stats .card-body h5 {
+    margin-bottom: 0.5rem;
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+.unassigned-stats .card-body p {
+    margin-bottom: 0;
+    color: #6c757d;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .unassigned-stats .col-md-3 {
+        flex: 1 1 calc(50% - 0.5rem);
+    }
+}
+
+@media (max-width: 576px) {
+    .unassigned-stats .col-md-3 {
+        flex: 1 1 100%;
+    }
+}
+
+/* Table improvements */
+.unassigned-table {
+    font-size: 0.9rem;
+}
+
+.unassigned-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.unassigned-table td {
+    vertical-align: middle;
+}
+
+.unassigned-table .action-buttons {
+    white-space: nowrap;
+}
+
+.unassigned-table .action-buttons .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Checkbox styling */
+.custom-control-label::before {
+    border-radius: 0.25rem;
+}
+
+.custom-control-input:checked ~ .custom-control-label::before {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+/* Filter form improvements */
+.unassigned-filters .form-row {
+    align-items: flex-end;
+}
+
+.unassigned-filters .form-group {
+    margin-bottom: 0.5rem;
+}
+
+.unassigned-filters label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Loading state */
+.unassigned-loading {
+    text-align: center;
+    padding: 3rem;
+}
+
+.unassigned-loading .spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Empty state */
+.unassigned-empty {
+    text-align: center;
+    padding: 3rem;
+    color: #6c757d;
+}
+
+.unassigned-empty i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
