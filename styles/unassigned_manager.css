@@ -1,4 +1,121 @@
-/* Records Table */
+/* Teams Attendance - Unassigned Records Manager Styles */
+
+/* Container and layout */
+.unassigned-records-container {
+    margin-top: 20px;
+}
+
+/* Statistics cards - Equal height implementation */
+.unassigned-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.unassigned-stats .col-md-3 {
+    display: flex;
+    flex: 1 1 calc(25% - 0.75rem);
+    min-width: 250px;
+    padding: 0;
+}
+
+.unassigned-stats .card {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.unassigned-stats .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.unassigned-stats .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    min-height: 140px;
+    padding: 1.5rem;
+}
+
+.unassigned-stats .card-body h5 {
+    margin-bottom: 0.5rem;
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.unassigned-stats .card-body p {
+    margin-bottom: 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+/* Responsive statistics */
+@media (max-width: 1200px) {
+    .unassigned-stats .col-md-3 {
+        flex: 1 1 calc(50% - 0.5rem);
+    }
+}
+
+@media (max-width: 768px) {
+    .unassigned-stats .col-md-3 {
+        flex: 1 1 100%;
+    }
+    
+    .unassigned-stats .card-body h5 {
+        font-size: 2rem;
+    }
+}
+
+/* Filters section */
+.unassigned-filters {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    border: 1px solid #e9ecef;
+}
+
+.unassigned-filters .form-row {
+    align-items: flex-end;
+}
+
+.unassigned-filters .form-group {
+    margin-bottom: 0.5rem;
+}
+
+.unassigned-filters label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+    color: #495057;
+}
+
+.unassigned-filters .form-control {
+    font-size: 0.9rem;
+}
+
+.unassigned-filters .btn {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+}
+
+/* Table wrapper and styling - MANTENUTI GLI STILI ESISTENTI */
+.unassigned-table-wrapper {
+    overflow-x: auto;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Records Table - STILI ESISTENTI INTEGRATI */
 .table-responsive {
     border-radius: 8px;
     overflow: hidden;
@@ -16,6 +133,8 @@
     background-color: #f8f9fa;
     color: #495057;
     border-bottom: 2px solid #dee2e6;
+    white-space: nowrap;
+    padding: 1rem;
 }
 
 .table tbody tr {
@@ -27,190 +146,15 @@
     background-color: #f8f9fa;
 }
 
-/* Filter Panel */
-.card {
-    background-color: white;
-    border: 1px solid #dee2e6;
-}
-
-.card-body {
-    background-color: white;
-    color: #495057;
-}
-
-/* Form Controls */
-.form-control {
-    background-color: white;
-    border: 1px solid #ced4da;
-    color: #495057;
-}
-
-.form-control:focus {
-    background-color: white;
-    border-color: #007bff;
-    color: #495057;
-}
-
-/**
- * CSS Fix for unassigned manager dark theme issues
- * 
- * Removes dark theme overrides and ensures visibility
- * in standard Moodle themes
- */
-
-/* Reset background colors to default */
-body.path-mod-teamsattendance .manage-unassigned-container,
-.manage-unassigned-container {
-    background-color: transparent !important;
-    color: inherit !important;
-}
-
-/* Fix table visibility */
-.unassigned-records-table,
-.unassigned-records-table th,
-.unassigned-records-table td {
-    background-color: transparent !important;
-    color: inherit !important;
-    border-color: var(--bs-border-color, #dee2e6) !important;
-}
-
-/* Fix card backgrounds */
-.performance-dashboard .card,
-.filter-section .card {
-    background-color: var(--bs-card-bg, #fff) !important;
-    color: var(--bs-card-color, inherit) !important;
-}
-
-/* Fix buttons visibility */
-.btn-suggestion,
-.btn-apply-selected {
-    background-color: var(--bs-primary, #0d6efd) !important;
-    color: #fff !important;
-}
-
-/* Fix form controls */
-.form-control,
-.form-select {
-    background-color: var(--bs-body-bg, #fff) !important;
-    color: var(--bs-body-color, #212529) !important;
-    border-color: var(--bs-border-color, #dee2e6) !important;
-}
-
-/* Fix alerts */
-.alert {
-    background-color: var(--bs-alert-bg, inherit) !important;
-    color: var(--bs-alert-color, inherit) !important;
-}
-
-/* Existing styles from unassigned_manager.css */
-.unassigned-records-container {
-    margin-top: 20px;
-}
-
-.unassigned-filters {
-    background-color: #f8f9fa;
-    padding: 15px;
-    border-radius: 5px;
-    margin-bottom: 20px;
-}
-
-.unassigned-stats {
-    margin-bottom: 30px;
-}
-
-.unassigned-table-wrapper {
-    overflow-x: auto;
-}
-
-.bulk-actions-bar {
-    position: sticky;
-    bottom: 0;
-    background-color: #fff;
-    border-top: 2px solid #dee2e6;
-    padding: 15px;
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-    z-index: 100;
-}
-
-/* Existing styles from unassigned_manager_fix.css */
-.unassigned-stats .card {
-    height: 100%;
-}
-
-.unassigned-stats .card-body {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-
-/* NEW: Statistics cards with equal height */
-.unassigned-stats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
-
-.unassigned-stats .col-md-3 {
-    display: flex;
-    flex: 1 1 calc(25% - 0.75rem);
-    min-width: 200px;
-    padding: 0;
-}
-
-.unassigned-stats .card {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-}
-
-.unassigned-stats .card-body {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    min-height: 120px;
-    text-align: center;
-}
-
-.unassigned-stats .card-body h5 {
-    margin-bottom: 0.5rem;
-    font-size: 2rem;
-    font-weight: bold;
-}
-
-.unassigned-stats .card-body p {
-    margin-bottom: 0;
-    color: #6c757d;
-}
-
-/* Responsive adjustments */
-@media (max-width: 992px) {
-    .unassigned-stats .col-md-3 {
-        flex: 1 1 calc(50% - 0.5rem);
-    }
-}
-
-@media (max-width: 576px) {
-    .unassigned-stats .col-md-3 {
-        flex: 1 1 100%;
-    }
-}
-
-/* Table improvements */
+/* Stili aggiuntivi per la tabella unassigned */
 .unassigned-table {
     font-size: 0.9rem;
-}
-
-.unassigned-table th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-    white-space: nowrap;
+    margin-bottom: 0;
 }
 
 .unassigned-table td {
     vertical-align: middle;
+    padding: 0.75rem 1rem;
 }
 
 .unassigned-table .action-buttons {
@@ -218,8 +162,9 @@ body.path-mod-teamsattendance .manage-unassigned-container,
 }
 
 .unassigned-table .action-buttons .btn {
-    padding: 0.25rem 0.5rem;
+    padding: 0.25rem 0.75rem;
     font-size: 0.875rem;
+    margin: 0 0.125rem;
 }
 
 /* Checkbox styling */
@@ -232,22 +177,46 @@ body.path-mod-teamsattendance .manage-unassigned-container,
     border-color: #007bff;
 }
 
-/* Filter form improvements */
-.unassigned-filters .form-row {
-    align-items: flex-end;
+/* Bulk actions bar */
+.bulk-actions-bar {
+    position: sticky;
+    bottom: 0;
+    background-color: #fff;
+    border-top: 2px solid #dee2e6;
+    padding: 15px 20px;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    z-index: 100;
+    margin-left: -15px;
+    margin-right: -15px;
+    display: none;
 }
 
-.unassigned-filters .form-group {
-    margin-bottom: 0.5rem;
+.bulk-actions-bar.show {
+    display: block;
 }
 
-.unassigned-filters label {
-    font-weight: 600;
-    font-size: 0.9rem;
-    margin-bottom: 0.25rem;
+#bulk-actions-container {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
 }
 
-/* Loading state */
+/* Loading indicator */
+#loading-indicator {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+    background: rgba(255,255,255,0.9);
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    text-align: center;
+}
+
 .unassigned-loading {
     text-align: center;
     padding: 3rem;
@@ -261,12 +230,214 @@ body.path-mod-teamsattendance .manage-unassigned-container,
 /* Empty state */
 .unassigned-empty {
     text-align: center;
-    padding: 3rem;
+    padding: 4rem 2rem;
     color: #6c757d;
 }
 
 .unassigned-empty i {
-    font-size: 4rem;
+    font-size: 5rem;
+    margin-bottom: 1.5rem;
+    opacity: 0.3;
+}
+
+.unassigned-empty h4 {
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.unassigned-empty p {
+    font-size: 1.1rem;
+}
+
+/* Progress container */
+#progress-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 350px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 1.5rem;
+    z-index: 1050;
+}
+
+#progress-container .progress {
+    height: 25px;
+    margin-bottom: 0.5rem;
+}
+
+#progress-bar {
+    transition: width 0.3s ease;
+}
+
+#progress-text {
+    font-size: 0.9rem;
+    color: #6c757d;
+    text-align: center;
+}
+
+/* Pagination styling */
+#pagination-container {
+    margin-top: 2rem;
     margin-bottom: 1rem;
-    opacity: 0.5;
+}
+
+.pagination {
+    margin-bottom: 0.5rem;
+}
+
+.pagination .page-link {
+    color: #007bff;
+    border-color: #dee2e6;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.pagination .page-item.disabled .page-link {
+    color: #6c757d;
+}
+
+/* Badge styling */
+.badge {
+    font-size: 0.85rem;
+    padding: 0.375rem 0.75rem;
+    font-weight: 500;
+}
+
+/* Toast notifications */
+.alert.position-fixed {
+    min-width: 300px;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive table */
+@media (max-width: 768px) {
+    .unassigned-table-wrapper,
+    .table-responsive {
+        margin: 0 -15px;
+        border-radius: 0;
+    }
+    
+    .unassigned-table,
+    .table {
+        font-size: 0.8rem;
+    }
+    
+    .unassigned-table th,
+    .unassigned-table td,
+    .table th,
+    .table td {
+        padding: 0.5rem;
+    }
+    
+    .unassigned-table .action-buttons .btn {
+        padding: 0.2rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    #progress-container {
+        width: calc(100% - 40px);
+        left: 20px;
+        right: 20px;
+    }
+}
+
+/* Print styles */
+@media print {
+    .unassigned-filters,
+    .bulk-actions-bar,
+    #bulk-actions-container,
+    .action-buttons,
+    #pagination-container {
+        display: none !important;
+    }
+    
+    .unassigned-stats .card {
+        border: 1px solid #dee2e6;
+        break-inside: avoid;
+    }
+    
+    .unassigned-table-wrapper,
+    .table-responsive {
+        box-shadow: none;
+    }
+}
+
+/* Accessibility improvements */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Focus styles */
+.btn:focus,
+.form-control:focus,
+.custom-control-input:focus ~ .custom-control-label::before,
+.page-link:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+    .unassigned-filters,
+    .unassigned-table-wrapper,
+    .table-responsive,
+    .bulk-actions-bar,
+    #progress-container {
+        background-color: #212529;
+        color: #f8f9fa;
+    }
+    
+    .unassigned-table th,
+    .table thead th {
+        background-color: #343a40;
+        color: #f8f9fa;
+    }
+    
+    .unassigned-table tbody tr:hover,
+    .table tbody tr:hover {
+        background-color: #343a40;
+    }
+    
+    .table tbody tr {
+        background-color: #212529;
+        color: #f8f9fa;
+    }
+    
+    .form-control {
+        background-color: #343a40;
+        border-color: #495057;
+        color: #f8f9fa;
+    }
+    
+    .unassigned-stats .card {
+        background-color: #343a40;
+        color: #f8f9fa;
+    }
+    
+    .unassigned-stats .card-body h5 {
+        color: #f8f9fa;
+    }
 }
