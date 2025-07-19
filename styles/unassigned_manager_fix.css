@@ -1,23 +1,50 @@
-/* Remove dark theme sections that are interfering */
-.teamsattendance-performance-container .card {
-    background-color: #ffffff;
-    border: 1px solid #dee2e6;
-    color: #212529;
+/**
+ * CSS Fix for unassigned manager dark theme issues
+ * 
+ * Removes dark theme overrides and ensures visibility
+ * in standard Moodle themes
+ */
+
+/* Reset background colors to default */
+body.path-mod-teamsattendance .manage-unassigned-container,
+.manage-unassigned-container {
+    background-color: transparent !important;
+    color: inherit !important;
 }
 
-.table {
-    background-color: #ffffff;
-    color: #212529;
+/* Fix table visibility */
+.unassigned-records-table,
+.unassigned-records-table th,
+.unassigned-records-table td {
+    background-color: transparent !important;
+    color: inherit !important;
+    border-color: var(--bs-border-color, #dee2e6) !important;
 }
 
-.table thead th {
-    background-color: #f8f9fa;
-    color: #495057;
-    border-bottom: 2px solid #dee2e6;
+/* Fix card backgrounds */
+.performance-dashboard .card,
+.filter-section .card {
+    background-color: var(--bs-card-bg, #fff) !important;
+    color: var(--bs-card-color, inherit) !important;
 }
 
-.form-control {
-    background-color: #ffffff;
-    border: 1px solid #ced4da;
-    color: #495057;
+/* Fix buttons visibility */
+.btn-suggestion,
+.btn-apply-selected {
+    background-color: var(--bs-primary, #0d6efd) !important;
+    color: #fff !important;
+}
+
+/* Fix form controls */
+.form-control,
+.form-select {
+    background-color: var(--bs-body-bg, #fff) !important;
+    color: var(--bs-body-color, #212529) !important;
+    border-color: var(--bs-border-color, #dee2e6) !important;
+}
+
+/* Fix alerts */
+.alert {
+    background-color: var(--bs-alert-bg, inherit) !important;
+    color: var(--bs-alert-color, inherit) !important;
 }
