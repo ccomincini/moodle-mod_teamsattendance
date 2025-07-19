@@ -22,6 +22,7 @@ function($, Ajax, Notification, Str) {
         this.cmId = config.cmId;
         this.sesskey = config.sesskey || M.cfg.sesskey;
         this.strings = config.strings || {};
+        this.availableUsers = config.availableUsers || [];
         
         this.init();
     };
@@ -176,9 +177,7 @@ function($, Ajax, Notification, Str) {
             
             // Checkbox
             html += '<td>';
-            if (record.has_suggestion) {
-                html += '<input type="checkbox" class="record-checkbox" value="' + record.id + '">';
-            }
+            html += '<input type="checkbox" class="record-checkbox" value="' + record.id + '">';
             html += '</td>';
             
             // Teams User ID
@@ -210,6 +209,24 @@ function($, Ajax, Notification, Str) {
                 html += 'data-record-id="' + record.id + '" ';
                 html += 'data-user-id="' + record.suggestion.user.id + '">';
                 html += this.strings.apply_suggestion;
+                html += '</button>';
+            } else {
+                // Manual selection dropdown
+                html += '<select class="form-control form-control-sm manual-user-select" ';
+                html += 'data-record-id="' + record.id + '">';
+                html += '<option value="">' + this.strings.select_user + '</option>';
+                
+                for (var i = 0; i < this.availableUsers.length; i++) {
+                    var user = this.availableUsers[i];
+                    html += '<option value="' + user.id + '">';
+                    html += this.escapeHtml(user.firstname + ' ' + user.lastname);
+                    html += '</option>';
+                }
+                
+                html += '</select>';
+                html += ' <button class="btn btn-sm btn-primary manual-assign-btn" ';
+                html += 'data-record-id="' + record.id + '" disabled>';
+                html += this.strings.assign;
                 html += '</button>';
             }
             html += '</td>';
@@ -315,6 +332,30 @@ function($, Ajax, Notification, Str) {
                 var userId = $(this).data('user-id');
                 self.applySingleSuggestion(recordId, userId, $(this));
             });
+            
+            // Manual user selection
+            $('.manual-user-select').on('change', function(e) {
+                var userId = $(this).val();
+                var recordId = $(this).data('record-id');
+                var assignBtn = $(this).siblings('.manual-assign-btn');
+                
+                if (userId) {
+                    assignBtn.prop('disabled', false);
+                } else {
+                    assignBtn.prop('disabled', true);
+                }
+            });
+            
+            // Manual assign buttons
+            $('.manual-assign-btn').on('click', function(e) {
+                var recordId = $(this).data('record-id');
+                var select = $(this).siblings('.manual-user-select');
+                var userId = select.val();
+                
+                if (userId) {
+                    self.applySingleSuggestion(recordId, userId, $(this));
+                }
+            });
         },
 
         /**
@@ -380,9 +421,17 @@ function($, Ajax, Notification, Str) {
             var assignments = {};
             this.selectedRecords.forEach(function(recordId) {
                 var row = $('tr[data-record-id="' + recordId + '"]');
+                
+                // Check for automatic suggestion
                 var button = row.find('.apply-suggestion-btn');
                 if (button.length) {
                     assignments[recordId] = button.data('user-id');
+                } else {
+                    // Check for manual selection
+                    var select = row.find('.manual-user-select');
+                    if (select.length && select.val()) {
+                        assignments[recordId] = select.val();
+                    }
                 }
             });
             
