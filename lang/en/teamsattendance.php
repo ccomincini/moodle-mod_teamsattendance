@@ -76,8 +76,11 @@ $string['attendance_percentage'] = 'Attendance %';
 $string['soglia_raggiunta'] = 'Threshold Met';
 $string['assignment_type'] = 'Assignment Type';
 $string['teams_user'] = 'Teams User';
+$string['teams_user_id'] = 'Teams User ID';
+$string['attendance_duration'] = 'Attendance Duration';
 $string['suggested_match'] = 'Suggested Match';
 $string['assign_user'] = 'Assign User';
+$string['actions'] = 'Actions';
 
 // Assignment types
 $string['manual'] = 'Manual';
@@ -91,6 +94,39 @@ $string['manage_unassigned'] = 'Manage Unassigned Records';
 $string['manage_manual_assignments'] = 'Manage Manual Assignments';
 $string['no_unassigned'] = 'All attendance records have been assigned to users.';
 $string['unassigned_users_alert'] = 'There are {$a} unassigned attendance records that need manual review.';
+
+// Performance strings - NEW
+$string['total_records'] = 'Total Records';
+$string['performance_level'] = 'Performance Level';
+$string['recommended_page_size'] = 'Recommended Page Size';
+$string['available_users'] = 'Available Users';
+$string['for_assignment'] = 'for assignment';
+$string['estimated_time'] = 'Estimated Time';
+$string['for_suggestions'] = 'for suggestions';
+$string['filter_by'] = 'Filter by';
+$string['filter_all'] = 'All records';
+$string['with_suggestions'] = 'With Suggestions';
+$string['without_suggestions'] = 'Without Suggestions';
+$string['filter_long_duration'] = 'Long duration sessions';
+$string['records_per_page'] = 'Records per page';
+$string['advanced_users'] = 'Advanced users only';
+$string['refresh'] = 'Refresh';
+$string['apply_selected'] = 'Apply Selected';
+$string['bulk_assignment_progress'] = 'Bulk Assignment Progress';
+$string['loading_initial_data'] = 'Loading initial data';
+$string['loading'] = 'Loading';
+$string['applying'] = 'Applying';
+$string['page'] = 'Page';
+$string['of'] = 'of';
+$string['previous'] = 'Previous';
+$string['next'] = 'Next';
+$string['no_records_found'] = 'No records found';
+
+// Performance levels
+$string['performance_excellent'] = 'Excellent performance expected';
+$string['performance_good'] = 'Good performance expected';
+$string['performance_moderate'] = 'Moderate performance - consider using filters';
+$string['performance_challenging'] = 'Large dataset - use pagination and filters for best performance';
 
 // Suggestions system - UPDATED FOR DUAL MATCHING
 $string['suggestions_found'] = '{$a} automatic matching suggestions found based on names';
