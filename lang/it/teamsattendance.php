@@ -30,6 +30,16 @@ $string['pluginadministration'] = 'Amministrazione Presenze Riunioni Teams';
 $string['modulename'] = 'Presenze Riunioni Teams';
 $string['modulenameplural'] = 'Presenze Riunioni Teams';
 
+// Settings strings
+$string['settingsheader'] = 'Impostazioni Presenze Teams';
+$string['settingsheader_desc'] = 'Configura le impostazioni API Microsoft Teams per il tracciamento delle presenze';
+$string['tenantid'] = 'ID Tenant';
+$string['tenantid_desc'] = 'ID tenant Microsoft Azure per autenticazione API';
+$string['apiendpoint'] = 'Endpoint API';
+$string['apiendpoint_desc'] = 'URL endpoint API Microsoft Graph';
+$string['apiversion'] = 'Versione API';
+$string['apiversion_desc'] = 'Versione API Microsoft Graph da utilizzare';
+
 // Basic strings
 $string['description'] = 'Descrizione';
 $string['activityname'] = 'Nome attività';
@@ -76,8 +86,11 @@ $string['attendance_percentage'] = 'Presenza %';
 $string['soglia_raggiunta'] = 'Soglia Raggiunta';
 $string['assignment_type'] = 'Tipo Assegnazione';
 $string['teams_user'] = 'Utente Teams';
+$string['teams_user_id'] = 'ID Utente Teams';
+$string['attendance_duration'] = 'Durata Presenza';
 $string['suggested_match'] = 'Corrispondenza Suggerita';
 $string['assign_user'] = 'Assegna Utente';
+$string['actions'] = 'Azioni';
 
 // Assignment types
 $string['manual'] = 'Manuale';
@@ -91,6 +104,39 @@ $string['manage_unassigned'] = 'Gestisci Record Non Assegnati';
 $string['manage_manual_assignments'] = 'Gestisci Assegnazioni Manuali';
 $string['no_unassigned'] = 'Tutti i record di presenza sono stati assegnati agli utenti.';
 $string['unassigned_users_alert'] = 'Ci sono {$a} record di presenza non assegnati che necessitano revisione manuale.';
+
+// Performance strings - NEW
+$string['total_records'] = 'Record Totali';
+$string['performance_level'] = 'Livello Performance';
+$string['recommended_page_size'] = 'Dimensione Pagina Consigliata';
+$string['available_users'] = 'Utenti Disponibili';
+$string['for_assignment'] = 'per assegnazione';
+$string['estimated_time'] = 'Tempo Stimato';
+$string['for_suggestions'] = 'per suggerimenti';
+$string['filter_by'] = 'Filtra per';
+$string['filter_all'] = 'Tutti i record';
+$string['with_suggestions'] = 'Con Suggerimenti';
+$string['without_suggestions'] = 'Senza Suggerimenti';
+$string['filter_long_duration'] = 'Sessioni lunga durata';
+$string['records_per_page'] = 'Record per pagina';
+$string['advanced_users'] = 'Solo utenti avanzati';
+$string['refresh'] = 'Aggiorna';
+$string['apply_selected'] = 'Applica Selezionati';
+$string['bulk_assignment_progress'] = 'Progresso Assegnazione Massa';
+$string['loading_initial_data'] = 'Caricamento dati iniziali';
+$string['loading'] = 'Caricamento';
+$string['applying'] = 'Applicazione';
+$string['page'] = 'Pagina';
+$string['of'] = 'di';
+$string['previous'] = 'Precedente';
+$string['next'] = 'Successivo';
+$string['no_records_found'] = 'Nessun record trovato';
+
+// Performance levels
+$string['performance_excellent'] = 'Performance eccellente prevista';
+$string['performance_good'] = 'Buona performance prevista';
+$string['performance_moderate'] = 'Performance moderata - considera l\'uso di filtri';
+$string['performance_challenging'] = 'Dataset grande - usa paginazione e filtri per migliori performance';
 
 // Suggestions system - UPDATED FOR DUAL MATCHING
 $string['suggestions_found'] = '{$a} suggerimenti automatici di corrispondenza trovati basati sui nomi';
