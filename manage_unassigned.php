@@ -72,6 +72,28 @@ if ($per_page <= 0) {
     $per_page = $perf_stats['recommended_page_size'];
 }
 
+// Get available users for manual assignment
+$context = context_course::instance($course->id);
+$enrolled_users = get_enrolled_users($context, 'mod/teamsattendance:betracked', 0, 'u.id, u.firstname, u.lastname', 'u.lastname ASC, u.firstname ASC');
+
+// Filter out already assigned users
+$assigned_userids = $DB->get_fieldset_select('teamsattendance_data', 
+    'DISTINCT userid', 
+    'teamsattendanceid = ? AND userid IS NOT NULL AND userid > 0', 
+    array($teamsattendance->id)
+);
+
+$available_users = array();
+foreach ($enrolled_users as $user) {
+    if (!in_array($user->id, $assigned_userids)) {
+        $available_users[] = array(
+            'id' => $user->id,
+            'firstname' => $user->firstname,
+            'lastname' => $user->lastname
+        );
+    }
+}
+
 // ========================= AJAX HANDLERS =========================
 
 if ($ajax) {
@@ -193,6 +215,7 @@ $js_config = array(
     'defaultPageSize' => $per_page,
     'cmId' => $cm->id,
     'sesskey' => sesskey(),
+    'availableUsers' => $available_users,
     'strings' => array(
         'teams_user_id' => get_string('teams_user_id', 'teamsattendance'),
         'attendance_duration' => get_string('attendance_duration', 'teamsattendance'),
@@ -207,7 +230,9 @@ $js_config = array(
         'next' => get_string('next', 'teamsattendance'),
         'page' => get_string('page', 'teamsattendance'),
         'of' => get_string('of', 'teamsattendance'),
-        'total_records' => get_string('total_records', 'teamsattendance')
+        'total_records' => get_string('total_records', 'teamsattendance'),
+        'select_user' => get_string('select_user', 'teamsattendance'),
+        'assign' => get_string('assign', 'teamsattendance')
     )
 );
 
