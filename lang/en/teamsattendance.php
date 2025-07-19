@@ -30,6 +30,16 @@ $string['pluginadministration'] = 'Teams Meeting Attendance Administration';
 $string['modulename'] = 'Teams Meeting Attendance';
 $string['modulenameplural'] = 'Teams Meeting Attendances';
 
+// Settings strings
+$string['settingsheader'] = 'Teams Attendance Settings';
+$string['settingsheader_desc'] = 'Configure Microsoft Teams API settings for attendance tracking';
+$string['tenantid'] = 'Tenant ID';
+$string['tenantid_desc'] = 'Microsoft Azure tenant ID for API authentication';
+$string['apiendpoint'] = 'API Endpoint';
+$string['apiendpoint_desc'] = 'Microsoft Graph API endpoint URL';
+$string['apiversion'] = 'API Version';
+$string['apiversion_desc'] = 'Microsoft Graph API version to use';
+
 // Basic strings
 $string['description'] = 'Description';
 $string['activityname'] = 'Activity name';
