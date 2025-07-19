@@ -1,0 +1,23 @@
+/* Remove dark theme sections that are interfering */
+.teamsattendance-performance-container .card {
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    color: #212529;
+}
+
+.table {
+    background-color: #ffffff;
+    color: #212529;
+}
+
+.table thead th {
+    background-color: #f8f9fa;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.form-control {
+    background-color: #ffffff;
+    border: 1px solid #ced4da;
+    color: #495057;
+}
