@@ -1,74 +1,3 @@
-/**
- * CSS styles for unassigned records management interface
- * @package    mod_teamsattendance
- * @copyright  2025 Invisiblefarm srl
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-
-.teamsattendance-performance-container {
-    max-width: 100%;
-    margin: 0 auto;
-}
-
-/* Performance Dashboard Cards */
-.teamsattendance-performance-container .card {
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    transition: transform 0.2s ease-in-out;
-}
-
-.teamsattendance-performance-container .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-}
-
-.teamsattendance-performance-container .card-body {
-    padding: 1.5rem;
-}
-
-.teamsattendance-performance-container .card-title {
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    opacity: 0.9;
-}
-
-.teamsattendance-performance-container .card-text {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-    line-height: 1.2;
-}
-
-/* Loading Indicator */
-#loading-indicator {
-    padding: 2rem;
-    background: rgba(255,255,255,0.9);
-    border-radius: 8px;
-    margin: 1rem 0;
-}
-
-.spinner-border {
-    width: 3rem;
-    height: 3rem;
-}
-
-/* Progress Container */
-#progress-container .card {
-    border-left: 4px solid #007bff;
-}
-
-#progress-container .progress {
-    height: 24px;
-    border-radius: 12px;
-    background-color: #f8f9fa;
-}
-
-#progress-container .progress-bar {
-    border-radius: 12px;
-    transition: width 0.3s ease;
-}
-
 /* Records Table */
 .table-responsive {
     border-radius: 8px;
@@ -78,303 +7,46 @@
 
 .table {
     margin-bottom: 0;
+    background-color: white;
 }
 
 .table thead th {
     border-top: none;
     font-weight: 600;
-    background-color: #343a40;
-    color: white;
-    position: sticky;
-    top: 0;
-    z-index: 10;
+    background-color: #f8f9fa;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
 }
 
 .table tbody tr {
     transition: background-color 0.2s ease;
+    background-color: white;
 }
 
 .table tbody tr:hover {
     background-color: #f8f9fa;
 }
 
-.table td {
-    vertical-align: middle;
-    padding: 0.75rem;
+/* Filter Panel */
+.card {
+    background-color: white;
+    border: 1px solid #dee2e6;
 }
 
-/* Badges */
-.badge {
-    font-size: 0.8rem;
-    padding: 0.4rem 0.6rem;
-    border-radius: 4px;
-}
-
-.badge-success {
-    background-color: #28a745;
-    color: white;
-}
-
-.badge-warning {
-    background-color: #ffc107;
-    color: #212529;
-}
-
-/* Buttons */
-.btn {
-    border-radius: 6px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-}
-
-.btn:hover {
-    transform: translateY(-1px);
-}
-
-.btn-sm {
-    padding: 0.375rem 0.75rem;
-    font-size: 0.875rem;
-}
-
-.btn-success {
-    background-color: #28a745;
-    border-color: #28a745;
-}
-
-.btn-success:hover {
-    background-color: #218838;
-    border-color: #1e7e34;
-}
-
-.btn-secondary {
-    background-color: #6c757d;
-    border-color: #6c757d;
-}
-
-.btn-secondary:hover {
-    background-color: #5a6268;
-    border-color: #545b62;
+.card-body {
+    background-color: white;
+    color: #495057;
 }
 
 /* Form Controls */
 .form-control {
-    border-radius: 6px;
+    background-color: white;
     border: 1px solid #ced4da;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    color: #495057;
 }
 
 .form-control:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
-}
-
-/* Select Styling */
-select.form-control {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 0.5rem center;
-    background-repeat: no-repeat;
-    background-size: 1.5em 1.5em;
-    padding-right: 2.5rem;
-}
-
-/* Checkboxes */
-input[type="checkbox"] {
-    width: 1.2rem;
-    height: 1.2rem;
-    margin: 0;
-    cursor: pointer;
-}
-
-input[type="checkbox"]:checked {
-    background-color: #007bff;
-    border-color: #007bff;
-}
-
-/* Pagination */
-.pagination {
-    margin-bottom: 0;
-}
-
-.page-link {
-    color: #007bff;
-    border-color: #dee2e6;
-    padding: 0.5rem 0.75rem;
-    margin: 0 2px;
-    border-radius: 6px;
-    transition: all 0.2s ease;
-}
-
-.page-link:hover {
-    background-color: #e9ecef;
-    border-color: #adb5bd;
-    transform: translateY(-1px);
-}
-
-.page-item.active .page-link {
-    background-color: #007bff;
-    border-color: #007bff;
-    color: white;
-}
-
-.page-item.disabled .page-link {
-    color: #6c757d;
     background-color: white;
-    border-color: #dee2e6;
-    cursor: not-allowed;
-}
-
-/* Toast Notifications */
-.alert {
-    border-radius: 8px;
-    border: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    animation: slideInRight 0.3s ease-out;
-}
-
-@keyframes slideInRight {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-.alert-success {
-    background-color: #d4edda;
-    color: #155724;
-    border-left: 4px solid #28a745;
-}
-
-.alert-danger {
-    background-color: #f8d7da;
-    color: #721c24;
-    border-left: 4px solid #dc3545;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .teamsattendance-performance-container .col-md-3 {
-        margin-bottom: 1rem;
-    }
-    
-    .teamsattendance-performance-container .card-text {
-        font-size: 1.5rem;
-    }
-    
-    .table-responsive {
-        font-size: 0.9rem;
-    }
-    
-    .btn-sm {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.8rem;
-    }
-    
-    .pagination {
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-    
-    .page-link {
-        padding: 0.4rem 0.6rem;
-        font-size: 0.9rem;
-    }
-}
-
-@media (max-width: 576px) {
-    .teamsattendance-performance-container {
-        padding: 0 0.5rem;
-    }
-    
-    .card-body {
-        padding: 1rem;
-    }
-    
-    .table td {
-        padding: 0.5rem 0.25rem;
-    }
-    
-    .btn {
-        font-size: 0.8rem;
-        padding: 0.375rem 0.5rem;
-    }
-}
-
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-    .teamsattendance-performance-container .card {
-        background-color: #2d3748;
-        border-color: #4a5568;
-        color: #e2e8f0;
-    }
-    
-    .table {
-        color: #e2e8f0;
-    }
-    
-    .table thead th {
-        background-color: #1a202c;
-        color: #e2e8f0;
-    }
-    
-    .table tbody tr:hover {
-        background-color: #2d3748;
-    }
-    
-    .form-control {
-        background-color: #2d3748;
-        border-color: #4a5568;
-        color: #e2e8f0;
-    }
-    
-    .form-control:focus {
-        background-color: #2d3748;
-        border-color: #63b3ed;
-        color: #e2e8f0;
-    }
-}
-
-/* Accessibility Improvements */
-.sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-}
-
-/* Focus Styles */
-.btn:focus,
-.form-control:focus,
-.page-link:focus,
-input[type="checkbox"]:focus {
-    outline: 2px solid #007bff;
-    outline-offset: 2px;
-}
-
-/* High Contrast Mode */
-@media (prefers-contrast: high) {
-    .card {
-        border: 2px solid #000;
-    }
-    
-    .btn {
-        border: 2px solid currentColor;
-    }
-    
-    .table {
-        border: 2px solid #000;
-    }
-    
-    .table td,
-    .table th {
-        border: 1px solid #000;
-    }
+    border-color: #007bff;
+    color: #495057;
 }
