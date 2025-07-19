@@ -40,7 +40,7 @@ $id = required_param('id', PARAM_INT); // Course module ID
 $page = optional_param('page', 0, PARAM_INT);
 $per_page = optional_param('per_page', 0, PARAM_INT);
 $filter = optional_param('filter', 'all', PARAM_ALPHA);
-$action = optional_param('action', '', PARAM_ALPHA);
+$action = optional_param('action', '', PARAM_TEXT);
 
 // AJAX parameters
 $ajax = optional_param('ajax', 0, PARAM_INT);
