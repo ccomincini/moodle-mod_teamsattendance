@@ -686,8 +686,58 @@ $(document).ready(function() {
         setTimeout(() => toast.remove(), 8000);
     }
 });
-</script>
 
+$(document).ready(function() {
+    // Carica i dati iniziali
+    loadUnassignedRecords();
+    
+    // Event listeners per i controlli
+    $('#apply-selection').click(function() {
+        var selectedRecords = [];
+        $('.record-checkbox:checked').each(function() {
+            selectedRecords.push($(this).val());
+        });
+        
+        if (selectedRecords.length === 0) {
+            alert('Seleziona almeno un record per continuare.');
+            return;
+        }
+        
+        // Qui andrà la logica per applicare la selezione
+        console.log('Record selezionati:', selectedRecords);
+    });
+    
+    $('#refresh-data').click(function() {
+        loadUnassignedRecords();
+    });
+});
+
+function loadUnassignedRecords() {
+    $('#loading-message').text('Caricamento dati...');
+    
+    $.ajax({
+        url: 'ajax_unassigned.php',
+        method: 'GET',
+        data: {
+            id: <?php echo $id; ?>,
+            sesskey: '<?php echo sesskey(); ?>'
+        },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                displayUnassignedRecords(response.data);
+                updateStats(response.stats);
+            } else {
+                $('#loading-message').text('Errore nel caricamento: ' + response.error);
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#loading-message').text('Errore di connessione: ' + error);
+            console.error('AJAX Error:', xhr.responseText);
+        }
+    });
+}
+</script>
 <?php
 echo $OUTPUT->footer();
 ?>
