@@ -163,7 +163,6 @@ if ($ajax) {
 
 // Load CSS and JavaScript
 $PAGE->requires->css('/mod/teamsattendance/styles/unassigned_manager.css');
-$PAGE->requires->css('/mod/teamsattendance/styles/unassigned_manager_fix.css');
 $PAGE->requires->jquery();
 
 echo $OUTPUT->header();
@@ -212,17 +211,7 @@ $js_config = array(
     )
 );
 
-// Load modular JavaScript
+// Load modular JavaScript - QUESTA RIGA RIMANE COM'È
 $PAGE->requires->js_call_amd('mod_teamsattendance/unassigned_manager', 'init', [$js_config]);
-?>
 
-<script>
-$(document).ready(function() {
-    // Initialize the UnassignedRecordsManager with configuration
-    window.unassignedManager = new UnassignedRecordsManager(<?php echo json_encode($js_config); ?>);
-});
-</script>
-
-<?php
 echo $OUTPUT->footer();
-?>
