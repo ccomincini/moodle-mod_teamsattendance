@@ -157,9 +157,8 @@ if ($ajax) {
 
 // ========================= PAGE OUTPUT =========================
 
-echo $OUTPUT->header();
 $PAGE->requires->jquery();
-
+echo $OUTPUT->header();
 
 // Show performance warning for large datasets
 if ($perf_stats['performance_level'] === 'challenging') {
