@@ -163,6 +163,7 @@ if ($ajax) {
 
 // Load CSS and JavaScript
 $PAGE->requires->css('/mod/teamsattendance/styles/unassigned_manager.css');
+$PAGE->requires->css('/mod/teamsattendance/styles/unassigned_manager_fix.css');
 $PAGE->requires->jquery();
 
 echo $OUTPUT->header();
