@@ -29,22 +29,22 @@ function render_unassigned_interface($context) {
     $output .= '<small>' . get_string('performance_level', 'teamsattendance') . ': ' . $context->perf_stats['performance_level'] . '</small>';
     $output .= '</div></div></div>';
     
-    // Page Size Card
-    $output .= '<div class="col-md-3">';
-    $output .= '<div class="card text-white bg-info">';
-    $output .= '<div class="card-body">';
-    $output .= '<h5 class="card-title">' . get_string('recommended_page_size', 'teamsattendance') . '</h5>';
-    $output .= '<h2 class="card-text">' . $context->perf_stats['recommended_page_size'] . '</h2>';
-    $output .= '<small>' . get_string('records_per_page', 'teamsattendance') . '</small>';
-    $output .= '</div></div></div>';
-    
-    // Available Users Card
+    // Available Users Card (MOVED HERE)
     $output .= '<div class="col-md-3">';
     $output .= '<div class="card text-white bg-success">';
     $output .= '<div class="card-body">';
     $output .= '<h5 class="card-title">' . get_string('available_users', 'teamsattendance') . '</h5>';
     $output .= '<h2 class="card-text">' . $context->perf_stats['available_users_count'] . '</h2>';
     $output .= '<small>' . get_string('for_assignment', 'teamsattendance') . '</small>';
+    $output .= '</div></div></div>';
+    
+    // Page Size Card (MOVED HERE)
+    $output .= '<div class="col-md-3">';
+    $output .= '<div class="card text-white bg-info">';
+    $output .= '<div class="card-body">';
+    $output .= '<h5 class="card-title">' . get_string('recommended_page_size', 'teamsattendance') . '</h5>';
+    $output .= '<h2 class="card-text">' . $context->perf_stats['recommended_page_size'] . '</h2>';
+    $output .= '<small>' . get_string('records_per_page', 'teamsattendance') . '</small>';
     $output .= '</div></div></div>';
     
     // Estimated Time Card
