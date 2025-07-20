@@ -63,13 +63,13 @@ if ($action === 'reset_accepted_suggestions' && confirm_sesskey() && has_capabil
         // Check if this assignment was made by accepting a suggestion
         $preference_name = 'teamsattendance_suggestion_applied_' . $record->id;
         
-        // Check if ANY user has this preference (not just current user)
-        $applied_user = $DB->get_field_sql("
-            SELECT value FROM {user_preferences} 
-            WHERE name = ? AND value = ?
-        ", [$preference_name, $record->userid]);
+        // Check if preference exists for this record->userid
+        $has_preference = $DB->record_exists('user_preferences', [
+            'name' => $preference_name,
+            'value' => (string)$record->userid
+        ]);
         
-        if ($applied_user) {
+        if ($has_preference) {
             // This was a suggestion that was accepted - reset it
             $record->userid = $CFG->siteguest;
             $record->manually_assigned = 0;
@@ -149,26 +149,35 @@ if ($unassigned_count > 0) {
     }
 }
 
-// Count suggestions that were accepted
-$accepted_suggestions = $DB->get_records_sql("
-    SELECT tad.id, tad.userid 
-    FROM {teamsattendance_data} tad
-    WHERE tad.sessionid = ? AND tad.manually_assigned = 1
-    AND EXISTS (
-        SELECT 1 FROM {user_preferences} up 
-        WHERE up.name = CONCAT('teamsattendance_suggestion_applied_', tad.id) COLLATE utf8mb4_unicode_ci
-        AND up.value COLLATE utf8mb4_unicode_ci = CAST(tad.userid AS CHAR) COLLATE utf8mb4_unicode_ci
-    )
-", [$session->id]);
-    
-    $accepted_count = count($accepted_suggestions);
+// Reset accepted suggestions button  
+if (has_capability('mod/teamsattendance:manageattendance', $context)) {
+    // Count suggestions that were accepted
+    $manual_records = $DB->get_records('teamsattendance_data', [
+        'sessionid' => $session->id,
+        'manually_assigned' => 1
+    ]);
+
+    $accepted_count = 0;
+    foreach ($manual_records as $record) {
+        $preference_name = 'teamsattendance_suggestion_applied_' . $record->id;
+        
+        // Check if preference exists for this record->userid
+        $has_preference = $DB->record_exists('user_preferences', [
+            'name' => $preference_name,
+            'value' => (string)$record->userid
+        ]);
+        
+        if ($has_preference) {
+            $accepted_count++;
+        }
+    }
     
     if ($accepted_count > 0) {
         echo $OUTPUT->notification(
             get_string('automatic_assignments_info', 'mod_teamsattendance', $accepted_count),
             'alert alert-info'
         );
-        
+    }
         $reseturl = new moodle_url('/mod/teamsattendance/view.php', [
             'id' => $cm->id,
             'action' => 'reset_accepted_suggestions',
@@ -184,6 +193,7 @@ $accepted_suggestions = $DB->get_records_sql("
         );
     }
 }
+
 echo '</div></div>'; // Close card
 
 
