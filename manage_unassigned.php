@@ -74,7 +74,7 @@ if ($per_page <= 0) {
 
 // Get available users for manual assignment
 $context = context_course::instance($course->id);
-$enrolled_users = get_enrolled_users($context, 'mod/teamsattendance:betracked', 0, 'u.id, u.firstname, u.lastname', 'u.lastname ASC, u.firstname ASC');
+$enrolled_users = get_enrolled_users($context, '', 0, 'u.id, u.firstname, u.lastname', 'u.lastname ASC, u.firstname ASC');
 
 // 1. Ottieni tutti gli utenti già assegnati per questa sessione
 $assigned_userids = $DB->get_fieldset_select('teamsattendance_data', 
@@ -93,16 +93,15 @@ foreach ($enrolled_users as $user) {
             'firstname' => $user->firstname,
             'lastname' => $user->lastname
         );
+    }
+}
 
-        // DEBUG: Verifica dati
+// DEBUG SPOSTATO FUORI DAL LOOP:
 error_log("=== DEBUG AVAILABLE USERS ===");
 error_log("Enrolled users count: " . count($enrolled_users));
 error_log("Assigned userids: " . implode(',', $assigned_userids));
 error_log("Available users count: " . count($available_users));
-error_log("Available users: " . json_encode($available_users));
 error_log("Teams session ID: " . $teamsattendance->id);
-    }
-}
 
 // ========================= AJAX HANDLERS =========================
 
