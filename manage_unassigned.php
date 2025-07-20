@@ -96,13 +96,6 @@ foreach ($enrolled_users as $user) {
     }
 }
 
-// DEBUG SPOSTATO FUORI DAL LOOP:
-error_log("=== DEBUG AVAILABLE USERS ===");
-error_log("Enrolled users count: " . count($enrolled_users));
-error_log("Assigned userids: " . implode(',', $assigned_userids));
-error_log("Available users count: " . count($available_users));
-error_log("Teams session ID: " . $teamsattendance->id);
-
 // ========================= AJAX HANDLERS =========================
 
 if ($ajax) {
@@ -244,16 +237,7 @@ $js_config = array(
         'assign' => get_string('assign', 'teamsattendance')
     )
 );
-    // DEBUG: Verifica configurazione JS prima del passaggio
-error_log("=== JS CONFIG DEBUG ===");
-error_log("Available users in config: " . count($js_config['availableUsers']));
-error_log("Sample user: " . json_encode(isset($js_config['availableUsers'][0]) ? $js_config['availableUsers'][0] : 'none'));
-// Load modular JavaScript - QUESTA RIGA RIMANE COM'È
-// riga originale
-//$PAGE->requires->js_call_amd('mod_teamsattendance/unassigned_manager', 'init', [$js_config]);
-
-// sostituita per DEBUG:
-echo "<script>console.log('JS Config being passed:', " . json_encode($js_config) . ");</script>";
+// Load modular JavaScript 
 $PAGE->requires->js_call_amd('mod_teamsattendance/unassigned_manager', 'init', [$js_config]);
 
 echo $OUTPUT->footer();
