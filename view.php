@@ -82,7 +82,7 @@ if ($action === 'reset_accepted_suggestions' && confirm_sesskey() && has_capabil
         }
     }
     
-    redirect($PAGE->url, get_string('accepted_suggestions_reset', 'mod_teamsattendance', $deleted_count), null, \core\output\notification::NOTIFY_SUCCESS);
+  redirect($PAGE->url, get_string('automatic_assignments_reset', 'mod_teamsattendance', $deleted_count), null, \core\output\notification::NOTIFY_SUCCESS);
 }
 // Fetch session data
 $session = $DB->get_record('teamsattendance', ['id' => $cm->instance], '*', MUST_EXIST);
@@ -167,7 +167,7 @@ if (has_capability('mod/teamsattendance:manageattendance', $context)) {
     
     if ($accepted_count > 0) {
         echo $OUTPUT->notification(
-            get_string('accepted_suggestions_info', 'mod_teamsattendance', $accepted_count),
+            get_string('automatic_assignments_info', 'mod_teamsattendance', $accepted_count),
             'alert alert-info'
         );
         
@@ -178,9 +178,9 @@ if (has_capability('mod/teamsattendance:manageattendance', $context)) {
         ]);
         
         echo html_writer::div(
-            html_writer::link($reseturl, get_string('reset_accepted_suggestions', 'mod_teamsattendance'), [
+            html_writer::link($reseturl, get_string('reset_automatic_assignments', 'mod_teamsattendance'), [
                 'class' => 'btn btn-warning mb-3',
-                'onclick' => 'return confirm("' . get_string('confirm_reset_accepted_suggestions', 'mod_teamsattendance') . '")'
+                'onclick' => 'return confirm("' . get_string('confirm_reset_automatic', 'mod_teamsattendance') . '")'
             ]),
             'reset-suggestions-link'
         );
