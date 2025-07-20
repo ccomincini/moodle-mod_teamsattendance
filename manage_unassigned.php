@@ -244,12 +244,11 @@ $js_config = array(
         'select_user' => get_string('select_user', 'teamsattendance'),
         'assign' => get_string('assign', 'teamsattendance')
     )
+);
     // DEBUG: Verifica configurazione JS prima del passaggio
 error_log("=== JS CONFIG DEBUG ===");
 error_log("Available users in config: " . count($js_config['availableUsers']));
 error_log("Sample user: " . json_encode(isset($js_config['availableUsers'][0]) ? $js_config['availableUsers'][0] : 'none'));
-);
-
 // Load modular JavaScript - QUESTA RIGA RIMANE COM'È
 // riga originale
 //$PAGE->requires->js_call_amd('mod_teamsattendance/unassigned_manager', 'init', [$js_config]);
