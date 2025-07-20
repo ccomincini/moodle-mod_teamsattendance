@@ -76,10 +76,10 @@ if ($per_page <= 0) {
 $context = context_course::instance($course->id);
 $enrolled_users = get_enrolled_users($context, 'mod/teamsattendance:betracked', 0, 'u.id, u.firstname, u.lastname', 'u.lastname ASC, u.firstname ASC');
 
-// Filter out already assigned users
+// Filter out already assigned users - FIXED: column name is 'teamsattendance' not 'teamsattendanceid'
 $assigned_userids = $DB->get_fieldset_select('teamsattendance_data', 
     'DISTINCT userid', 
-    'teamsattendanceid = ? AND userid IS NOT NULL AND userid > 0', 
+    'teamsattendance = ? AND userid IS NOT NULL AND userid > 0', 
     array($teamsattendance->id)
 );
 
