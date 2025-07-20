@@ -173,7 +173,17 @@ function($, Ajax, Notification, Str) {
          * @return {string} HTML string
          */
         renderTableRow: function(record) {
-            var html = '<tr data-record-id="' + record.id + '">';
+            // Determine row class based on suggestion type
+            var rowClass = 'suggestion-none-row';
+            if (record.has_suggestion && record.suggestion) {
+                if (record.suggestion.type === 'name') {
+                    rowClass = 'suggestion-name-row';
+                } else if (record.suggestion.type === 'email') {
+                    rowClass = 'suggestion-email-row';
+                }
+            }
+            
+            var html = '<tr data-record-id="' + record.id + '" class="' + rowClass + '">';
             
             // Checkbox
             html += '<td>';
