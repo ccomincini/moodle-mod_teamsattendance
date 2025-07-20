@@ -79,7 +79,7 @@ $enrolled_users = get_enrolled_users($context, 'mod/teamsattendance:betracked', 
 // Filter out already assigned users - FIXED: column name is 'teamsattendance' not 'teamsattendanceid'
 $assigned_userids = $DB->get_fieldset_select('teamsattendance_data', 
     'DISTINCT userid', 
-    'teamsattendance = ? AND userid IS NOT NULL AND userid > 0', 
+    'sessionid = ? AND userid IS NOT NULL AND userid > 0', 
     array($teamsattendance->id)
 );
 
