@@ -76,18 +76,20 @@ if ($per_page <= 0) {
 $context = context_course::instance($course->id);
 $enrolled_users = get_enrolled_users($context, 'mod/teamsattendance:betracked', 0, 'u.id, u.firstname, u.lastname', 'u.lastname ASC, u.firstname ASC');
 
-// Filter out already assigned users - FIXED: column name is 'teamsattendance' not 'teamsattendanceid'
+// 1. Ottieni tutti gli utenti già assegnati per questa sessione
 $assigned_userids = $DB->get_fieldset_select('teamsattendance_data', 
     'DISTINCT userid', 
     'sessionid = ? AND userid IS NOT NULL AND userid > 0', 
     array($teamsattendance->id)
 );
 
+// 2. Ottieni tutti gli utenti disponibili (non ancora assegnati)
 $available_users = array();
 foreach ($enrolled_users as $user) {
     if (!in_array($user->id, $assigned_userids)) {
         $available_users[] = array(
             'id' => $user->id,
+            'name' => $user->lastname . ', ' . $user->firstname,
             'firstname' => $user->firstname,
             'lastname' => $user->lastname
         );
