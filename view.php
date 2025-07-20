@@ -49,15 +49,41 @@ $PAGE->set_heading(format_string($course->fullname));
 
 // Handle reset automatic assignments action
 $action = optional_param('action', '', PARAM_TEXT);
-if ($action === 'reset_automatic' && confirm_sesskey() && has_capability('mod/teamsattendance:manageattendance', $context)) {
-    $deleted_count = $DB->delete_records('teamsattendance_data', [
+if ($action === 'reset_accepted_suggestions' && confirm_sesskey() && has_capability('mod/teamsattendance:manageattendance', $context)) {
+    
+    // Get all manually assigned records for this session
+    $manual_records = $DB->get_records('teamsattendance_data', [
         'sessionid' => $cm->instance,
-        'manually_assigned' => 0
+        'manually_assigned' => 1
     ]);
     
-    redirect($PAGE->url, get_string('automatic_assignments_reset', 'mod_teamsattendance', $deleted_count), null, \core\output\notification::NOTIFY_SUCCESS);
+    $deleted_count = 0;
+    
+    foreach ($manual_records as $record) {
+        // Check if this assignment was made by accepting a suggestion
+        $preference_name = 'teamsattendance_suggestion_applied_' . $record->id;
+        
+        // Check if ANY user has this preference (not just current user)
+        $applied_user = $DB->get_field_sql("
+            SELECT value FROM {user_preferences} 
+            WHERE name = ? AND value = ?
+        ", [$preference_name, $record->userid]);
+        
+        if ($applied_user) {
+            // This was a suggestion that was accepted - reset it
+            $record->userid = $CFG->siteguest;
+            $record->manually_assigned = 0;
+            
+            if ($DB->update_record('teamsattendance_data', $record)) {
+                // Remove the preference to clean up
+                $DB->delete_records('user_preferences', ['name' => $preference_name]);
+                $deleted_count++;
+            }
+        }
+    }
+    
+    redirect($PAGE->url, get_string('accepted_suggestions_reset', 'mod_teamsattendance', $deleted_count), null, \core\output\notification::NOTIFY_SUCCESS);
 }
-
 // Fetch session data
 $session = $DB->get_record('teamsattendance', ['id' => $cm->instance], '*', MUST_EXIST);
 
@@ -123,31 +149,40 @@ if ($unassigned_count > 0) {
     }
 }
 
-// Bottone resetta assegnazioni effettuate sulla base dei suggerimenti
+// Reset accepted suggestions button
 if (has_capability('mod/teamsattendance:manageattendance', $context)) {
-    $automatic_count = $DB->count_records('teamsattendance_data', [
-        'sessionid' => $session->id,
-        'manually_assigned' => 0
-    ]);
+    // Count suggestions that were accepted
+    $accepted_suggestions = $DB->get_records_sql("
+        SELECT tad.id, tad.userid 
+        FROM {teamsattendance_data} tad
+        WHERE tad.sessionid = ? AND tad.manually_assigned = 1
+        AND EXISTS (
+            SELECT 1 FROM {user_preferences} up 
+            WHERE up.name = CONCAT('teamsattendance_suggestion_applied_', tad.id)
+            AND up.value = CAST(tad.userid AS CHAR)
+        )
+    ", [$session->id]);
     
-    if ($automatic_count > 0) {
+    $accepted_count = count($accepted_suggestions);
+    
+    if ($accepted_count > 0) {
         echo $OUTPUT->notification(
-            get_string('automatic_assignments_info', 'mod_teamsattendance', $automatic_count),
+            get_string('accepted_suggestions_info', 'mod_teamsattendance', $accepted_count),
             'alert alert-info'
         );
         
         $reseturl = new moodle_url('/mod/teamsattendance/view.php', [
             'id' => $cm->id,
-            'action' => 'reset_automatic',
+            'action' => 'reset_accepted_suggestions',
             'sesskey' => sesskey()
         ]);
         
         echo html_writer::div(
-            html_writer::link($reseturl, get_string('reset_automatic_assignments', 'mod_teamsattendance'), [
-                'class' => 'btn btn-danger mb-3',
-                'onclick' => 'return confirm("' . get_string('confirm_reset_automatic', 'mod_teamsattendance') . '")'
+            html_writer::link($reseturl, get_string('reset_accepted_suggestions', 'mod_teamsattendance'), [
+                'class' => 'btn btn-warning mb-3',
+                'onclick' => 'return confirm("' . get_string('confirm_reset_accepted_suggestions', 'mod_teamsattendance') . '")'
             ]),
-            'reset-automatic-link'
+            'reset-suggestions-link'
         );
     }
 }
