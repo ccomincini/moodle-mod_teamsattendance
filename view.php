@@ -47,6 +47,17 @@ $PAGE->set_url('/mod/teamsattendance/view.php', ['id' => $cm->id]);
 $PAGE->set_title(format_string($cm->name));
 $PAGE->set_heading(format_string($course->fullname));
 
+// Handle reset automatic assignments action
+$action = optional_param('action', '', PARAM_TEXT);
+if ($action === 'reset_automatic' && confirm_sesskey() && has_capability('mod/teamsattendance:manageattendance', $context)) {
+    $deleted_count = $DB->delete_records('teamsattendance_data', [
+        'sessionid' => $cm->instance,
+        'manually_assigned' => 0
+    ]);
+    
+    redirect($PAGE->url, get_string('automatic_assignments_reset', 'mod_teamsattendance', $deleted_count), null, \core\output\notification::NOTIFY_SUCCESS);
+}
+
 // Fetch session data
 $session = $DB->get_record('teamsattendance', ['id' => $cm->instance], '*', MUST_EXIST);
 
@@ -112,6 +123,34 @@ if ($unassigned_count > 0) {
     }
 }
 
+// Bottone resetta assegnazioni effettuate sulla base dei suggerimenti
+if (has_capability('mod/teamsattendance:manageattendance', $context)) {
+    $automatic_count = $DB->count_records('teamsattendance_data', [
+        'sessionid' => $session->id,
+        'manually_assigned' => 0
+    ]);
+    
+    if ($automatic_count > 0) {
+        echo $OUTPUT->notification(
+            get_string('automatic_assignments_info', 'mod_teamsattendance', $automatic_count),
+            'alert alert-info'
+        );
+        
+        $reseturl = new moodle_url('/mod/teamsattendance/view.php', [
+            'id' => $cm->id,
+            'action' => 'reset_automatic',
+            'sesskey' => sesskey()
+        ]);
+        
+        echo html_writer::div(
+            html_writer::link($reseturl, get_string('reset_automatic_assignments', 'mod_teamsattendance'), [
+                'class' => 'btn btn-danger mb-3',
+                'onclick' => 'return confirm("' . get_string('confirm_reset_automatic', 'mod_teamsattendance') . '")'
+            ]),
+            'reset-automatic-link'
+        );
+    }
+}
 echo '</div></div>'; // Close card
 
 
