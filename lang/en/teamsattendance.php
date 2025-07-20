@@ -105,7 +105,7 @@ $string['manage_manual_assignments'] = 'Manage Manual Assignments';
 $string['no_unassigned'] = 'All attendance records have been assigned to users.';
 $string['unassigned_users_alert'] = 'There are {$a} unassigned attendance records that need manual review.';
 
-// Performance strings - NEW
+// Performance strings
 $string['total_records'] = 'Total Records';
 $string['performance_level'] = 'Performance Level';
 $string['recommended_page_size'] = 'Recommended Page Size';
@@ -115,7 +115,8 @@ $string['estimated_time'] = 'Estimated Time';
 $string['for_suggestions'] = 'for suggestions';
 $string['filter_by'] = 'Filter by';
 $string['filter_all'] = 'All records';
-$string['with_suggestions'] = 'With Suggestions';
+$string['filter_name_suggestions'] = 'Suggested by name';
+$string['filter_email_suggestions'] = 'Suggested by email';
 $string['without_suggestions'] = 'Without Suggestions';
 $string['filter_long_duration'] = 'Long duration sessions';
 $string['records_per_page'] = 'Records per page';
@@ -149,12 +150,14 @@ $string['apply_selected_suggestions'] = 'Apply Selected Suggestions';
 $string['bulk_assignments_applied'] = '{$a} assignments have been applied successfully.';
 $string['no_assignments_applied'] = 'No assignments were applied.';
 
-// Color legend - UPDATED FOR THREE COLORS
+// Color legend and counters
 $string['color_legend'] = 'Color Legend';
 $string['name_based_matches'] = 'Name-based suggestions (homonymy)';
 $string['email_based_matches'] = 'Email-based suggestions (from email)';
 $string['suggested_matches'] = 'Suggested matches';
 $string['no_matches'] = 'No automatic matches';
+$string['name_suggestions_count'] = 'Name-based suggestions';
+$string['email_suggestions_count'] = 'Email-based suggestions';
 
 // User assignment
 $string['select_user'] = 'Select user...';
