@@ -16,7 +16,26 @@ defined('MOODLE_INTERNAL') || die();
 function render_unassigned_interface($context) {
     $output = '';
     
-    // Performance Dashboard
+    // Add custom CSS for suggestion type backgrounds
+    $output .= '<style>
+    .suggestion-name-row {
+        background-color: #e3f2fd !important; /* Light blue */
+    }
+    .suggestion-email-row {
+        background-color: #f3e5f5 !important; /* Light purple */
+    }
+    .suggestion-none-row {
+        background-color: #ffffff !important; /* White */
+    }
+    .card-name-suggestions {
+        background: linear-gradient(135deg, #2196f3, #64b5f6);
+    }
+    .card-email-suggestions {
+        background: linear-gradient(135deg, #9c27b0, #ba68c8);
+    }
+    </style>';
+    
+    // Performance Dashboard with Suggestion Counters
     $output .= '<div class="teamsattendance-performance-container">';
     $output .= '<div class="row mb-4">';
     
@@ -25,35 +44,35 @@ function render_unassigned_interface($context) {
     $output .= '<div class="card text-white bg-primary">';
     $output .= '<div class="card-body">';
     $output .= '<h5 class="card-title">' . get_string('total_records', 'teamsattendance') . '</h5>';
-    $output .= '<h2 class="card-text">' . $context->perf_stats['unassigned_records'] . '</h2>';
-    $output .= '<small>' . get_string('performance_level', 'teamsattendance') . ': ' . $context->perf_stats['performance_level'] . '</small>';
+    $output .= '<h2 class="card-text">' . $context->total_records . '</h2>';
+    $output .= '<small>Non assegnati</small>';
     $output .= '</div></div></div>';
     
-    // Available Users Card (MOVED HERE)
+    // Name-based Suggestions Card (Light Blue)
+    $output .= '<div class="col-md-3">';
+    $output .= '<div class="card text-white card-name-suggestions">';
+    $output .= '<div class="card-body">';
+    $output .= '<h5 class="card-title">' . get_string('name_suggestions_count', 'teamsattendance') . '</h5>';
+    $output .= '<h2 class="card-text">' . $context->name_suggestions_count . '</h2>';
+    $output .= '<small>Corrispondenze per nome</small>';
+    $output .= '</div></div></div>';
+    
+    // Email-based Suggestions Card (Light Purple)
+    $output .= '<div class="col-md-3">';
+    $output .= '<div class="card text-white card-email-suggestions">';
+    $output .= '<div class="card-body">';
+    $output .= '<h5 class="card-title">' . get_string('email_suggestions_count', 'teamsattendance') . '</h5>';
+    $output .= '<h2 class="card-text">' . $context->email_suggestions_count . '</h2>';
+    $output .= '<small>Desunte da email</small>';
+    $output .= '</div></div></div>';
+    
+    // Available Users Card
     $output .= '<div class="col-md-3">';
     $output .= '<div class="card text-white bg-success">';
     $output .= '<div class="card-body">';
     $output .= '<h5 class="card-title">' . get_string('available_users', 'teamsattendance') . '</h5>';
-    $output .= '<h2 class="card-text">' . $context->perf_stats['available_users_count'] . '</h2>';
+    $output .= '<h2 class="card-text">' . $context->available_users_count . '</h2>';
     $output .= '<small>' . get_string('for_assignment', 'teamsattendance') . '</small>';
-    $output .= '</div></div></div>';
-    
-    // Page Size Card (MOVED HERE)
-    $output .= '<div class="col-md-3">';
-    $output .= '<div class="card text-white bg-info">';
-    $output .= '<div class="card-body">';
-    $output .= '<h5 class="card-title">' . get_string('recommended_page_size', 'teamsattendance') . '</h5>';
-    $output .= '<h2 class="card-text">' . $context->perf_stats['recommended_page_size'] . '</h2>';
-    $output .= '<small>' . get_string('records_per_page', 'teamsattendance') . '</small>';
-    $output .= '</div></div></div>';
-    
-    // Estimated Time Card
-    $output .= '<div class="col-md-3">';
-    $output .= '<div class="card text-white bg-warning">';
-    $output .= '<div class="card-body">';
-    $output .= '<h5 class="card-title">' . get_string('estimated_time', 'teamsattendance') . '</h5>';
-    $output .= '<h2 class="card-text" style="font-size: 1.2rem;">' . $context->perf_stats['estimated_suggestion_time'] . '</h2>';
-    $output .= '<small>' . get_string('for_suggestions', 'teamsattendance') . '</small>';
     $output .= '</div></div></div>';
     
     $output .= '</div>'; // End row
@@ -63,14 +82,14 @@ function render_unassigned_interface($context) {
     $output .= '<div class="card-body">';
     $output .= '<div class="row">';
     
-    // Filter Select
+    // Filter Select with new options
     $output .= '<div class="col-md-4">';
     $output .= '<label for="filter-select">' . get_string('filter_by', 'teamsattendance') . ':</label>';
     $output .= '<select id="filter-select" class="form-control">';
     $output .= '<option value="all">' . get_string('filter_all', 'teamsattendance') . '</option>';
-    $output .= '<option value="with_suggestions">' . get_string('with_suggestions', 'teamsattendance') . '</option>';
+    $output .= '<option value="name_suggestions">' . get_string('filter_name_suggestions', 'teamsattendance') . '</option>';
+    $output .= '<option value="email_suggestions">' . get_string('filter_email_suggestions', 'teamsattendance') . '</option>';
     $output .= '<option value="without_suggestions">' . get_string('without_suggestions', 'teamsattendance') . '</option>';
-    $output .= '<option value="long_duration">' . get_string('filter_long_duration', 'teamsattendance') . '</option>';
     $output .= '</select>';
     $output .= '</div>';
     
