@@ -205,7 +205,13 @@ $string['teamsattendance:view'] = 'Visualizza report presenze Teams';
 $string['teamsattendance:manageattendance'] = 'Gestisci dati presenze Teams';
 $string['teamsattendance:addinstance'] = 'Aggiungi attività presenze Teams';
 
-// Privacy
+// Reset automatic assignments
+$string['automatic_assignments_info'] = '{$a} record associati sulla base di suggerimenti.';
+$string['reset_automatic_assignments'] = 'Resetta tutte le assegnazioni effettuate sulla base di suggerimenti';
+$string['confirm_reset_automatic'] = 'Se sicuro di voler resettare tutte le associazioni basate su suggerimenti? Tutte le associazioni resettate dovranno essere nuovamente effettuate manualmente.';
+$string['automatic_assignments_reset'] = '{$a} assegnazioni automatiche resettate.';
+
+//Privacy
 $string['privacy:metadata'] = 'Il plugin Presenze Riunioni Teams memorizza dati di presenza recuperati da Microsoft Teams.';
 $string['privacy:metadata:teamsattendance_data'] = 'Record di presenza per riunioni Teams';
 $string['privacy:metadata:teamsattendance_data:userid'] = 'L\'ID dell\'utente';
