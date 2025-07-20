@@ -149,19 +149,17 @@ if ($unassigned_count > 0) {
     }
 }
 
-// Reset accepted suggestions button
-if (has_capability('mod/teamsattendance:manageattendance', $context)) {
-    // Count suggestions that were accepted
-    $accepted_suggestions = $DB->get_records_sql("
-        SELECT tad.id, tad.userid 
-        FROM {teamsattendance_data} tad
-        WHERE tad.sessionid = ? AND tad.manually_assigned = 1
-        AND EXISTS (
-            SELECT 1 FROM {user_preferences} up 
-            WHERE up.name = CONCAT('teamsattendance_suggestion_applied_', tad.id)
-            AND up.value = CAST(tad.userid AS CHAR)
-        )
-    ", [$session->id]);
+// Count suggestions that were accepted
+$accepted_suggestions = $DB->get_records_sql("
+    SELECT tad.id, tad.userid 
+    FROM {teamsattendance_data} tad
+    WHERE tad.sessionid = ? AND tad.manually_assigned = 1
+    AND EXISTS (
+        SELECT 1 FROM {user_preferences} up 
+        WHERE up.name = CONCAT('teamsattendance_suggestion_applied_', tad.id) COLLATE utf8mb4_unicode_ci
+        AND up.value COLLATE utf8mb4_unicode_ci = CAST(tad.userid AS CHAR) COLLATE utf8mb4_unicode_ci
+    )
+", [$session->id]);
     
     $accepted_count = count($accepted_suggestions);
     
