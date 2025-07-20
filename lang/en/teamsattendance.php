@@ -205,6 +205,9 @@ $string['teamsattendance:view'] = 'View Teams attendance reports';
 $string['teamsattendance:manageattendance'] = 'Manage Teams attendance data';
 $string['teamsattendance:addinstance'] = 'Add Teams attendance activity';
 
+// Reset automatic assignments
+$string['automatic_assignments_info'] = 'There are {$a} automatically assigned records from suggestions.';\n$string['reset_automatic_assignments'] = 'Reset All Automatic Assignments';\n$string['confirm_reset_automatic'] = 'Are you sure you want to remove ALL automatic assignments? This will unassign all users that were matched automatically and they will need to be reassigned manually.';\n$string['automatic_assignments_reset'] = '{$a} automatic assignments have been reset successfully.';\n
+
 // Privacy
 $string['privacy:metadata'] = 'The Teams Meeting Attendance plugin stores attendance data fetched from Microsoft Teams.';
 $string['privacy:metadata:teamsattendance_data'] = 'Attendance records for Teams meetings';
