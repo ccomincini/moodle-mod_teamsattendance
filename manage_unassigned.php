@@ -93,6 +93,14 @@ foreach ($enrolled_users as $user) {
             'firstname' => $user->firstname,
             'lastname' => $user->lastname
         );
+
+        // DEBUG: Verifica dati
+error_log("=== DEBUG AVAILABLE USERS ===");
+error_log("Enrolled users count: " . count($enrolled_users));
+error_log("Assigned userids: " . implode(',', $assigned_userids));
+error_log("Available users count: " . count($available_users));
+error_log("Available users: " . json_encode($available_users));
+error_log("Teams session ID: " . $teamsattendance->id);
     }
 }
 
