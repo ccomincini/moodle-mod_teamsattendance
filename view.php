@@ -177,7 +177,7 @@ if (has_capability('mod/teamsattendance:manageattendance', $context)) {
             get_string('automatic_assignments_info', 'mod_teamsattendance', $accepted_count),
             'alert alert-info'
         );
-    }
+        
         $reseturl = new moodle_url('/mod/teamsattendance/view.php', [
             'id' => $cm->id,
             'action' => 'reset_accepted_suggestions',
