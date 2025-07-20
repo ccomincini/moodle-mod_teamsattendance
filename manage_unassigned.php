@@ -76,14 +76,14 @@ if ($per_page <= 0) {
 $context = context_course::instance($course->id);
 $enrolled_users = get_enrolled_users($context, '', 0, 'u.id, u.firstname, u.lastname', 'u.lastname ASC, u.firstname ASC');
 
-// 1. Ottieni tutti gli utenti già assegnati per questa sessione
+// Get users already assigned for this session
 $assigned_userids = $DB->get_fieldset_select('teamsattendance_data', 
     'DISTINCT userid', 
     'sessionid = ? AND userid IS NOT NULL AND userid > 0', 
     array($teamsattendance->id)
 );
 
-// 2. Ottieni tutti gli utenti disponibili (non ancora assegnati)
+// Get available users (not yet assigned)
 $available_users = array();
 foreach ($enrolled_users as $user) {
     if (!in_array($user->id, $assigned_userids)) {
@@ -96,6 +96,12 @@ foreach ($enrolled_users as $user) {
     }
 }
 
+// Get suggestions statistics for display
+$unassigned_records = $performance_handler->get_all_unassigned_records();
+$suggestion_engine = new suggestion_engine($enrolled_users);
+$all_suggestions = $suggestion_engine->generate_suggestions($unassigned_records);
+$suggestion_stats = $suggestion_engine->get_suggestion_statistics($all_suggestions);
+
 // ========================= AJAX HANDLERS =========================
 
 if ($ajax) {
@@ -106,12 +112,21 @@ if ($ajax) {
             case 'load_page':
                 $paginated_data = $performance_handler->get_unassigned_records_paginated($page, $per_page, $filter);
                 
-                if ($filter === 'with_suggestions' || $filter === 'without_suggestions') {
-                    $paginated_data = $performance_handler->filter_records_by_suggestions($paginated_data, $filter);
+                // Apply suggestion-based filtering
+                if ($filter === 'name_suggestions' || $filter === 'email_suggestions' || $filter === 'without_suggestions') {
+                    $paginated_data = $performance_handler->filter_records_by_suggestion_type($paginated_data, $filter);
                 }
                 
                 // Get suggestions for current page
                 $suggestions = $performance_handler->get_suggestions_for_batch($paginated_data['records']);
+                
+                // Sort records by suggestion type (name suggestions first, then email, then no suggestions)
+                if ($filter === 'all') {
+                    $paginated_data['records'] = $suggestion_engine->sort_records_by_suggestion_types(
+                        $paginated_data['records'], 
+                        $suggestions
+                    );
+                }
                 
                 // Prepare data for frontend
                 $response_data = array(
@@ -191,22 +206,16 @@ $PAGE->requires->jquery();
 
 echo $OUTPUT->header();
 
-// Show performance warning for large datasets
-if ($perf_stats['performance_level'] === 'challenging') {
-    echo $OUTPUT->notification(
-        get_string('performance_challenging', 'teamsattendance') . ' ' .
-        get_string('estimated_time', 'teamsattendance') . ': ' . $perf_stats['estimated_suggestion_time'],
-        'warning'
-    );
-}
-
 echo $OUTPUT->heading(get_string('manage_unassigned', 'teamsattendance'));
 
-// Prepare template context
+// Prepare template context with suggestion statistics
 $template_context = (object) array(
-    'perf_stats' => $perf_stats,
     'per_page' => $per_page,
-    'cm_id' => $cm->id
+    'cm_id' => $cm->id,
+    'total_records' => $perf_stats['total_unassigned'],
+    'name_suggestions_count' => $suggestion_stats['name_based'],
+    'email_suggestions_count' => $suggestion_stats['email_based'],
+    'available_users_count' => count($available_users)
 );
 
 // Render the interface using the template
@@ -218,6 +227,7 @@ $js_config = array(
     'cmId' => $cm->id,
     'sesskey' => sesskey(),
     'availableUsers' => $available_users,
+    'suggestionStats' => $suggestion_stats,
     'strings' => array(
         'teams_user_id' => get_string('teams_user_id', 'teamsattendance'),
         'attendance_duration' => get_string('attendance_duration', 'teamsattendance'),
@@ -234,9 +244,16 @@ $js_config = array(
         'of' => get_string('of', 'teamsattendance'),
         'total_records' => get_string('total_records', 'teamsattendance'),
         'select_user' => get_string('select_user', 'teamsattendance'),
-        'assign' => get_string('assign', 'teamsattendance')
+        'assign' => get_string('assign', 'teamsattendance'),
+        'filter_all' => get_string('filter_all', 'teamsattendance'),
+        'filter_name_suggestions' => get_string('filter_name_suggestions', 'teamsattendance'),
+        'filter_email_suggestions' => get_string('filter_email_suggestions', 'teamsattendance'),
+        'without_suggestions' => get_string('without_suggestions', 'teamsattendance'),
+        'name_suggestions_count' => get_string('name_suggestions_count', 'teamsattendance'),
+        'email_suggestions_count' => get_string('email_suggestions_count', 'teamsattendance')
     )
 );
+
 // Load modular JavaScript 
 $PAGE->requires->js_call_amd('mod_teamsattendance/unassigned_manager', 'init', [$js_config]);
 
