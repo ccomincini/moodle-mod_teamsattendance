@@ -406,9 +406,9 @@
 }
 
 .suggestion-email-row {
-    background-color: #f3e5f5 !important; /* Viola */
+    background-color: #e8daef !important; /* Viola chiaro */
 }
 
-.suggestion-none-row {
-    background-color: #ffffff !important; /* Bianco */
+.suggestion-name-row {
+    background-color: #d6eaf8 !important; /* Azzurro chiaro */
 }
