@@ -42,12 +42,13 @@ function($, Ajax, Notification, Str) {
         bindEvents: function() {
             var self = this;
 
-            // Filter change
+            // Filter change inding del filtro per gestire name_suggestions/email_suggestions
             $('#filter-select').on('change', function() {
                 self.currentFilter = $(this).val();
                 self.currentPage = 0;
                 self.selectedRecords.clear();
                 self.updateBulkButton();
+                self.updateFilterButtonStates(); // Aggiungere questa linea
                 self.loadPage(0);
             });
 
@@ -173,14 +174,24 @@ function($, Ajax, Notification, Str) {
          * @return {string} HTML string
          */
         renderTableRow: function(record) {
-            // Determine row class based on suggestion type
+            // Determine row class based on suggestion type nomi classi per correspondence con CSS
             var rowClass = 'suggestion-none-row';
+            // Migliora visualizzazione suggestion con badge colorati
             if (record.has_suggestion && record.suggestion) {
-                if (record.suggestion.type === 'name') {
-                    rowClass = 'suggestion-name-row';
-                } else if (record.suggestion.type === 'email') {
-                    rowClass = 'suggestion-email-row';
-                }
+                var user = record.suggestion.user;
+                var confidence = record.suggestion.confidence;
+                var type = record.suggestion.type;
+                
+                var badgeClass = confidence === 'high' ? 'success' : 'warning';
+                if (type === 'name') badgeClass = 'info';
+                if (type === 'email') badgeClass = 'secondary';
+                
+                html += '<span class=\"badge badge-' + badgeClass + '\">';
+                html += this.escapeHtml(user.lastname + ', ' + user.firstname);
+                html += '</span>';
+                html += '<br><small class=\"text-muted\">' + type + ' match (' + confidence + ')</small>';
+            } else {
+                html += '<span class=\"text-muted\">' + this.strings.no_suggestion + '</span>';
             }
             
             var html = '<tr data-record-id="' + record.id + '" class="' + rowClass + '">';
@@ -229,7 +240,7 @@ function($, Ajax, Notification, Str) {
                 for (var i = 0; i < this.availableUsers.length; i++) {
                     var user = this.availableUsers[i];
                     html += '<option value="' + user.id + '">';
-                    html += this.escapeHtml(user.firstname + ' ' + user.lastname);
+                    html += this.escapeHtml(user.lastname + ' ' + user.firstname);
                     html += '</option>';
                 }
                 
@@ -366,6 +377,17 @@ function($, Ajax, Notification, Str) {
                     self.applySingleSuggestion(recordId, userId, $(this));
                 }
             });
+        },
+
+        * Update filter button states
+        */
+        updateFilterButtonStates: function() {
+            // Aggiorna contatori nei bottoni filtro se necessario
+            var filterSelect = $('#filter-select');
+            var currentFilter = this.currentFilter;
+            
+            // Evidenzia filtro attivo
+            filterSelect.addClass('filter-active');
         },
 
         /**
