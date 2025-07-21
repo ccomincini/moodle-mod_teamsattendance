@@ -151,10 +151,12 @@ $string['no_assignments_applied'] = 'Nessuna assegnazione è stata applicata.';
 
 // Color legend - UPDATED FOR THREE COLORS
 $string['color_legend'] = 'Legenda Colori';
-$string['name_based_matches'] = 'Suggerimenti basati sui nomi (omonimia)';
-$string['email_based_matches'] = 'Suggerimenti basati sull\'email (dall\'indirizzo)';
+$string['name_based_matches'] = 'Suggerimenti desunti dal nome';
+$string['email_based_matches'] = 'Suggerimenti desunti dall\'indirizzo e-mail';
 $string['suggested_matches'] = 'Corrispondenze suggerite';
 $string['no_matches'] = 'Nessuna corrispondenza automatica';
+$string['name_suggestions_count'] = 'Suggerimenti desunti dal nome';
+$string['email_suggestions_count'] = 'Suggerimenti desunti dall\'indirizzo e-mail';
 
 // User assignment
 $string['select_user'] = 'Seleziona utente...';

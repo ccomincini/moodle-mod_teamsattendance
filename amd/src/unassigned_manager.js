@@ -208,8 +208,8 @@ function($, Ajax, Notification, Str) {
 
             // Checkbox
             html += '<td>';
-            html += '<input type="checkbox" class="record-checkbox" value="' + record.id + '">';
-            html += '</td>';
+            var isChecked = record.has_suggestion && record.suggestion ? ' checked="checked"' : '';
+            html += '<input type="checkbox" class="record-checkbox" value="' + record.id + '"' + isChecked + '>';            html += '</td>';
 
             // Suggestion
             html += '<td>';
@@ -318,6 +318,19 @@ function($, Ajax, Notification, Str) {
         bindTableEvents: function() {
             var self = this;
 
+            // Auto-select records with suggestions (che sono già checked)
+            $('.record-checkbox:checked').each(function() {
+                self.selectedRecords.add(parseInt($(this).val()));
+            });
+            self.updateBulkButton();
+
+            // Update select-all checkbox state
+            var totalCheckboxes = $('.record-checkbox').length;
+            var checkedCheckboxes = $('.record-checkbox:checked').length;
+            if (totalCheckboxes > 0 && totalCheckboxes === checkedCheckboxes) {
+                $('#select-all').prop('checked', true);
+            }
+
             // Select all checkbox
             $('#select-all').on('change', function(e) {
                 var isChecked = $(this).prop('checked');
@@ -382,7 +395,7 @@ function($, Ajax, Notification, Str) {
                 }
             });
         },
-
+        
         /**
          * Update filter button states
          */
