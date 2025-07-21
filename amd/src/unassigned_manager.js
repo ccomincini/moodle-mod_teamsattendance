@@ -199,7 +199,7 @@ function($, Ajax, Notification, Str) {
                 }
             }
     
-var html = '<tr data-record-id="' + record.id + '" class="' + rowClass + '">';
+            var html = '<tr data-record-id="' + record.id + '" class="' + rowClass + '">';
             // Teams User ID
             html += '<td>' + this.escapeHtml(record.teams_user_id) + '</td>';
 
@@ -383,8 +383,10 @@ var html = '<tr data-record-id="' + record.id + '" class="' + rowClass + '">';
             });
         },
 
-        /* Update filter button states
-        */
+        /**
+         * Update filter button states
+         */
+        
         updateFilterButtonStates: function() {
             // Aggiorna contatori nei bottoni filtro se necessario
             var filterSelect = $('#filter-select');

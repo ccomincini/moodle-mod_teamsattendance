@@ -246,7 +246,16 @@ $js_config = array(
         'actions' => get_string('actions', 'teamsattendance'),
         'apply_suggestion' => get_string('apply_suggestion', 'teamsattendance'),
         'assign' => get_string('assign', 'teamsattendance'),
-        'select_user' => get_string('select_user', 'teamsattendance')
+        'select_user' => get_string('select_user', 'teamsattendance'),
+        'apply_selected' => get_string('apply_selected', 'teamsattendance'),
+        'applying' => get_string('applying', 'teamsattendance'),
+        'previous' => get_string('previous', 'teamsattendance'),
+        'next' => get_string('next', 'teamsattendance'),
+        'page' => get_string('page', 'teamsattendance'),
+        'of' => get_string('of', 'teamsattendance'),
+        'total_records' => get_string('total_records', 'teamsattendance'),
+        'no_records_found' => get_string('no_records_found', 'teamsattendance'),
+        'no_suggestion' => get_string('no_suggestion', 'teamsattendance')
     )
 );
 
