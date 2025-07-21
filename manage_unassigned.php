@@ -119,39 +119,11 @@ if ($ajax) {
     try {
         switch ($action) {
             case 'load_page':
-                $paginated_data = $performance_handler->get_unassigned_records_paginated($page, $per_page, $filter);
+                // Always load with 'all' filter - filtering will be done client-side
+                $paginated_data = $performance_handler->get_unassigned_records_paginated($page, $per_page, 'all');
                 
                 // Get suggestions for current page
                 $suggestions = $performance_handler->get_suggestions_for_batch($paginated_data['records']);
-                
-                // Apply suggestion-based filtering MANUALLY
-                if ($filter === 'name_suggestions' || $filter === 'email_suggestions' || $filter === 'without_suggestions') {
-                    $filtered_records = array();
-                    
-                    foreach ($paginated_data['records'] as $record) {
-                        $has_suggestion = isset($suggestions[$record->id]);
-                        $suggestion_type = $has_suggestion ? $suggestions[$record->id]['type'] : null;
-                        
-                        $include = false;
-                        switch ($filter) {
-                            case 'name_suggestions':
-                                $include = ($has_suggestion && $suggestion_type === 'name');
-                                break;
-                            case 'email_suggestions':
-                                $include = ($has_suggestion && $suggestion_type === 'email');
-                                break;
-                            case 'without_suggestions':
-                                $include = !$has_suggestion;
-                                break;
-                        }
-                        
-                        if ($include) {
-                            $filtered_records[] = $record;
-                        }
-                    }
-                    
-                    $paginated_data['records'] = $filtered_records;
-                }
                 
                 // Prepare data for frontend
                 $response_data = array(
