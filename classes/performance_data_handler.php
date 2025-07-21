@@ -78,19 +78,19 @@ class performance_data_handler {
             array('sessionid' => $this->teamsattendance->id));
         
         // Unassigned records
-        $stats['unassigned_records'] = $DB->count_records('teamsattendance_data', array(
+        $stats['total_unassigned'] = $DB->count_records('teamsattendance_data', array(
             'sessionid' => $this->teamsattendance->id,
             'userid' => $CFG->siteguest
         ));
         
         // Performance level classification
-        if ($stats['unassigned_records'] <= 100) {
+        if ($stats['total_unassigned'] <= 100) {
             $stats['performance_level'] = 'excellent';
             $stats['recommended_page_size'] = 50;
-        } elseif ($stats['unassigned_records'] <= 500) {
+        } elseif ($stats['total_unassigned'] <= 500) {
             $stats['performance_level'] = 'good';
             $stats['recommended_page_size'] = 25;
-        } elseif ($stats['unassigned_records'] <= 1500) {
+        } elseif ($stats['total_unassigned'] <= 1500) {
             $stats['performance_level'] = 'moderate';
             $stats['recommended_page_size'] = 20;
         } else {
@@ -99,7 +99,7 @@ class performance_data_handler {
         }
         
         // Estimate processing time
-        $stats['estimated_suggestion_time'] = $this->estimate_processing_time($stats['unassigned_records']);
+        $stats['estimated_suggestion_time'] = $this->estimate_processing_time($stats['total_unassigned']);
         
         // Available users count
         $stats['available_users_count'] = count($this->get_available_users_lightweight());
