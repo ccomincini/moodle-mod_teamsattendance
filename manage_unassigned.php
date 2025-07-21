@@ -89,7 +89,7 @@ foreach ($enrolled_users as $user) {
     if (!in_array($user->id, $assigned_userids)) {
         $available_users[] = array(
             'id' => $user->id,
-            'name' => $user->lastname . ', ' . $user->firstname,
+            'name' => $user->lastname . ' ' . $user->firstname,
             'firstname' => $user->firstname,
             'lastname' => $user->lastname
         );

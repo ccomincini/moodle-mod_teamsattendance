@@ -175,23 +175,15 @@ function($, Ajax, Notification, Str) {
          */
         renderTableRow: function(record) {
             // Determine row class based on suggestion type nomi classi per correspondence con CSS
-            var rowClass = 'suggestion-none-row';
-            // Migliora visualizzazione suggestion con badge colorati
+            var rowClass = '';
             if (record.has_suggestion && record.suggestion) {
-                var user = record.suggestion.user;
-                var confidence = record.suggestion.confidence;
-                var type = record.suggestion.type;
-                
-                var badgeClass = confidence === 'high' ? 'success' : 'warning';
-                if (type === 'name') badgeClass = 'info';
-                if (type === 'email') badgeClass = 'secondary';
-                
-                html += '<span class=\"badge badge-' + badgeClass + '\">';
-                html += this.escapeHtml(user.lastname + ', ' + user.firstname);
-                html += '</span>';
-                html += '<br><small class=\"text-muted\">' + type + ' match (' + confidence + ')</small>';
+                if (record.suggestion.type === 'name') {
+                    rowClass = 'suggestion-name-row';
+                } else if (record.suggestion.type === 'email') {
+                    rowClass = 'suggestion-email-row';
+                }
             } else {
-                html += '<span class=\"text-muted\">' + this.strings.no_suggestion + '</span>';
+                rowClass = 'suggestion-none-row';
             }
             
             var html = '<tr data-record-id="' + record.id + '" class="' + rowClass + '">';

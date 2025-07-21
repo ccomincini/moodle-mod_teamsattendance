@@ -398,3 +398,17 @@
 .page-link:focus {
     box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
 }
+
+
+/* Suggestion table styles */
+.suggestion-name-row {
+    background-color: #e3f2fd !important; /* Azzurro */
+}
+
+.suggestion-email-row {
+    background-color: #f3e5f5 !important; /* Viola */
+}
+
+.suggestion-none-row {
+    background-color: #ffffff !important; /* Bianco */
+}
