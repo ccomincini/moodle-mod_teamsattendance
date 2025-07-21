@@ -102,6 +102,9 @@ function($, Ajax, Notification, Str) {
             this.isLoading = true;
             $('#loading-indicator').show();
             
+            // If filtering is active, load more records to ensure we have enough after filtering
+            var pageSize = (this.currentFilter !== 'all') ? this.currentPageSize * 3 : this.currentPageSize;
+            
             var cacheKey = 'page_' + page + '_' + this.currentFilter + '_' + this.currentPageSize;
             
             if (!forceRefresh && sessionStorage.getItem(cacheKey)) {
@@ -119,8 +122,8 @@ function($, Ajax, Notification, Str) {
                     ajax: 1,
                     action: 'load_page',
                     page: page,
-                    per_page: this.currentPageSize,
-                    filter: this.currentFilter
+                    per_page: pageSize,
+                    filter: 'all' // Always load all records, filter client-side
                 },
                 success: function(response) {
                     if (response.success) {
@@ -157,6 +160,23 @@ function($, Ajax, Notification, Str) {
          * @param {Array} records Array of records
          */
         renderTable: function(records) {
+            // Apply client-side filtering
+            var filteredRecords = records;
+            if (this.currentFilter !== 'all') {
+                filteredRecords = records.filter(function(record) {
+                    switch (this.currentFilter) {
+                        case 'name_suggestions':
+                            return record.has_suggestion && record.suggestion && record.suggestion.type === 'name';
+                        case 'email_suggestions':
+                            return record.has_suggestion && record.suggestion && record.suggestion.type === 'email';
+                        case 'without_suggestions':
+                            return !record.has_suggestion;
+                        default:
+                            return true;
+                    }
+                }.bind(this));
+            }
+            
             var html = '<div class="table-responsive">';
             html += '<table class="table table-striped table-hover">';
             html += '<thead class="thead-dark">';
@@ -170,13 +190,13 @@ function($, Ajax, Notification, Str) {
             html += '</thead>';
             html += '<tbody>';
 
-            if (records.length === 0) {
+            if (filteredRecords.length === 0) {
                 html += '<tr><td colspan="5" class="text-center text-muted">';
                 html += (this.strings.no_records_found || 'Nessun record trovato');
                 html += '</td></tr>';
             } else {
-                for (var i = 0; i < records.length; i++) {
-                    html += this.renderTableRow(records[i]);
+                for (var i = 0; i < filteredRecords.length; i++) {
+                    html += this.renderTableRow(filteredRecords[i]);
                 }
             }
 
