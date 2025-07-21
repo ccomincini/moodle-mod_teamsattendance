@@ -1,5 +1,5 @@
 /**
- * Performance-optimized JavaScript for managing unassigned Teams attendance records
+ * JavaScript for managing unassigned Teams attendance records
  * @module     mod_teamsattendance/unassigned_manager
  * @package    mod_teamsattendance
  * @copyright  2025 Invisiblefarm srl
@@ -26,7 +26,6 @@ function($, Ajax, Notification, Str) {
         
         this.init();
         this.loadAvailableUsers();
-
     };
 
     UnassignedRecordsManager.prototype = {
@@ -44,13 +43,12 @@ function($, Ajax, Notification, Str) {
         bindEvents: function() {
             var self = this;
 
-            // Filter change inding del filtro per gestire name_suggestions/email_suggestions
+            // Filter change
             $('#filter-select').on('change', function() {
                 self.currentFilter = $(this).val();
                 self.currentPage = 0;
                 self.selectedRecords.clear();
                 self.updateBulkButton();
-                self.updateFilterButtonStates(); // Aggiungere questa linea
                 self.loadPage(0);
             });
 
@@ -74,6 +72,9 @@ function($, Ajax, Notification, Str) {
             });
         },
 
+        /**
+         * Load available users
+         */
         loadAvailableUsers: function() {
             var self = this;
             $.ajax({
@@ -145,44 +146,10 @@ function($, Ajax, Notification, Str) {
          */
         renderPage: function(data) {
             this.currentPage = data.pagination.page;
-            
-            // Get suggestions for sorting
-            var self = this;
-            $.ajax({
-                url: window.location.href,
-                data: {ajax: 1, action: 'get_suggestions', page: data.pagination.page},
-                success: function(response) {
-                    if (response.success) {
-                        var sortedRecords = self.sortRecordsBySuggestion(data.records, response.suggestions);
-                        data.records = sortedRecords;
-                    }
-                    self.renderTable(data.records);
-                    self.renderPagination(data.pagination);
-                    self.updateBulkButton();
-                    self.bindTableEvents();
-                }
-            });
-        },
-
-        sortRecordsBySuggestion: function(records, suggestions) {
-            return records.sort(function(a, b) {
-                var aHasSuggestion = suggestions[a.id] ? 1 : 0;
-                var bHasSuggestion = suggestions[b.id] ? 1 : 0;
-                
-                if (aHasSuggestion !== bHasSuggestion) {
-                    return bHasSuggestion - aHasSuggestion; // Suggestions first
-                }
-                
-                if (aHasSuggestion && bHasSuggestion) {
-                    var aType = suggestions[a.id].type === 'name' ? 1 : 2;
-                    var bType = suggestions[b.id].type === 'name' ? 1 : 2;
-                    if (aType !== bType) {
-                        return aType - bType; // Name suggestions before email
-                    }
-                }
-                
-                return a.teams_user_id.localeCompare(b.teams_user_id);
-            });
+            this.renderTable(data.records);
+            this.renderPagination(data.pagination);
+            this.updateBulkButton();
+            this.bindTableEvents();
         },
 
         /**
@@ -194,18 +161,18 @@ function($, Ajax, Notification, Str) {
             html += '<table class="table table-striped table-hover">';
             html += '<thead class="thead-dark">';
             html += '<tr>';
-            html += '<th>' + this.strings.teams_user_id + '</th>';
-            html += '<th>' + this.strings.attendance_duration + '</th>';
+            html += '<th>' + (this.strings.teams_user_id || 'ID Utente Teams') + '</th>';
+            html += '<th>' + (this.strings.attendance_duration || 'Durata Presenza') + '</th>';
             html += '<th><input type="checkbox" id="select-all"></th>';
-            html += '<th>' + this.strings.suggested_match + '</th>';
-            html += '<th>' + this.strings.actions + '</th>';
+            html += '<th>' + (this.strings.suggested_match || 'Corrispondenza Suggerita') + '</th>';
+            html += '<th>' + (this.strings.actions || 'Azioni') + '</th>';
             html += '</tr>';
             html += '</thead>';
             html += '<tbody>';
 
             if (records.length === 0) {
                 html += '<tr><td colspan="5" class="text-center text-muted">';
-                html += this.strings.no_records_found;
+                html += (this.strings.no_records_found || 'Nessun record trovato');
                 html += '</td></tr>';
             } else {
                 for (var i = 0; i < records.length; i++) {
@@ -223,7 +190,6 @@ function($, Ajax, Notification, Str) {
          * @return {string} HTML string
          */
         renderTableRow: function(record) {
-            // Determine row class based on suggestion type
             var rowClass = 'suggestion-none-row';
             if (record.has_suggestion && record.suggestion) {
                 if (record.suggestion.type === 'name') {
@@ -234,18 +200,14 @@ function($, Ajax, Notification, Str) {
             }
     
             var html = '<tr data-record-id="' + record.id + '" class="' + rowClass + '">';
-            // Teams User ID
             html += '<td>' + this.escapeHtml(record.teams_user_id) + '</td>';
-
-            // Duration  
             html += '<td>' + this.formatDuration(record.attendance_duration) + '</td>';
 
-            // Checkbox
             html += '<td>';
             var isChecked = record.has_suggestion && record.suggestion ? ' checked="checked"' : '';
-            html += '<input type="checkbox" class="record-checkbox" value="' + record.id + '"' + isChecked + '>';            html += '</td>';
+            html += '<input type="checkbox" class="record-checkbox" value="' + record.id + '"' + isChecked + '>';
+            html += '</td>';
 
-            // Suggestion
             html += '<td>';
             if (record.has_suggestion && record.suggestion) {
                 var user = record.suggestion.user;
@@ -257,23 +219,21 @@ function($, Ajax, Notification, Str) {
                 html += '</span>';
                 html += '<br><small class="text-muted">' + type + ' match</small>';
             } else {
-                html += '<span class="text-muted">' + this.strings.no_suggestion + '</span>';
+                html += '<span class="text-muted">' + (this.strings.no_suggestion || 'Nessun suggerimento') + '</span>';
             }
             html += '</td>';
             
-            // Actions
             html += '<td>';
             if (record.has_suggestion) {
                 html += '<button class="btn btn-sm btn-success apply-suggestion-btn" ';
                 html += 'data-record-id="' + record.id + '" ';
                 html += 'data-user-id="' + record.suggestion.user.id + '">';
-                html += this.strings.apply_suggestion;
+                html += (this.strings.apply_suggestion || 'Applica suggerimento');
                 html += '</button>';
             } else {
-                // Manual selection dropdown
                 html += '<select class="form-control form-control-sm manual-user-select" ';
                 html += 'data-record-id="' + record.id + '">';
-                html += '<option value="">' + this.strings.select_user + '</option>';
+                html += '<option value="">' + (this.strings.select_user || 'Seleziona utente') + '</option>';
                 
                 for (var i = 0; i < this.availableUsers.length; i++) {
                     var user = this.availableUsers[i];
@@ -285,7 +245,7 @@ function($, Ajax, Notification, Str) {
                 html += '</select>';
                 html += ' <button class="btn btn-sm btn-primary manual-assign-btn" ';
                 html += 'data-record-id="' + record.id + '" disabled>';
-                html += this.strings.assign;
+                html += (this.strings.assign || 'Assegna');
                 html += '</button>';
             }
             html += '</td>';
@@ -303,13 +263,11 @@ function($, Ajax, Notification, Str) {
             var html = '<nav aria-label="Pagination">';
             html += '<ul class="pagination justify-content-center">';
             
-            // Previous button
             html += '<li class="page-item ' + (pagination.has_previous ? '' : 'disabled') + '">';
             html += '<a class="page-link" href="#" data-page="' + (pagination.page - 1) + '">';
-            html += this.strings.previous;
+            html += (this.strings.previous || 'Precedente');
             html += '</a></li>';
             
-            // Page numbers
             var startPage = Math.max(0, pagination.page - 2);
             var endPage = Math.min(pagination.total_pages - 1, pagination.page + 2);
             
@@ -319,24 +277,21 @@ function($, Ajax, Notification, Str) {
                 html += '</li>';
             }
             
-            // Next button
             html += '<li class="page-item ' + (pagination.has_next ? '' : 'disabled') + '">';
             html += '<a class="page-link" href="#" data-page="' + (pagination.page + 1) + '">';
-            html += this.strings.next;
+            html += (this.strings.next || 'Successivo');
             html += '</a></li>';
             html += '</ul>';
             
-            // Page info
             html += '<div class="text-center mt-2">';
-            html += this.strings.page + ' ' + (pagination.page + 1) + ' ';
-            html += this.strings.of + ' ' + pagination.total_pages + ' ';
-            html += '(' + pagination.total_count + ' ' + this.strings.total_records + ')';
+            html += (this.strings.page || 'Pagina') + ' ' + (pagination.page + 1) + ' ';
+            html += (this.strings.of || 'di') + ' ' + pagination.total_pages + ' ';
+            html += '(' + pagination.total_count + ' ' + (this.strings.total_records || 'record totali') + ')';
             html += '</div>';
             html += '</nav>';
             
             $('#pagination-container').html(html);
             
-            // Bind pagination events
             $('.page-link').on('click', function(e) {
                 e.preventDefault();
                 var page = parseInt($(this).data('page'));
@@ -352,20 +307,17 @@ function($, Ajax, Notification, Str) {
         bindTableEvents: function() {
             var self = this;
 
-            // Auto-select records with suggestions (che sono già checked)
             $('.record-checkbox:checked').each(function() {
                 self.selectedRecords.add(parseInt($(this).val()));
             });
             self.updateBulkButton();
 
-            // Update select-all checkbox state
             var totalCheckboxes = $('.record-checkbox').length;
             var checkedCheckboxes = $('.record-checkbox:checked').length;
             if (totalCheckboxes > 0 && totalCheckboxes === checkedCheckboxes) {
                 $('#select-all').prop('checked', true);
             }
 
-            // Select all checkbox
             $('#select-all').on('change', function(e) {
                 var isChecked = $(this).prop('checked');
                 $('.record-checkbox').prop('checked', isChecked);
@@ -380,7 +332,6 @@ function($, Ajax, Notification, Str) {
                 self.updateBulkButton();
             });
             
-            // Individual checkboxes
             $('.record-checkbox').on('change', function(e) {
                 var recordId = parseInt($(this).val());
                 
@@ -392,20 +343,17 @@ function($, Ajax, Notification, Str) {
                 
                 self.updateBulkButton();
                 
-                // Update select all checkbox
                 var totalCheckboxes = $('.record-checkbox').length;
                 var checkedCheckboxes = $('.record-checkbox:checked').length;
                 $('#select-all').prop('checked', totalCheckboxes === checkedCheckboxes);
             });
             
-            // Apply suggestion buttons
             $('.apply-suggestion-btn').on('click', function(e) {
                 var recordId = $(this).data('record-id');
                 var userId = $(this).data('user-id');
                 self.applySingleSuggestion(recordId, userId, $(this));
             });
             
-            // Manual user selection
             $('.manual-user-select').on('change', function(e) {
                 var userId = $(this).val();
                 var recordId = $(this).data('record-id');
@@ -418,7 +366,6 @@ function($, Ajax, Notification, Str) {
                 }
             });
             
-            // Manual assign buttons
             $('.manual-assign-btn').on('click', function(e) {
                 var recordId = $(this).data('record-id');
                 var select = $(this).siblings('.manual-user-select');
@@ -431,44 +378,12 @@ function($, Ajax, Notification, Str) {
         },
 
         /**
-         * Update filter button states
-         */
-        
-        updateFilterButtonStates: function() {
-            // Aggiorna contatori nei bottoni filtro se necessario
-            var filterSelect = $('#filter-select');
-            var currentFilter = this.currentFilter;
-            
-            // Evidenzia filtro attivo
-            filterSelect.addClass('filter-active');
-        },
-
-        /**
-         * Refresh statistics after suggestion application
-         */
-        refreshStatistics: function() {
-            $.ajax({
-                url: window.location.href,
-                data: {ajax: 1, action: 'get_statistics'},
-                success: function(response) {
-                    if (response.success) {
-                        var stats = response.data;
-                        $('.unassigned-stats .card-body h5').eq(0).text(stats.total_unassigned);
-                        $('.unassigned-stats .card-body h5').eq(1).text(stats.name_suggestions);
-                        $('.unassigned-stats .card-body h5').eq(2).text(stats.email_suggestions);
-                        $('.unassigned-stats .card-body h5').eq(3).text(stats.available_users);
-                    }
-                }
-            });
-        },
-
-        /**
          * Update bulk assignment button
          */
         updateBulkButton: function() {
             var count = this.selectedRecords.size;
             $('#bulk-assign-btn').prop('disabled', count === 0);
-            $('#bulk-assign-btn').text(this.strings.apply_selected + ' (' + count + ')');
+            $('#bulk-assign-btn').text((this.strings.apply_selected || 'Applica selezionati') + ' (' + count + ')');
         },
 
         /**
@@ -479,7 +394,7 @@ function($, Ajax, Notification, Str) {
          */
         applySingleSuggestion: function(recordId, userId, button) {
             var self = this;
-            button.prop('disabled', true).text(this.strings.applying + '...');
+            button.prop('disabled', true).text((this.strings.applying || 'Applicando') + '...');
             
             $.ajax({
                 url: window.location.href,
@@ -498,15 +413,14 @@ function($, Ajax, Notification, Str) {
                         self.updateBulkButton();
                         sessionStorage.clear();
                         self.showSuccess(response.message);
-                        self.refreshStatistics();
                     } else {
                         self.showError(response.error);
-                        button.prop('disabled', false).text(self.strings.apply_suggestion);
+                        button.prop('disabled', false).text(self.strings.apply_suggestion || 'Applica suggerimento');
                     }
                 },
                 error: function() {
                     self.showError('Connection error');
-                    button.prop('disabled', false).text(self.strings.apply_suggestion);
+                    button.prop('disabled', false).text(self.strings.apply_suggestion || 'Applica suggerimento');
                 }
             });
         },
@@ -527,12 +441,10 @@ function($, Ajax, Notification, Str) {
             this.selectedRecords.forEach(function(recordId) {
                 var row = $('tr[data-record-id="' + recordId + '"]');
                 
-                // Check for automatic suggestion
                 var button = row.find('.apply-suggestion-btn');
                 if (button.length) {
                     assignments[recordId] = button.data('user-id');
                 } else {
-                    // Check for manual selection
                     var select = row.find('.manual-user-select');
                     if (select.length && select.val()) {
                         assignments[recordId] = select.val();
@@ -623,10 +535,7 @@ function($, Ajax, Notification, Str) {
          * @param {number} duration Duration in milliseconds
          */
         showToast: function(message, type, duration) {
-            var toast = $('<div class="alert alert-' + type + ' alert-dismissible fade show position-fixed" ' +
-                'style="top: 20px; right: 20px; z-index: 9999;">' +
-                '<button type="button" class="close" data-dismiss="alert">&times;</button>' +
-                message + '</div>');
+            var toast = $('<div class="alert alert-' + type + ' alert-dismissible fade show position-fixed" style="top: 20px; right: 20px; z-index: 9999;"><button type="button" class="close" data-dismiss="alert">&times;</button>' + message + '</div>');
             $('body').append(toast);
             setTimeout(function() {
                 toast.remove();
