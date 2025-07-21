@@ -130,17 +130,11 @@ class performance_data_handler {
         }
         
         $sql = "SELECT tad.*, u.firstname, u.lastname, u.email
-                FROM {teamsattendance_data} tad
-                LEFT JOIN {user} u ON u.id = tad.userid
-                WHERE tad.sessionid = ? AND tad.userid = ?";
-        
-        $params = array(
-            $this->course->id, 
-            $this->teamsattendance->id, 
-            $CFG->siteguest,
-            $this->teamsattendance->id, 
-            $CFG->siteguest
-        );      
+            FROM {teamsattendance_data} tad
+            LEFT JOIN {user} u ON u.id = tad.userid
+            WHERE tad.sessionid = ? AND tad.userid = ?";
+
+        $params = array($this->teamsattendance->id, $CFG->siteguest);     
 
         // Add filter conditions
         switch ($filter) {
@@ -155,7 +149,7 @@ class performance_data_handler {
                 break;
         }
         
-        $sql .= " ORDER BY suggestion_order ASC, tad.teams_user_id ASC LIMIT $per_page OFFSET $offset";
+        $sql .= " ORDER BY tad.teams_user_id LIMIT $per_page OFFSET $offset";
 
         $records = $DB->get_records_sql($sql, $params);
         $total_count = $this->get_total_unassigned_count($filter);

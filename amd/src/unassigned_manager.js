@@ -145,10 +145,44 @@ function($, Ajax, Notification, Str) {
          */
         renderPage: function(data) {
             this.currentPage = data.pagination.page;
-            this.renderTable(data.records);
-            this.renderPagination(data.pagination);
-            this.updateBulkButton();
-            this.bindTableEvents();
+            
+            // Get suggestions for sorting
+            var self = this;
+            $.ajax({
+                url: window.location.href,
+                data: {ajax: 1, action: 'get_suggestions', page: data.pagination.page},
+                success: function(response) {
+                    if (response.success) {
+                        var sortedRecords = self.sortRecordsBySuggestion(data.records, response.suggestions);
+                        data.records = sortedRecords;
+                    }
+                    self.renderTable(data.records);
+                    self.renderPagination(data.pagination);
+                    self.updateBulkButton();
+                    self.bindTableEvents();
+                }
+            });
+        },
+
+        sortRecordsBySuggestion: function(records, suggestions) {
+            return records.sort(function(a, b) {
+                var aHasSuggestion = suggestions[a.id] ? 1 : 0;
+                var bHasSuggestion = suggestions[b.id] ? 1 : 0;
+                
+                if (aHasSuggestion !== bHasSuggestion) {
+                    return bHasSuggestion - aHasSuggestion; // Suggestions first
+                }
+                
+                if (aHasSuggestion && bHasSuggestion) {
+                    var aType = suggestions[a.id].type === 'name' ? 1 : 2;
+                    var bType = suggestions[b.id].type === 'name' ? 1 : 2;
+                    if (aType !== bType) {
+                        return aType - bType; // Name suggestions before email
+                    }
+                }
+                
+                return a.teams_user_id.localeCompare(b.teams_user_id);
+            });
         },
 
         /**

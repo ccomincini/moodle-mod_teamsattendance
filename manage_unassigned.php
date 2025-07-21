@@ -217,7 +217,13 @@ if ($ajax) {
                     )
                 ));
                 break;
-
+                
+            case 'get_suggestions':
+                $page = optional_param('page', 0, PARAM_INT);
+                $paginated_data = $performance_handler->get_unassigned_records_paginated($page, $per_page, $filter);
+                $suggestions = $performance_handler->get_suggestions_for_batch($paginated_data['records']);
+                echo json_encode(array('success' => true, 'suggestions' => $suggestions));
+                break;
 
             default:
                 echo json_encode(array('success' => false, 'error' => 'Unknown action'));
