@@ -395,7 +395,7 @@ function($, Ajax, Notification, Str) {
                 }
             });
         },
-        
+
         /**
          * Update filter button states
          */
@@ -407,6 +407,25 @@ function($, Ajax, Notification, Str) {
             
             // Evidenzia filtro attivo
             filterSelect.addClass('filter-active');
+        },
+
+        /**
+         * Refresh statistics after suggestion application
+         */
+        refreshStatistics: function() {
+            $.ajax({
+                url: window.location.href,
+                data: {ajax: 1, action: 'get_statistics'},
+                success: function(response) {
+                    if (response.success) {
+                        var stats = response.data;
+                        $('.unassigned-stats .card-body h5').eq(0).text(stats.total_unassigned);
+                        $('.unassigned-stats .card-body h5').eq(1).text(stats.name_suggestions);
+                        $('.unassigned-stats .card-body h5').eq(2).text(stats.email_suggestions);
+                        $('.unassigned-stats .card-body h5').eq(3).text(stats.available_users);
+                    }
+                }
+            });
         },
 
         /**
@@ -445,6 +464,7 @@ function($, Ajax, Notification, Str) {
                         self.updateBulkButton();
                         sessionStorage.clear();
                         self.showSuccess(response.message);
+                        self.refreshStatistics();
                     } else {
                         self.showError(response.error);
                         button.prop('disabled', false).text(self.strings.apply_suggestion);

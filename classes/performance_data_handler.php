@@ -134,8 +134,14 @@ class performance_data_handler {
                 LEFT JOIN {user} u ON u.id = tad.userid
                 WHERE tad.sessionid = ? AND tad.userid = ?";
         
-        $params = array($this->teamsattendance->id, $CFG->siteguest);
-        
+        $params = array(
+            $this->course->id, 
+            $this->teamsattendance->id, 
+            $CFG->siteguest,
+            $this->teamsattendance->id, 
+            $CFG->siteguest
+        );      
+
         // Add filter conditions
         switch ($filter) {
             case 'with_suggestions':
@@ -149,8 +155,8 @@ class performance_data_handler {
                 break;
         }
         
-        $sql .= " ORDER BY tad.teams_user_id LIMIT $per_page OFFSET $offset";
-        
+        $sql .= " ORDER BY suggestion_order ASC, tad.teams_user_id ASC LIMIT $per_page OFFSET $offset";
+
         $records = $DB->get_records_sql($sql, $params);
         $total_count = $this->get_total_unassigned_count($filter);
         
@@ -214,11 +220,30 @@ class performance_data_handler {
             return $cached;
         }
         
-        $sql = "SELECT tad.*, u.firstname, u.lastname, u.email
+        $sql = "SELECT tad.*, u.firstname, u.lastname, u.email,
+                CASE 
+                    WHEN enrolled.firstname IS NOT NULL AND 
+                        (LOWER(tad.teams_user_id) LIKE CONCAT('%', LOWER(enrolled.firstname), '%') OR 
+                        LOWER(tad.teams_user_id) LIKE CONCAT('%', LOWER(enrolled.lastname), '%')) 
+                    THEN 1
+                    WHEN enrolled.email IS NOT NULL AND 
+                        LOWER(tad.teams_user_id) LIKE CONCAT('%', LOWER(SUBSTRING(enrolled.email, 1, LOCATE('@', enrolled.email)-1)), '%')
+                    THEN 2
+                    ELSE 3
+                END as suggestion_order
                 FROM {teamsattendance_data} tad
                 LEFT JOIN {user} u ON u.id = tad.userid
-                WHERE tad.sessionid = ? AND tad.userid = ?
-                ORDER BY tad.teams_user_id";
+                LEFT JOIN (
+                    SELECT u2.id, u2.firstname, u2.lastname, u2.email 
+                    FROM {user} u2
+                    JOIN {enrol} e ON e.courseid = ?
+                    JOIN {user_enrolments} ue ON ue.enrolid = e.id AND ue.userid = u2.id
+                    WHERE u2.id NOT IN (
+                        SELECT DISTINCT userid FROM {teamsattendance_data} 
+                        WHERE sessionid = ? AND userid != ?
+                    )
+                ) enrolled ON 1=1
+                WHERE tad.sessionid = ? AND tad.userid = ?";
         
         $params = array($this->teamsattendance->id, $CFG->siteguest);
         $records = $DB->get_records_sql($sql, $params);

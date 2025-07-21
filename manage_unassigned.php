@@ -201,6 +201,24 @@ if ($ajax) {
                 echo json_encode(array('success' => true, 'users' => $available_users));
                 break;    
             
+            case 'get_statistics':
+                $unassigned_records = $performance_handler->get_all_unassigned_records();
+                $suggestion_engine = new suggestion_engine($enrolled_users);
+                $all_suggestions = $suggestion_engine->generate_suggestions($unassigned_records);
+                $suggestion_stats = $suggestion_engine->get_suggestion_statistics($all_suggestions);
+                
+                echo json_encode(array(
+                    'success' => true, 
+                    'data' => array(
+                        'total_unassigned' => count($unassigned_records),
+                        'name_suggestions' => $suggestion_stats['name_based'],
+                        'email_suggestions' => $suggestion_stats['email_based'],
+                        'available_users' => count($available_users)
+                    )
+                ));
+                break;
+
+
             default:
                 echo json_encode(array('success' => false, 'error' => 'Unknown action'));
         }
