@@ -121,20 +121,36 @@ if ($ajax) {
             case 'load_page':
                 $paginated_data = $performance_handler->get_unassigned_records_paginated($page, $per_page, $filter);
                 
-                // Apply suggestion-based filtering
-                if ($filter === 'name_suggestions' || $filter === 'email_suggestions' || $filter === 'without_suggestions') {
-                    $paginated_data = $performance_handler->filter_records_by_suggestion_type($paginated_data, $filter);
-                }
-                
                 // Get suggestions for current page
                 $suggestions = $performance_handler->get_suggestions_for_batch($paginated_data['records']);
                 
-                // Sort records by suggestion type (name suggestions first, then email, then no suggestions)
-                if ($filter === 'all') {
-                    $paginated_data['records'] = $suggestion_engine->sort_records_by_suggestion_types(
-                        $paginated_data['records'], 
-                        $suggestions
-                    );
+                // Apply suggestion-based filtering MANUALLY
+                if ($filter === 'name_suggestions' || $filter === 'email_suggestions' || $filter === 'without_suggestions') {
+                    $filtered_records = array();
+                    
+                    foreach ($paginated_data['records'] as $record) {
+                        $has_suggestion = isset($suggestions[$record->id]);
+                        $suggestion_type = $has_suggestion ? $suggestions[$record->id]['type'] : null;
+                        
+                        $include = false;
+                        switch ($filter) {
+                            case 'name_suggestions':
+                                $include = ($has_suggestion && $suggestion_type === 'name');
+                                break;
+                            case 'email_suggestions':
+                                $include = ($has_suggestion && $suggestion_type === 'email');
+                                break;
+                            case 'without_suggestions':
+                                $include = !$has_suggestion;
+                                break;
+                        }
+                        
+                        if ($include) {
+                            $filtered_records[] = $record;
+                        }
+                    }
+                    
+                    $paginated_data['records'] = $filtered_records;
                 }
                 
                 // Prepare data for frontend
@@ -230,30 +246,7 @@ if ($ajax) {
                 echo json_encode(array('success' => true, 'suggestions' => $suggestions));
                 break;
 
-            case 'assign_user':
-                if ($recordid && $userid && confirm_sesskey()) {
-                    // Use original assignment handler for single assignments
-                    require_once($CFG->dirroot . '/mod/teamsattendance/classes/user_assignment_handler.php');
-                    $assignment_handler = new user_assignment_handler($cm, $teamsattendance, $course);
-                    $result = $assignment_handler->assign_single_user($recordid, $userid);
-                    
-                    if ($result['success']) {
-                        // AGGIUNGI: Salva preferenza per indicare che questo è un suggerimento applicato
-                        $record = $DB->get_record('teamsattendance_data', array('id' => $recordid));
-                        if ($record) {
-                            set_user_preference('teamsattendance_suggestion_applied_' . $recordid, $userid);
-                        }
-                        
-                        // Clear cache after assignment
-                        $performance_handler->clear_cache();
-                        echo json_encode(array('success' => true, 'message' => 'User assigned successfully'));
-                    } else {
-                        echo json_encode(array('success' => false, 'error' => $result['error']));
-                    }
-                } else {
-                    echo json_encode(array('success' => false, 'error' => 'Invalid parameters'));
-                }
-                break;
+            
             case 'retroactive_preferences':
                 if (confirm_sesskey() && has_capability('mod/teamsattendance:manageattendance', context_module::instance($cm->id))) {
                     // Get all manually assigned records
