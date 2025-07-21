@@ -96,6 +96,15 @@ foreach ($enrolled_users as $user) {
     }
 }
 
+// Sort available users by lastname, firstname to ensure proper ordering
+usort($available_users, function($a, $b) {
+    $lastname_cmp = strcasecmp($a['lastname'], $b['lastname']);
+    if ($lastname_cmp === 0) {
+        return strcasecmp($a['firstname'], $b['firstname']);
+    }
+    return $lastname_cmp;
+});
+
 // Get suggestions statistics for display
 $unassigned_records = $performance_handler->get_all_unassigned_records();
 $suggestion_engine = new suggestion_engine($enrolled_users);
