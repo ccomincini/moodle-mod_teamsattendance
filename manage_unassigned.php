@@ -98,11 +98,11 @@ foreach ($enrolled_users as $user) {
 
 // Sort available users by lastname, firstname to ensure proper ordering
 usort($available_users, function($a, $b) {
-    $lastname_cmp = strcasecmp($a['lastname'], $b['lastname']);
-    if ($lastname_cmp === 0) {
-        return strcasecmp($a['firstname'], $b['firstname']);
+    $firstname_cmp = strcasecmp($a['firstname'], $b['firstname']);
+    if ($firstname_cmp === 0) {
+        return strcasecmp($a['lastname'], $b['lastname']);
     }
-    return $lastname_cmp;
+    return $firstname_cmp;
 });
 
 // Get suggestions statistics for display
@@ -196,7 +196,11 @@ if ($ajax) {
                     echo json_encode(array('success' => false, 'error' => 'Invalid session'));
                 }
                 break;
-                
+            
+            case 'get_available_users':
+                echo json_encode(array('success' => true, 'users' => $available_users));
+                break;    
+            
             default:
                 echo json_encode(array('success' => false, 'error' => 'Unknown action'));
         }
@@ -235,31 +239,14 @@ $js_config = array(
     'defaultPageSize' => $per_page,
     'cmId' => $cm->id,
     'sesskey' => sesskey(),
-    'availableUsers' => $available_users,
-    'suggestionStats' => $suggestion_stats,
     'strings' => array(
         'teams_user_id' => get_string('teams_user_id', 'teamsattendance'),
         'attendance_duration' => get_string('attendance_duration', 'teamsattendance'),
         'suggested_match' => get_string('suggested_match', 'teamsattendance'),
         'actions' => get_string('actions', 'teamsattendance'),
-        'no_records_found' => get_string('no_records_found', 'teamsattendance'),
-        'no_suggestion' => get_string('no_suggestion', 'teamsattendance'),
         'apply_suggestion' => get_string('apply_suggestion', 'teamsattendance'),
-        'apply_selected' => get_string('apply_selected', 'teamsattendance'),
-        'applying' => get_string('applying', 'teamsattendance'),
-        'previous' => get_string('previous', 'teamsattendance'),
-        'next' => get_string('next', 'teamsattendance'),
-        'page' => get_string('page', 'teamsattendance'),
-        'of' => get_string('of', 'teamsattendance'),
-        'total_records' => get_string('total_records', 'teamsattendance'),
-        'select_user' => get_string('select_user', 'teamsattendance'),
         'assign' => get_string('assign', 'teamsattendance'),
-        'filter_all' => get_string('filter_all', 'teamsattendance'),
-        'filter_name_suggestions' => get_string('filter_name_suggestions', 'teamsattendance'),
-        'filter_email_suggestions' => get_string('filter_email_suggestions', 'teamsattendance'),
-        'without_suggestions' => get_string('without_suggestions', 'teamsattendance'),
-        'name_suggestions_count' => get_string('name_suggestions_count', 'teamsattendance'),
-        'email_suggestions_count' => get_string('email_suggestions_count', 'teamsattendance')
+        'select_user' => get_string('select_user', 'teamsattendance')
     )
 );
 

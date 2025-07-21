@@ -401,14 +401,16 @@
 
 
 /* Suggestion table styles */
-.suggestion-name-row {
-    background-color: #e3f2fd !important; /* Azzurro */
+.table tbody tr.suggestion-name-row,
+.table tbody tr.suggestion-name-row:hover {
+    background-color: #d6eaf8 !important;
 }
 
-.suggestion-email-row {
-    background-color: #e8daef !important; /* Viola chiaro */
+.table tbody tr.suggestion-email-row,
+.table tbody tr.suggestion-email-row:hover {
+    background-color: #e8daef !important;
 }
 
-.suggestion-name-row {
-    background-color: #d6eaf8 !important; /* Azzurro chiaro */
+.table tbody tr.suggestion-none-row {
+    background-color: #ffffff !important;
 }

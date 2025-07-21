@@ -22,9 +22,11 @@ function($, Ajax, Notification, Str) {
         this.cmId = config.cmId;
         this.sesskey = config.sesskey || M.cfg.sesskey;
         this.strings = config.strings || {};
-        this.availableUsers = config.availableUsers || [];
+        this.availableUsers = [];
         
         this.init();
+        this.loadAvailableUsers();
+
     };
 
     UnassignedRecordsManager.prototype = {
@@ -68,6 +70,19 @@ function($, Ajax, Notification, Str) {
             $('#bulk-assign-btn').on('click', function() {
                 if (self.selectedRecords.size > 0) {
                     self.performBulkAssignment();
+                }
+            });
+        },
+
+        loadAvailableUsers: function() {
+            var self = this;
+            $.ajax({
+                url: window.location.href,
+                data: {ajax: 1, action: 'get_available_users'},
+                success: function(response) {
+                    if (response.success) {
+                        self.availableUsers = response.users;
+                    }
                 }
             });
         },
@@ -145,9 +160,9 @@ function($, Ajax, Notification, Str) {
             html += '<table class="table table-striped table-hover">';
             html += '<thead class="thead-dark">';
             html += '<tr>';
-            html += '<th><input type="checkbox" id="select-all"></th>';
             html += '<th>' + this.strings.teams_user_id + '</th>';
             html += '<th>' + this.strings.attendance_duration + '</th>';
+            html += '<th><input type="checkbox" id="select-all"></th>';
             html += '<th>' + this.strings.suggested_match + '</th>';
             html += '<th>' + this.strings.actions + '</th>';
             html += '</tr>';
@@ -174,31 +189,28 @@ function($, Ajax, Notification, Str) {
          * @return {string} HTML string
          */
         renderTableRow: function(record) {
-            // Determine row class based on suggestion type nomi classi per correspondence con CSS
-            var rowClass = '';
+            // Determine row class based on suggestion type
+            var rowClass = 'suggestion-none-row';
             if (record.has_suggestion && record.suggestion) {
                 if (record.suggestion.type === 'name') {
                     rowClass = 'suggestion-name-row';
                 } else if (record.suggestion.type === 'email') {
                     rowClass = 'suggestion-email-row';
                 }
-            } else {
-                rowClass = 'suggestion-none-row';
             }
-            
-            var html = '<tr data-record-id="' + record.id + '" class="' + rowClass + '">';
-            
+    
+var html = '<tr data-record-id="' + record.id + '" class="' + rowClass + '">';
+            // Teams User ID
+            html += '<td>' + this.escapeHtml(record.teams_user_id) + '</td>';
+
+            // Duration  
+            html += '<td>' + this.formatDuration(record.attendance_duration) + '</td>';
+
             // Checkbox
             html += '<td>';
             html += '<input type="checkbox" class="record-checkbox" value="' + record.id + '">';
             html += '</td>';
-            
-            // Teams User ID
-            html += '<td>' + this.escapeHtml(record.teams_user_id) + '</td>';
-            
-            // Duration
-            html += '<td>' + this.formatDuration(record.attendance_duration) + '</td>';
-            
+
             // Suggestion
             html += '<td>';
             if (record.has_suggestion && record.suggestion) {
@@ -232,7 +244,7 @@ function($, Ajax, Notification, Str) {
                 for (var i = 0; i < this.availableUsers.length; i++) {
                     var user = this.availableUsers[i];
                     html += '<option value="' + user.id + '">';
-                    html += this.escapeHtml(user.lastname + ' ' + user.firstname);
+                    html += this.escapeHtml(user.name);
                     html += '</option>';
                 }
                 
@@ -371,7 +383,7 @@ function($, Ajax, Notification, Str) {
             });
         },
 
-        * Update filter button states
+        /* Update filter button states
         */
         updateFilterButtonStates: function() {
             // Aggiorna contatori nei bottoni filtro se necessario
