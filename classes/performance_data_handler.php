@@ -109,12 +109,20 @@ class performance_data_handler {
     }
     
     /**
-     * Get all unassigned records (for suggestion statistics)
+     * Get paginated unassigned records
      */
-    public function get_all_unassigned_records() {
+    public function get_unassigned_records_paginated($page = 0, $per_page = null, $filter = 'all') {
         global $DB, $CFG;
         
-        $cache_key = 'teamsattendance_all_unassigned_' . $this->teamsattendance->id;
+        if ($per_page === null) {
+            $perf_stats = $this->get_performance_statistics();
+            $per_page = $perf_stats['recommended_page_size'];
+        }
+        
+        $per_page = min(max($per_page, 10), 100);
+        $offset = $page * $per_page;
+        
+        $cache_key = "teamsattendance_records_{$this->teamsattendance->id}_{$page}_{$per_page}_{$filter}";
         $cached = $this->get_cached_data($cache_key);
         
         if ($cached !== false) {
@@ -124,14 +132,27 @@ class performance_data_handler {
         $sql = "SELECT tad.*, u.firstname, u.lastname, u.email
                 FROM {teamsattendance_data} tad
                 LEFT JOIN {user} u ON u.id = tad.userid
-                WHERE tad.sessionid = ? AND tad.userid = ?
-                ORDER BY tad.teams_user_id";
+                WHERE tad.sessionid = ? AND tad.userid = ?";
         
         $params = array($this->teamsattendance->id, $CFG->siteguest);
-        $records = $DB->get_records_sql($sql, $params);
         
-        $this->set_cached_data($cache_key, $records);
-        return $records;
+        $sql .= " ORDER BY tad.teams_user_id LIMIT $per_page OFFSET $offset";
+        
+        $records = $DB->get_records_sql($sql, $params);
+        $total_count = $this->get_total_unassigned_count($filter);
+        
+        $result = array(
+            'records' => array_values($records),
+            'total_count' => $total_count,
+            'page' => $page,
+            'per_page' => $per_page,
+            'total_pages' => ceil($total_count / $per_page),
+            'has_next' => (($page + 1) * $per_page) < $total_count,
+            'has_previous' => $page > 0
+        );
+        
+        $this->set_cached_data($cache_key, $result);
+        return $result;
     }
     
     /**
@@ -180,30 +201,11 @@ class performance_data_handler {
             return $cached;
         }
         
-        $sql = "SELECT tad.*, u.firstname, u.lastname, u.email,
-                CASE 
-                    WHEN enrolled.firstname IS NOT NULL AND 
-                        (LOWER(tad.teams_user_id) LIKE CONCAT('%', LOWER(enrolled.firstname), '%') OR 
-                        LOWER(tad.teams_user_id) LIKE CONCAT('%', LOWER(enrolled.lastname), '%')) 
-                    THEN 1
-                    WHEN enrolled.email IS NOT NULL AND 
-                        LOWER(tad.teams_user_id) LIKE CONCAT('%', LOWER(SUBSTRING(enrolled.email, 1, LOCATE('@', enrolled.email)-1)), '%')
-                    THEN 2
-                    ELSE 3
-                END as suggestion_order
+        $sql = "SELECT tad.*, u.firstname, u.lastname, u.email
                 FROM {teamsattendance_data} tad
                 LEFT JOIN {user} u ON u.id = tad.userid
-                LEFT JOIN (
-                    SELECT u2.id, u2.firstname, u2.lastname, u2.email 
-                    FROM {user} u2
-                    JOIN {enrol} e ON e.courseid = ?
-                    JOIN {user_enrolments} ue ON ue.enrolid = e.id AND ue.userid = u2.id
-                    WHERE u2.id NOT IN (
-                        SELECT DISTINCT userid FROM {teamsattendance_data} 
-                        WHERE sessionid = ? AND userid != ?
-                    )
-                ) enrolled ON 1=1
-                WHERE tad.sessionid = ? AND tad.userid = ?";
+                WHERE tad.sessionid = ? AND tad.userid = ?
+                ORDER BY tad.teams_user_id";
         
         $params = array($this->teamsattendance->id, $CFG->siteguest);
         $records = $DB->get_records_sql($sql, $params);
