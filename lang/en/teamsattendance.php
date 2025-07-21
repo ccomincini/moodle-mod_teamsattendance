@@ -214,6 +214,11 @@ $string['reset_automatic_assignments'] = 'Reset all assignments made based on su
 $string['confirm_reset_automatic'] = 'Are you sure you want to reset all associations based on suggestions? All reset associations will need to be made manually again.';
 $string['automatic_assignments_reset'] = '{$a} automatic assignments reset.';
 
+$string['potential_suggestions_info'] = 'There are {$a} manual assignments that match current automatic suggestions';
+$string['reset_suggestion_assignments'] = 'Reset suggestion-based assignments';
+$string['confirm_reset_suggestions'] = 'Reset assignments that match automatic suggestions?';
+$string['suggestion_assignments_reset'] = 'Reset {$a} suggestion-based assignments';
+
 // Privacy
 $string['privacy:metadata'] = 'The Teams Meeting Attendance plugin stores attendance data fetched from Microsoft Teams.';
 $string['privacy:metadata:teamsattendance_data'] = 'Attendance records for Teams meetings';

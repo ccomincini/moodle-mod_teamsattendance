@@ -188,6 +188,11 @@ if ($ajax) {
                     $assignments = optional_param_array('assignments', array(), PARAM_INT);
                     $result = $performance_handler->apply_bulk_assignments_with_progress($assignments);
                     
+                    // AGGIUNGI: Salva preferenze per bulk assignments
+                    foreach ($assignments as $recordid => $userid) {
+                        set_user_preference('teamsattendance_suggestion_applied_' . $recordid, $userid);
+                    }
+                    
                     echo json_encode(array(
                         'success' => true,
                         'data' => $result
@@ -217,12 +222,84 @@ if ($ajax) {
                     )
                 ));
                 break;
-                
+
             case 'get_suggestions':
                 $page = optional_param('page', 0, PARAM_INT);
                 $paginated_data = $performance_handler->get_unassigned_records_paginated($page, $per_page, $filter);
                 $suggestions = $performance_handler->get_suggestions_for_batch($paginated_data['records']);
                 echo json_encode(array('success' => true, 'suggestions' => $suggestions));
+                break;
+
+            case 'assign_user':
+                if ($recordid && $userid && confirm_sesskey()) {
+                    // Use original assignment handler for single assignments
+                    require_once($CFG->dirroot . '/mod/teamsattendance/classes/user_assignment_handler.php');
+                    $assignment_handler = new user_assignment_handler($cm, $teamsattendance, $course);
+                    $result = $assignment_handler->assign_single_user($recordid, $userid);
+                    
+                    if ($result['success']) {
+                        // AGGIUNGI: Salva preferenza per indicare che questo è un suggerimento applicato
+                        $record = $DB->get_record('teamsattendance_data', array('id' => $recordid));
+                        if ($record) {
+                            set_user_preference('teamsattendance_suggestion_applied_' . $recordid, $userid);
+                        }
+                        
+                        // Clear cache after assignment
+                        $performance_handler->clear_cache();
+                        echo json_encode(array('success' => true, 'message' => 'User assigned successfully'));
+                    } else {
+                        echo json_encode(array('success' => false, 'error' => $result['error']));
+                    }
+                } else {
+                    echo json_encode(array('success' => false, 'error' => 'Invalid parameters'));
+                }
+                break;
+            case 'retroactive_preferences':
+                if (confirm_sesskey() && has_capability('mod/teamsattendance:manageattendance', context_module::instance($cm->id))) {
+                    // Get all manually assigned records
+                    $manual_records = $DB->get_records('teamsattendance_data', [
+                        'sessionid' => $teamsattendance->id,
+                        'manually_assigned' => 1
+                    ]);
+                    
+                    $updated_count = 0;
+                    
+                    // Get available users for suggestion generation
+                    $context = context_course::instance($course->id);
+                    $enrolled_users = get_enrolled_users($context, '', 0, 'u.id, u.firstname, u.lastname, u.email');
+                    
+                    require_once($CFG->dirroot . '/mod/teamsattendance/classes/suggestion_engine.php');
+                    $suggestion_engine = new suggestion_engine($enrolled_users);
+                    
+                    foreach ($manual_records as $record) {
+                        // Skip if preference already exists
+                        $preference_name = 'teamsattendance_suggestion_applied_' . $record->id;
+                        if (get_user_preference($preference_name)) {
+                            continue;
+                        }
+                        
+                        // Generate suggestion for this specific record
+                        $single_record_array = array($record->id => $record);
+                        $suggestions = $suggestion_engine->generate_suggestions($single_record_array);
+                        
+                        // Check if current assignment matches suggestion
+                        if (isset($suggestions[$record->id])) {
+                            $suggestion = $suggestions[$record->id];
+                            if ($suggestion['user']->id == $record->userid) {
+                                // This assignment matches the suggestion - likely was applied
+                                set_user_preference($preference_name, $record->userid);
+                                $updated_count++;
+                            }
+                        }
+                    }
+                    
+                    echo json_encode(array(
+                        'success' => true, 
+                        'message' => "Updated $updated_count retroactive preferences"
+                    ));
+                } else {
+                    echo json_encode(array('success' => false, 'error' => 'Permission denied'));
+                }
                 break;
 
             default:

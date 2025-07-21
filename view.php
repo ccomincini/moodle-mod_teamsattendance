@@ -51,7 +51,6 @@ $PAGE->set_heading(format_string($course->fullname));
 $action = optional_param('action', '', PARAM_TEXT);
 if ($action === 'reset_accepted_suggestions' && confirm_sesskey() && has_capability('mod/teamsattendance:manageattendance', $context)) {
     
-    // Get all manually assigned records for this session
     $manual_records = $DB->get_records('teamsattendance_data', [
         'sessionid' => $cm->instance,
         'manually_assigned' => 1
@@ -59,31 +58,33 @@ if ($action === 'reset_accepted_suggestions' && confirm_sesskey() && has_capabil
     
     $deleted_count = 0;
     
-    foreach ($manual_records as $record) {
-        // Check if this assignment was made by accepting a suggestion
-        $preference_name = 'teamsattendance_suggestion_applied_' . $record->id;
+    if (!empty($manual_records)) {
+        // Generate current suggestions
+        $context_course = context_course::instance($course->id);
+        $enrolled_users = get_enrolled_users($context_course, '', 0, 'u.id, u.firstname, u.lastname, u.email');
         
-        // Check if preference exists for this record->userid
-        $has_preference = $DB->record_exists('user_preferences', [
-            'name' => $preference_name,
-            'value' => (string)$record->userid
-        ]);
+        require_once($CFG->dirroot . '/mod/teamsattendance/classes/suggestion_engine.php');
+        $suggestion_engine = new suggestion_engine($enrolled_users);
+        $suggestions = $suggestion_engine->generate_suggestions($manual_records);
         
-        if ($has_preference) {
-            // This was a suggestion that was accepted - reset it
-            $record->userid = $CFG->siteguest;
-            $record->manually_assigned = 0;
-            
-            if ($DB->update_record('teamsattendance_data', $record)) {
-                // Remove the preference to clean up
-                $DB->delete_records('user_preferences', ['name' => $preference_name]);
-                $deleted_count++;
+        foreach ($manual_records as $record) {
+            // If current assignment matches suggestion, it's likely from a suggestion
+            if (isset($suggestions[$record->id]) && 
+                $suggestions[$record->id]['user']->id == $record->userid) {
+                
+                $record->userid = $CFG->siteguest;
+                $record->manually_assigned = 0;
+                
+                if ($DB->update_record('teamsattendance_data', $record)) {
+                    $deleted_count++;
+                }
             }
         }
     }
     
-  redirect($PAGE->url, get_string('automatic_assignments_reset', 'mod_teamsattendance', $deleted_count), null, \core\output\notification::NOTIFY_SUCCESS);
+    redirect($PAGE->url, get_string('suggestion_assignments_reset', 'mod_teamsattendance', $deleted_count), null, \core\output\notification::NOTIFY_SUCCESS);
 }
+
 // Fetch session data
 $session = $DB->get_record('teamsattendance', ['id' => $cm->instance], '*', MUST_EXIST);
 
@@ -151,30 +152,35 @@ if ($unassigned_count > 0) {
 
 // Reset accepted suggestions button  
 if (has_capability('mod/teamsattendance:manageattendance', $context)) {
-    // Count suggestions that were accepted
+    // Get all manually assigned records
     $manual_records = $DB->get_records('teamsattendance_data', [
         'sessionid' => $session->id,
         'manually_assigned' => 1
     ]);
 
-    $accepted_count = 0;
-    foreach ($manual_records as $record) {
-        $preference_name = 'teamsattendance_suggestion_applied_' . $record->id;
+    $potential_suggestions = 0;
+    
+    if (!empty($manual_records)) {
+        // Generate suggestions to check which manual assignments match current suggestions
+        $context_course = context_course::instance($course->id);
+        $enrolled_users = get_enrolled_users($context_course, '', 0, 'u.id, u.firstname, u.lastname, u.email');
         
-        // Check if preference exists for this record->userid
-        $has_preference = $DB->record_exists('user_preferences', [
-            'name' => $preference_name,
-            'value' => (string)$record->userid
-        ]);
+        require_once($CFG->dirroot . '/mod/teamsattendance/classes/suggestion_engine.php');
+        $suggestion_engine = new suggestion_engine($enrolled_users);
+        $suggestions = $suggestion_engine->generate_suggestions($manual_records);
         
-        if ($has_preference) {
-            $accepted_count++;
+        // Count how many manual assignments match current suggestions
+        foreach ($manual_records as $record) {
+            if (isset($suggestions[$record->id]) && 
+                $suggestions[$record->id]['user']->id == $record->userid) {
+                $potential_suggestions++;
+            }
         }
     }
     
-    if ($accepted_count > 0) {
+    if ($potential_suggestions > 0) {
         echo $OUTPUT->notification(
-            get_string('automatic_assignments_info', 'mod_teamsattendance', $accepted_count),
+            get_string('potential_suggestions_info', 'mod_teamsattendance', $potential_suggestions),
             'alert alert-info'
         );
         
@@ -185,9 +191,9 @@ if (has_capability('mod/teamsattendance:manageattendance', $context)) {
         ]);
         
         echo html_writer::div(
-            html_writer::link($reseturl, get_string('reset_automatic_assignments', 'mod_teamsattendance'), [
+            html_writer::link($reseturl, get_string('reset_suggestion_assignments', 'mod_teamsattendance'), [
                 'class' => 'btn btn-warning mb-3',
-                'onclick' => 'return confirm("' . get_string('confirm_reset_automatic', 'mod_teamsattendance') . '")'
+                'onclick' => 'return confirm("' . get_string('confirm_reset_suggestions', 'mod_teamsattendance') . '")'
             ]),
             'reset-suggestions-link'
         );

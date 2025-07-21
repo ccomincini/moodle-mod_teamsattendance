@@ -213,6 +213,12 @@ $string['reset_automatic_assignments'] = 'Resetta tutte le assegnazioni effettua
 $string['confirm_reset_automatic'] = 'Se sicuro di voler resettare tutte le associazioni basate su suggerimenti? Tutte le associazioni resettate dovranno essere nuovamente effettuate manualmente.';
 $string['automatic_assignments_reset'] = '{$a} assegnazioni automatiche resettate.';
 
+$string['potential_suggestions_info'] = 'Ci sono {$a} associazioni manuali che corrispondono ai suggerimenti automatici attuali';
+$string['reset_suggestion_assignments'] = 'Reimposta associazioni da suggerimenti';
+$string['confirm_reset_suggestions'] = 'Reimpostare gli associazioni che corrispondono ai suggerimenti automatici?';
+$string['suggestion_assignments_reset'] = 'Reimpostati {$a} associazioni da suggerimenti';
+
+
 //Privacy
 $string['privacy:metadata'] = 'Il plugin Presenze Riunioni Teams memorizza dati di presenza recuperati da Microsoft Teams.';
 $string['privacy:metadata:teamsattendance_data'] = 'Record di presenza per riunioni Teams';
