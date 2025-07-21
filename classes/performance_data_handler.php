@@ -202,6 +202,32 @@ class performance_data_handler {
     }
     
     /**
+     * Get all unassigned records (for suggestion statistics)
+     */
+    public function get_all_unassigned_records() {
+        global $DB, $CFG;
+        
+        $cache_key = 'teamsattendance_all_unassigned_' . $this->teamsattendance->id;
+        $cached = $this->get_cached_data($cache_key);
+        
+        if ($cached !== false) {
+            return $cached;
+        }
+        
+        $sql = "SELECT tad.*, u.firstname, u.lastname, u.email
+                FROM {teamsattendance_data} tad
+                LEFT JOIN {user} u ON u.id = tad.userid
+                WHERE tad.sessionid = ? AND tad.userid = ?
+                ORDER BY tad.teams_user_id";
+        
+        $params = array($this->teamsattendance->id, $CFG->siteguest);
+        $records = $DB->get_records_sql($sql, $params);
+        
+        $this->set_cached_data($cache_key, $records);
+        return $records;
+    }
+
+    /**
      * Get lightweight user list for suggestions (cached)
      */
     private function get_available_users_lightweight() {
