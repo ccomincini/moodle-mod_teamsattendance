@@ -109,20 +109,12 @@ class performance_data_handler {
     }
     
     /**
-     * Get paginated unassigned records
+     * Get all unassigned records (for suggestion statistics)
      */
-    public function get_unassigned_records_paginated($page = 0, $per_page = null, $filter = 'all') {
+    public function get_all_unassigned_records() {
         global $DB, $CFG;
         
-        if ($per_page === null) {
-            $perf_stats = $this->get_performance_statistics();
-            $per_page = $perf_stats['recommended_page_size'];
-        }
-        
-        $per_page = min(max($per_page, 10), 100); // Clamp between 10-100
-        $offset = $page * $per_page;
-        
-        $cache_key = "teamsattendance_records_{$this->teamsattendance->id}_{$page}_{$per_page}_{$filter}";
+        $cache_key = 'teamsattendance_all_unassigned_' . $this->teamsattendance->id;
         $cached = $this->get_cached_data($cache_key);
         
         if ($cached !== false) {
@@ -130,42 +122,16 @@ class performance_data_handler {
         }
         
         $sql = "SELECT tad.*, u.firstname, u.lastname, u.email
-            FROM {teamsattendance_data} tad
-            LEFT JOIN {user} u ON u.id = tad.userid
-            WHERE tad.sessionid = ? AND tad.userid = ?";
-
-        $params = array($this->teamsattendance->id, $CFG->siteguest);     
-
-        // Add filter conditions
-        switch ($filter) {
-            case 'with_suggestions':
-                // We'll filter this after getting suggestions
-                break;
-            case 'without_suggestions':
-                // We'll filter this after getting suggestions
-                break;
-            case 'long_duration':
-                $sql .= " AND tad.attendance_duration > 3600"; // > 1 hour
-                break;
-        }
+                FROM {teamsattendance_data} tad
+                LEFT JOIN {user} u ON u.id = tad.userid
+                WHERE tad.sessionid = ? AND tad.userid = ?
+                ORDER BY tad.teams_user_id";
         
-        $sql .= " ORDER BY tad.teams_user_id LIMIT $per_page OFFSET $offset";
-
+        $params = array($this->teamsattendance->id, $CFG->siteguest);
         $records = $DB->get_records_sql($sql, $params);
-        $total_count = $this->get_total_unassigned_count($filter);
         
-        $result = array(
-            'records' => array_values($records),
-            'total_count' => $total_count,
-            'page' => $page,
-            'per_page' => $per_page,
-            'total_pages' => ceil($total_count / $per_page),
-            'has_next' => (($page + 1) * $per_page) < $total_count,
-            'has_previous' => $page > 0
-        );
-        
-        $this->set_cached_data($cache_key, $result);
-        return $result;
+        $this->set_cached_data($cache_key, $records);
+        return $records;
     }
     
     /**
