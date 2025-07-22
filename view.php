@@ -140,12 +140,12 @@ echo '<div class="metric">' . $total_records . '</div>';
 echo '</div>';
 
 echo '<div class="stats-card card-automatic">';
-echo '<h4>' . get_string('automatic', 'mod_teamsattendance') . '</h4>';
+echo '<h4>Assegnati Automaticamente</h4>';
 echo '<div class="metric">' . $automatic_records . '</div>';
 echo '</div>';
 
 echo '<div class="stats-card card-manual">';
-echo '<h4>' . get_string('manual', 'mod_teamsattendance') . '</h4>';
+echo '<h4>Assegnati Manualmente</h4>';
 echo '<div class="metric">' . $manual_records . '</div>';
 echo '</div>';
 
@@ -167,8 +167,8 @@ if (has_capability('mod/teamsattendance:manageattendance', $context)) {
         'id' => $cm->id,
         'sesskey' => sesskey()
     ]);
-    echo $OUTPUT->single_button($fetchurl, get_string('fetch_attendance', 'mod_teamsattendance'), 'get', ['class' => 'btn btn-light']);
-    echo '</div>';
+echo $OUTPUT->single_button($fetchurl, get_string('fetch_attendance', 'mod_teamsattendance'), 'get', ['class' => 'btn btn-fetch']);
+echo '</div>';
 }
 
 // Manage unassigned card
@@ -177,7 +177,7 @@ if ($unassigned_count > 0 && has_capability('mod/teamsattendance:manageattendanc
     echo '<h4>' . get_string('manage_unassigned', 'mod_teamsattendance') . '</h4>';
     echo '<p>' . get_string('unassigned_users_alert', 'mod_teamsattendance', $unassigned_count) . '</p>';
     $manageurl = new moodle_url('/mod/teamsattendance/manage_unassigned.php', ['id' => $cm->id]);
-    echo html_writer::link($manageurl, get_string('manage_unassigned', 'mod_teamsattendance'), ['class' => 'btn btn-light']);
+    echo html_writer::link($manageurl, 'Record Non Assegnati', ['class' => 'btn btn-manage']);
     echo '</div>';
 }
 
@@ -200,7 +200,7 @@ if (has_capability('mod/teamsattendance:manageattendance', $context)) {
         ]);
         
         echo html_writer::link($reseturl, get_string('reset_manual_assignments', 'mod_teamsattendance'), [
-            'class' => 'btn btn-light',
+            'class' => 'btn btn-reset',
             'onclick' => 'return confirm("' . get_string('confirm_reset_manual_assignments', 'mod_teamsattendance') . '")'
         ]);
         echo '</div>';
@@ -212,22 +212,21 @@ echo '</div>'; // Close action-buttons-container
 
 // Export buttons in card
 echo '<div class="export-buttons-container">';
-echo '<div class="action-card card-export">';
-echo '<h4>Export Data</h4>';
+echo '<strong style="margin-right: 15px;">Export Data:</strong>';
 
 $exportcsvurl = new moodle_url('/mod/teamsattendance/export_attendance.php', [
     'id' => $cm->id,
     'sesskey' => sesskey()
 ]);
-echo $OUTPUT->single_button($exportcsvurl, get_string('exporttocsv', 'mod_teamsattendance'), 'get', ['class' => 'btn btn-light mr-2']);
+echo $OUTPUT->single_button($exportcsvurl, get_string('exporttocsv', 'mod_teamsattendance'), 'get', ['class' => 'btn btn-secondary']);
 
 $exportxlsxurl = new moodle_url('/mod/teamsattendance/export_attendance_xlsx.php', [
     'id' => $cm->id,
     'sesskey' => sesskey()
 ]);
-echo $OUTPUT->single_button($exportxlsxurl, get_string('exporttoxlsx', 'mod_teamsattendance'), 'get', ['class' => 'btn btn-light']);
+echo $OUTPUT->single_button($exportxlsxurl, get_string('exporttoxlsx', 'mod_teamsattendance'), 'get', ['class' => 'btn btn-secondary']);
 echo '</div>';
-echo '</div>';
+
 
 
 $table = new flexible_table('teamsattendance-attendance');

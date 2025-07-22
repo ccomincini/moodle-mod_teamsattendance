@@ -39,15 +39,51 @@
 
 /* Action card colors */
 .mod_teamsattendance .card-fetch {
-    background-color: #28a745; /* Green */
+    background-color: #eaecee;
+    color: #2c3e50;
+}
+
+.mod_teamsattendance .card-fetch h4,
+.mod_teamsattendance .card-fetch p {
+    color: #2c3e50;
 }
 
 .mod_teamsattendance .card-manage {
-    background-color: #fd7e14; /* Orange */
+    background-color: #f9e79f;
+    color: #2c3e50;
+}
+
+.mod_teamsattendance .card-manage h4,
+.mod_teamsattendance .card-manage p {
+    color: #2c3e50;
 }
 
 .mod_teamsattendance .card-reset {
-    background-color: #6f42c1; /* Purple */
+    background-color: #f5eef8;
+    color: #2c3e50;
+}
+
+.mod_teamsattendance .card-reset h4,
+.mod_teamsattendance .card-reset p {
+    color: #2c3e50;
+}
+
+.mod_teamsattendance .btn-fetch {
+    background-color: #808b96 !important;
+    border-color: #808b96 !important;
+    color: white !important;
+}
+
+.mod_teamsattendance .btn-manage {
+    background-color: #fd7e14 !important;
+    border-color: #fd7e14 !important;
+    color: white !important;
+}
+
+.mod_teamsattendance .btn-reset {
+    background-color: #6f42c1 !important;
+    border-color: #6f42c1 !important;
+    color: white !important;
 }
 
 .mod_teamsattendance .card-export {
@@ -57,9 +93,13 @@
 /* Export buttons container */
 .mod_teamsattendance .export-buttons-container {
     display: flex;
-    gap: 20px;
+    gap: 10px;
     margin-bottom: 20px;
-    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+
+.mod_teamsattendance .export-buttons-container .btn {
+    margin: 0 5px 0 0;
 }
 
 /* Table styling */
@@ -157,17 +197,26 @@
 }
 
 .mod_teamsattendance .card-total {
-    background-color: #28a745;
+    background-color: #808b96;
 }
 
 .mod_teamsattendance .card-automatic {
-    background-color: #28a745;
+    background-color: #d5f5e3;
+    color: #2c3e50 !important;
 }
 
 .mod_teamsattendance .card-manual {
-    background-color: #fd7e14;
+    background-color: #f9e79f;
+    color: #2c3e50 !important;
 }
 
 .mod_teamsattendance .card-unassigned {
-    background-color: #dc3545;
+    background-color: #f2d7d5;
+    color: #2c3e50 !important;
+}
+
+.mod_teamsattendance .card-automatic h4,
+.mod_teamsattendance .card-manual h4,
+.mod_teamsattendance .card-unassigned h4 {
+    color: #2c3e50 !important;
 }
