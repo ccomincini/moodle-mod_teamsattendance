@@ -216,7 +216,7 @@ $string['confirm_reset_automatic'] = 'Se sicuro di voler resettare tutte le asso
 $string['automatic_assignments_reset'] = '{$a} assegnazioni automatiche resettate.';
 
 $string['manual_assignments_info'] = '{$a} assegnazioni manuali trovate.';
-$string['reset_manual_assignments'] = 'Reimposta Assegnazioni Manuali';
+$string['reset_manual_assignments'] = 'Reimposta assegnazioni manuali';
 $string['confirm_reset_manual_assignments'] = 'Sei sicuro di voler reimpostare tutte le assegnazioni manuali?';
 
 $string['potential_suggestions_info'] = 'Ci sono {$a} associazioni manuali che corrispondono ai suggerimenti automatici attuali';

@@ -179,7 +179,7 @@ if (has_capability('mod/teamsattendance:manageattendance', $context)) {
 if ($unassigned_count > 0 && has_capability('mod/teamsattendance:manageattendance', $context)) {
     echo '<div class="action-card card-manage">';
     echo '<div class="card-content">';
-    echo '<h4>Record Non Assegnati</h4>';
+    echo '<h4>' . get_string('manage_unassigned', 'mod_teamsattendance') . '</h4>';
     echo '<p>' . get_string('unassigned_users_alert', 'mod_teamsattendance', $unassigned_count) . '</p>';
     echo '</div>';
     echo '<div class="card-actions">';
@@ -199,7 +199,7 @@ if (has_capability('mod/teamsattendance:manageattendance', $context)) {
     if ($manual_records_count > 0) {
         echo '<div class="action-card card-reset">';
         echo '<div class="card-content">';
-        echo '<h4>Reimposta Assegnazioni Manuali</h4>';
+        echo '<h4>' . get_string('reset_manual_assignments', 'mod_teamsattendance') . '</h4>';
         echo '<p>' . get_string('manual_assignments_info', 'mod_teamsattendance', $manual_records_count) . '</p>';
         echo '</div>';
         echo '<div class="card-actions">';
