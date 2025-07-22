@@ -24,12 +24,12 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2025072001; // The current plugin version (Date: YYYYMMDDXX).
+$plugin->version = 2025072201; // The current plugin version (Date: YYYYMMDDXX).
 $plugin->requires = 2022112800; // Requires this Moodle version.
 $plugin->supported = [39, 40];   // Available as of Moodle 3.9.0 or later.
 $plugin->component = 'mod_teamsattendance'; // Full name of the plugin (used for diagnostics).
 $plugin->maturity = MATURITY_STABLE; // This version's maturity level.
-$plugin->release = 'v2.1.4'; // Human-readable version name.
+$plugin->release = 'v2.1.5'; // Human-readable version name.
 
 // Register the module's icon
 $plugin->icon = 'pix/icon.svg';
