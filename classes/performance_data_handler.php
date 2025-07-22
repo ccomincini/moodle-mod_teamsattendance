@@ -109,9 +109,9 @@ class performance_data_handler {
     }
     
     /**
-     * Get paginated unassigned records
+     * Get paginated unassigned records with suggestion filtering
      */
-    public function get_unassigned_records_paginated($page = 0, $per_page = null, $filter = 'all') {
+    public function get_unassigned_records_paginated($page = 0, $per_page = null, $filters = array()) {
         global $DB, $CFG;
         
         if ($per_page === null) {
@@ -120,14 +120,23 @@ class performance_data_handler {
         }
         
         $per_page = min(max($per_page, 10), 100);
-        $offset = $page * $per_page;
         
-        $cache_key = "teamsattendance_records_{$this->teamsattendance->id}_{$page}_{$per_page}_{$filter}";
+        // Include filters in cache key
+        $filter_hash = md5(serialize($filters));
+        $cache_key = "teamsattendance_records_{$this->teamsattendance->id}_{$page}_{$per_page}_{$filter_hash}";
         $cached = $this->get_cached_data($cache_key);
         
         if ($cached !== false) {
             return $cached;
         }
+        
+        // If we have suggestion filters, we need to get all records first, then filter and paginate
+        if (isset($filters['suggestion_type']) && $filters['suggestion_type'] !== 'all') {
+            return $this->get_records_with_suggestion_filter($page, $per_page, $filters);
+        }
+        
+        // For no filters or 'all' filter, use simple pagination
+        $offset = $page * $per_page;
         
         $sql = "SELECT tad.*, u.firstname, u.lastname, u.email
                 FROM {teamsattendance_data} tad
@@ -139,7 +148,7 @@ class performance_data_handler {
         $sql .= " ORDER BY tad.teams_user_id LIMIT $per_page OFFSET $offset";
         
         $records = $DB->get_records_sql($sql, $params);
-        $total_count = $this->get_total_unassigned_count($filter);
+        $total_count = $this->get_total_unassigned_count();
         
         $result = array(
             'records' => array_values($records),
@@ -153,6 +162,105 @@ class performance_data_handler {
         
         $this->set_cached_data($cache_key, $result);
         return $result;
+    }
+    
+    /**
+     * Get records with suggestion filtering applied server-side
+     */
+    private function get_records_with_suggestion_filter($page, $per_page, $filters) {
+        global $DB, $CFG;
+        
+        // Get all unassigned records
+        $sql = "SELECT tad.*, u.firstname, u.lastname, u.email
+                FROM {teamsattendance_data} tad
+                LEFT JOIN {user} u ON u.id = tad.userid
+                WHERE tad.sessionid = ? AND tad.userid = ?
+                ORDER BY tad.teams_user_id";
+        
+        $params = array($this->teamsattendance->id, $CFG->siteguest);
+        $all_records = $DB->get_records_sql($sql, $params);
+        
+        // Get suggestions for all records (use cache if available)
+        $suggestions = $this->get_suggestions_for_all_records($all_records);
+        
+        // Filter records based on suggestion type
+        $filtered_records = array();
+        $suggestion_type = $filters['suggestion_type'];
+        
+        foreach ($all_records as $record) {
+            $include_record = false;
+            
+            switch ($suggestion_type) {
+                case 'name_suggestions':
+                    if (isset($suggestions[$record->id]) && $suggestions[$record->id]['type'] === 'name') {
+                        $include_record = true;
+                    }
+                    break;
+                    
+                case 'email_suggestions':
+                    if (isset($suggestions[$record->id]) && $suggestions[$record->id]['type'] === 'email') {
+                        $include_record = true;
+                    }
+                    break;
+                    
+                case 'no_suggestions':
+                    if (!isset($suggestions[$record->id])) {
+                        $include_record = true;
+                    }
+                    break;
+                    
+                default: // 'all'
+                    $include_record = true;
+                    break;
+            }
+            
+            if ($include_record) {
+                $filtered_records[] = $record;
+            }
+        }
+        
+        // Apply pagination to filtered results
+        $total_filtered = count($filtered_records);
+        $offset = $page * $per_page;
+        $paginated_records = array_slice($filtered_records, $offset, $per_page);
+        
+        $result = array(
+            'records' => array_values($paginated_records),
+            'total_count' => $total_filtered,
+            'page' => $page,
+            'per_page' => $per_page,
+            'total_pages' => ceil($total_filtered / $per_page),
+            'has_next' => (($page + 1) * $per_page) < $total_filtered,
+            'has_previous' => $page > 0
+        );
+        
+        return $result;
+    }
+    
+    /**
+     * Get suggestions for all records (with caching)
+     */
+    private function get_suggestions_for_all_records($records) {
+        $cache_key = 'teamsattendance_all_suggestions_' . $this->teamsattendance->id;
+        $cached = $this->get_cached_data($cache_key);
+        
+        if ($cached !== false) {
+            return $cached;
+        }
+        
+        // Get available users (lightweight version)
+        $available_users = $this->get_available_users_lightweight();
+        
+        if (empty($available_users)) {
+            return array();
+        }
+        
+        // Initialize suggestion engine
+        $suggestion_engine = new suggestion_engine($available_users);
+        $suggestions = $suggestion_engine->generate_suggestions($records);
+        
+        $this->set_cached_data($cache_key, $suggestions);
+        return $suggestions;
     }
     
     /**
@@ -251,29 +359,22 @@ class performance_data_handler {
     }
     
     /**
-     * Get total count of unassigned records with filter
+     * Get total count of unassigned records
      */
-    private function get_total_unassigned_count($filter = 'all') {
+    private function get_total_unassigned_count() {
         global $DB, $CFG;
         
-        $cache_key = "teamsattendance_count_{$this->teamsattendance->id}_{$filter}";
+        $cache_key = "teamsattendance_count_{$this->teamsattendance->id}";
         $cached = $this->get_cached_data($cache_key);
         
         if ($cached !== false) {
             return $cached;
         }
         
-        $sql = "SELECT COUNT(*) FROM {teamsattendance_data} 
-                WHERE sessionid = ? AND userid = ?";
-        $params = array($this->teamsattendance->id, $CFG->siteguest);
-        
-        switch ($filter) {
-            case 'long_duration':
-                $sql .= " AND attendance_duration > 3600";
-                break;
-        }
-        
-        $count = $DB->count_records_sql($sql, $params);
+        $count = $DB->count_records('teamsattendance_data', array(
+            'sessionid' => $this->teamsattendance->id,
+            'userid' => $CFG->siteguest
+        ));
         
         $this->set_cached_data($cache_key, $count);
         return $count;
