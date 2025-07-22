@@ -5,7 +5,7 @@
  * @copyright  2025 Invisiblefarm srl
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-define(['jquery', 'core/ajax', 'core/notification', 'core/str'], 
+define(['jquery', 'core/ajax', 'core/notification', 'core/str'],
 function($, Ajax, Notification, Str) {
     'use strict';
 
@@ -23,7 +23,7 @@ function($, Ajax, Notification, Str) {
         this.sesskey = config.sesskey || M.cfg.sesskey;
         this.strings = config.strings || {};
         this.availableUsers = [];
-        
+
         this.init();
         this.loadAvailableUsers();
     };
@@ -97,16 +97,16 @@ function($, Ajax, Notification, Str) {
             if (this.isLoading) {
                 return;
             }
-            
+
             var self = this;
             this.isLoading = true;
             $('#loading-indicator').show();
-            
+
             // If filtering is active, load more records to ensure we have enough after filtering
             var pageSize = (this.currentFilter !== 'all') ? this.currentPageSize * 3 : this.currentPageSize;
-            
+
             var cacheKey = 'page_' + page + '_' + this.currentFilter + '_' + this.currentPageSize;
-            
+
             if (!forceRefresh && sessionStorage.getItem(cacheKey)) {
                 var cachedData = JSON.parse(sessionStorage.getItem(cacheKey));
                 this.renderPage(cachedData);
@@ -176,7 +176,7 @@ function($, Ajax, Notification, Str) {
                     }
                 }.bind(this));
             }
-            
+
             var html = '<div class="table-responsive">';
             html += '<table class="table table-striped table-hover">';
             html += '<thead class="thead-dark">';
@@ -218,7 +218,7 @@ function($, Ajax, Notification, Str) {
                     rowClass = 'suggestion-email-row';
                 }
             }
-    
+
             var html = '<tr data-record-id="' + record.id + '" class="' + rowClass + '">';
             html += '<td>' + this.escapeHtml(record.teams_user_id) + '</td>';
             html += '<td>' + this.formatDuration(record.attendance_duration) + '</td>';
@@ -233,7 +233,7 @@ function($, Ajax, Notification, Str) {
                 var user = record.suggestion.user;
                 var confidence = record.suggestion.confidence;
                 var type = record.suggestion.type;
-                
+
                 html += '<span class="badge badge-' + (confidence === 'high' ? 'success' : 'warning') + '">';
                 html += this.escapeHtml(user.firstname + ' ' + user.lastname);
                 html += '</span>';
@@ -242,7 +242,7 @@ function($, Ajax, Notification, Str) {
                 html += '<span class="text-muted">' + (this.strings.no_suggestion || 'Nessun suggerimento') + '</span>';
             }
             html += '</td>';
-            
+
             html += '<td>';
             if (record.has_suggestion) {
                 html += '<button class="btn btn-sm btn-success apply-suggestion-btn" ';
@@ -254,14 +254,14 @@ function($, Ajax, Notification, Str) {
                 html += '<select class="form-control form-control-sm manual-user-select" ';
                 html += 'data-record-id="' + record.id + '">';
                 html += '<option value="">' + (this.strings.select_user || 'Seleziona utente') + '</option>';
-                
+
                 for (var i = 0; i < this.availableUsers.length; i++) {
                     var user = this.availableUsers[i];
                     html += '<option value="' + user.id + '">';
                     html += this.escapeHtml(user.name);
                     html += '</option>';
                 }
-                
+
                 html += '</select>';
                 html += ' <button class="btn btn-sm btn-primary manual-assign-btn" ';
                 html += 'data-record-id="' + record.id + '" disabled>';
@@ -269,7 +269,7 @@ function($, Ajax, Notification, Str) {
                 html += '</button>';
             }
             html += '</td>';
-            
+
             html += '</tr>';
             return html;
         },
@@ -282,36 +282,36 @@ function($, Ajax, Notification, Str) {
             var self = this;
             var html = '<nav aria-label="Pagination">';
             html += '<ul class="pagination justify-content-center">';
-            
+
             html += '<li class="page-item ' + (pagination.has_previous ? '' : 'disabled') + '">';
             html += '<a class="page-link" href="#" data-page="' + (pagination.page - 1) + '">';
             html += (this.strings.previous || 'Precedente');
             html += '</a></li>';
-            
+
             var startPage = Math.max(0, pagination.page - 2);
             var endPage = Math.min(pagination.total_pages - 1, pagination.page + 2);
-            
+
             for (var i = startPage; i <= endPage; i++) {
                 html += '<li class="page-item ' + (i === pagination.page ? 'active' : '') + '">';
                 html += '<a class="page-link" href="#" data-page="' + i + '">' + (i + 1) + '</a>';
                 html += '</li>';
             }
-            
+
             html += '<li class="page-item ' + (pagination.has_next ? '' : 'disabled') + '">';
             html += '<a class="page-link" href="#" data-page="' + (pagination.page + 1) + '">';
             html += (this.strings.next || 'Successivo');
             html += '</a></li>';
             html += '</ul>';
-            
+
             html += '<div class="text-center mt-2">';
             html += (this.strings.page || 'Pagina') + ' ' + (pagination.page + 1) + ' ';
             html += (this.strings.of || 'di') + ' ' + pagination.total_pages + ' ';
             html += '(' + pagination.total_count + ' ' + (this.strings.total_records || 'record totali') + ')';
             html += '</div>';
             html += '</nav>';
-            
+
             $('#pagination-container').html(html);
-            
+
             $('.page-link').on('click', function(e) {
                 e.preventDefault();
                 var page = parseInt($(this).data('page'));
@@ -341,7 +341,7 @@ function($, Ajax, Notification, Str) {
             $('#select-all').on('change', function(e) {
                 var isChecked = $(this).prop('checked');
                 $('.record-checkbox').prop('checked', isChecked);
-                
+
                 if (isChecked) {
                     $('.record-checkbox').each(function() {
                         self.selectedRecords.add(parseInt($(this).val()));
@@ -351,46 +351,46 @@ function($, Ajax, Notification, Str) {
                 }
                 self.updateBulkButton();
             });
-            
+
             $('.record-checkbox').on('change', function(e) {
                 var recordId = parseInt($(this).val());
-                
+
                 if ($(this).prop('checked')) {
                     self.selectedRecords.add(recordId);
                 } else {
                     self.selectedRecords.delete(recordId);
                 }
-                
+
                 self.updateBulkButton();
-                
+
                 var totalCheckboxes = $('.record-checkbox').length;
                 var checkedCheckboxes = $('.record-checkbox:checked').length;
                 $('#select-all').prop('checked', totalCheckboxes === checkedCheckboxes);
             });
-            
+
             $('.apply-suggestion-btn').on('click', function(e) {
                 var recordId = $(this).data('record-id');
                 var userId = $(this).data('user-id');
                 self.applySingleSuggestion(recordId, userId, $(this));
             });
-            
+
             $('.manual-user-select').on('change', function(e) {
                 var userId = $(this).val();
                 var recordId = $(this).data('record-id');
                 var assignBtn = $(this).siblings('.manual-assign-btn');
-                
+
                 if (userId) {
                     assignBtn.prop('disabled', false);
                 } else {
                     assignBtn.prop('disabled', true);
                 }
             });
-            
+
             $('.manual-assign-btn').on('click', function(e) {
                 var recordId = $(this).data('record-id');
                 var select = $(this).siblings('.manual-user-select');
                 var userId = select.val();
-                
+
                 if (userId) {
                     self.applySingleSuggestion(recordId, userId, $(this));
                 }
@@ -415,7 +415,7 @@ function($, Ajax, Notification, Str) {
         applySingleSuggestion: function(recordId, userId, button) {
             var self = this;
             button.prop('disabled', true).text((this.strings.applying || 'Applicando') + '...');
-            
+
             $.ajax({
                 url: window.location.href,
                 method: 'POST',
@@ -452,15 +452,15 @@ function($, Ajax, Notification, Str) {
             if (this.selectedRecords.size === 0) {
                 return;
             }
-            
+
             var self = this;
             $('#progress-container').show();
             $('#bulk-assign-btn').prop('disabled', true);
-            
+
             var assignments = {};
             this.selectedRecords.forEach(function(recordId) {
                 var row = $('tr[data-record-id="' + recordId + '"]');
-                
+
                 var button = row.find('.apply-suggestion-btn');
                 if (button.length) {
                     assignments[recordId] = button.data('user-id');
@@ -471,7 +471,7 @@ function($, Ajax, Notification, Str) {
                     }
                 }
             });
-            
+
             $.ajax({
                 url: window.location.href,
                 method: 'POST',
@@ -484,18 +484,18 @@ function($, Ajax, Notification, Str) {
                 success: function(response) {
                     if (response.success) {
                         var result = response.data;
-                        
+
                         $('#progress-bar').css('width', '100%').addClass('bg-success');
                         $('#progress-text').text('Complete: ' + result.successful + '/' + result.total + ' successful');
-                        
+
                         self.selectedRecords.clear();
                         sessionStorage.clear();
-                        
+
                         setTimeout(function() {
                             $('#progress-container').hide();
                             self.loadPage(self.currentPage, true);
                         }, 2000);
-                        
+
                         self.showSuccess('Bulk assignment completed: ' + result.successful + ' successful, ' + result.failed + ' failed');
                     } else {
                         self.showError(response.error);
