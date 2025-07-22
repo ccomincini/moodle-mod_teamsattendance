@@ -76,6 +76,20 @@ function($, Ajax, Notification, Str) {
         },
 
         /**
+         * Get current filters as object
+         * @return {Object} Current filters
+         */
+        getCurrentFilters: function() {
+            var filters = {};
+            
+            if (this.currentFilter !== 'all') {
+                filters.suggestion_type = this.currentFilter;
+            }
+            
+            return filters;
+        },
+
+        /**
          * Bind event handlers
          */
         bindEvents: function() {
@@ -136,10 +150,10 @@ function($, Ajax, Notification, Str) {
             this.isLoading = true;
             $('#loading-indicator').show();
 
-            // If filtering is active, load more records to ensure we have enough after filtering
-            var pageSize = (this.currentFilter !== 'all') ? this.currentPageSize * 3 : this.currentPageSize;
-
-            var cacheKey = 'page_' + page + '_' + this.currentFilter + '_' + this.currentPageSize;
+            // Include current filters in cache key
+            var filters = this.getCurrentFilters();
+            var filtersHash = JSON.stringify(filters);
+            var cacheKey = 'page_' + page + '_' + filtersHash + '_' + this.currentPageSize;
 
             if (!forceRefresh && sessionStorage.getItem(cacheKey)) {
                 var cachedData = JSON.parse(sessionStorage.getItem(cacheKey));
@@ -156,8 +170,8 @@ function($, Ajax, Notification, Str) {
                     ajax: 1,
                     action: 'load_page',
                     page: page,
-                    per_page: pageSize,
-                    filter: 'all' // Always load all records, filter client-side
+                    per_page: this.currentPageSize,
+                    filters: JSON.stringify(filters)
                 },
                 success: function(response) {
                     if (response.success) {
@@ -194,23 +208,7 @@ function($, Ajax, Notification, Str) {
          * @param {Array} records Array of records
          */
         renderTable: function(records) {
-            // Apply client-side filtering
-            var filteredRecords = records;
-            if (this.currentFilter !== 'all') {
-                filteredRecords = records.filter(function(record) {
-                    switch (this.currentFilter) {
-                        case 'name_suggestions':
-                            return record.has_suggestion && record.suggestion && record.suggestion.type === 'name';
-                        case 'email_suggestions':
-                            return record.has_suggestion && record.suggestion && record.suggestion.type === 'email';
-                        case 'without_suggestions':
-                            return !record.has_suggestion;
-                        default:
-                            return true;
-                    }
-                }.bind(this));
-            }
-
+            // No more client-side filtering - records are already filtered server-side
             var html = '<div class="table-responsive">';
             html += '<table class="table table-striped table-hover">';
             html += '<thead class="thead-dark">';
@@ -224,13 +222,13 @@ function($, Ajax, Notification, Str) {
             html += '</thead>';
             html += '<tbody>';
 
-            if (filteredRecords.length === 0) {
+            if (records.length === 0) {
                 html += '<tr><td colspan="5" class="text-center text-muted">';
                 html += (this.strings.no_records_found || 'Nessun record trovato');
                 html += '</td></tr>';
             } else {
-                for (var i = 0; i < filteredRecords.length; i++) {
-                    html += this.renderTableRow(filteredRecords[i]);
+                for (var i = 0; i < records.length; i++) {
+                    html += this.renderTableRow(records[i]);
                 }
             }
 
@@ -246,9 +244,9 @@ function($, Ajax, Notification, Str) {
         renderTableRow: function(record) {
             var rowClass = 'suggestion-none-row';
             if (record.has_suggestion && record.suggestion) {
-                if (record.suggestion.type === 'name') {
+                if (record.suggestion_type === 'name') {
                     rowClass = 'suggestion-name-row';
-                } else if (record.suggestion.type === 'email') {
+                } else if (record.suggestion_type === 'email') {
                     rowClass = 'suggestion-email-row';
                 }
             }
@@ -266,7 +264,7 @@ function($, Ajax, Notification, Str) {
             if (record.has_suggestion && record.suggestion) {
                 var user = record.suggestion.user;
                 var confidence = record.suggestion.confidence;
-                var type = record.suggestion.type;
+                var type = record.suggestion_type;
 
                 html += '<span class="badge badge-' + (confidence === 'high' ? 'success' : 'warning') + '">';
                 html += this.escapeHtml(user.firstname + ' ' + user.lastname);
