@@ -184,7 +184,7 @@ if ($unassigned_count > 0 && has_capability('mod/teamsattendance:manageattendanc
     echo '</div>';
     echo '<div class="card-actions">';
     $manageurl = new moodle_url('/mod/teamsattendance/manage_unassigned.php', ['id' => $cm->id]);
-    echo html_writer::link($manageurl, 'Record Non Assegnati', ['class' => 'btn btn-manage']);
+    echo html_writer::link($manageurl, get_string('manage_unassigned', 'mod_teamsattendance'), ['class' => 'btn btn-manage']);
     echo '</div>';
     echo '</div>';
 }
