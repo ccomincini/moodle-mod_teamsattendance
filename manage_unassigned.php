@@ -30,7 +30,6 @@ require_once($CFG->dirroot.'/mod/teamsattendance/lib.php');
 require_once($CFG->dirroot . '/mod/teamsattendance/classes/performance_data_handler.php');
 require_once($CFG->dirroot . '/mod/teamsattendance/classes/suggestion_engine.php');
 require_once($CFG->dirroot . '/mod/teamsattendance/classes/ui_renderer.php');
-require_once($CFG->dirroot . '/mod/teamsattendance/classes/ui_assets_manager.php');
 
 // Load modular components
 require_once($CFG->dirroot . '/mod/teamsattendance/templates/unassigned_interface.php');
