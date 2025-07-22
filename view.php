@@ -161,23 +161,31 @@ echo '<div class="action-buttons-container">';
 // Fetch attendance card
 if (has_capability('mod/teamsattendance:manageattendance', $context)) {
     echo '<div class="action-card card-fetch">';
+    echo '<div class="card-content">';
     echo '<h4>' . get_string('fetch_attendance', 'mod_teamsattendance') . '</h4>';
     echo '<p>' . get_string('fetch_warning', 'mod_teamsattendance') . '</p>';
+    echo '</div>';
+    echo '<div class="card-actions">';
     $fetchurl = new moodle_url('/mod/teamsattendance/fetch_attendance.php', [
         'id' => $cm->id,
         'sesskey' => sesskey()
     ]);
-echo $OUTPUT->single_button($fetchurl, get_string('fetch_attendance', 'mod_teamsattendance'), 'get', ['class' => 'btn btn-fetch']);
-echo '</div>';
+    echo html_writer::link($fetchurl, get_string('fetch_attendance', 'mod_teamsattendance'), ['class' => 'btn btn-fetch']);
+    echo '</div>';
+    echo '</div>';
 }
 
 // Manage unassigned card
 if ($unassigned_count > 0 && has_capability('mod/teamsattendance:manageattendance', $context)) {
     echo '<div class="action-card card-manage">';
-    echo '<h4>' . get_string('manage_unassigned', 'mod_teamsattendance') . '</h4>';
+    echo '<div class="card-content">';
+    echo '<h4>Record Non Assegnati</h4>';
     echo '<p>' . get_string('unassigned_users_alert', 'mod_teamsattendance', $unassigned_count) . '</p>';
+    echo '</div>';
+    echo '<div class="card-actions">';
     $manageurl = new moodle_url('/mod/teamsattendance/manage_unassigned.php', ['id' => $cm->id]);
     echo html_writer::link($manageurl, 'Record Non Assegnati', ['class' => 'btn btn-manage']);
+    echo '</div>';
     echo '</div>';
 }
 
@@ -190,9 +198,11 @@ if (has_capability('mod/teamsattendance:manageattendance', $context)) {
     
     if ($manual_records_count > 0) {
         echo '<div class="action-card card-reset">';
-        echo '<h4>' . get_string('reset_manual_assignments', 'mod_teamsattendance') . '</h4>';
+        echo '<div class="card-content">';
+        echo '<h4>Reimposta Assegnazioni Manuali</h4>';
         echo '<p>' . get_string('manual_assignments_info', 'mod_teamsattendance', $manual_records_count) . '</p>';
-        
+        echo '</div>';
+        echo '<div class="card-actions">';
         $reseturl = new moodle_url('/mod/teamsattendance/view.php', [
             'id' => $cm->id,
             'action' => 'reset_accepted_suggestions',
@@ -203,6 +213,7 @@ if (has_capability('mod/teamsattendance:manageattendance', $context)) {
             'class' => 'btn btn-reset',
             'onclick' => 'return confirm("' . get_string('confirm_reset_manual_assignments', 'mod_teamsattendance') . '")'
         ]);
+        echo '</div>';
         echo '</div>';
     }
 }
@@ -244,8 +255,6 @@ $table->define_headers([
 $table->define_baseurl($PAGE->url);
 $table->set_attribute('class', 'table table-striped table-hover mb-4');
 $table->set_attribute('id', 'attendance-table');
-$table->sortable(true, 'lastname', SORT_ASC);
-$table->no_sorting('assignment_type');
 $table->setup();
 
 // Fetch attendance data from the database
@@ -299,14 +308,24 @@ document.addEventListener("DOMContentLoaded", function() {
     const headers = table.querySelectorAll("thead th");
     
     headers.forEach((header, index) => {
-        if (!header.classList.contains("no-sort")) {
-            header.classList.add("sortable");
-            header.style.cursor = "pointer";
-            
-            header.addEventListener("click", function() {
-                sortTable(table, index, header);
-            });
-        }
+        // Skip the last column (assignment type)
+        if (index === headers.length - 1) return;
+        
+        header.classList.add("sortable");
+        header.style.cursor = "pointer";
+        
+        // Remove any existing links
+        const links = header.querySelectorAll("a");
+        links.forEach(link => {
+            const text = link.textContent;
+            link.parentNode.replaceChild(document.createTextNode(text), link);
+        });
+        
+        header.addEventListener("click", function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            sortTable(table, index, header);
+        });
     });
     
     function sortTable(table, columnIndex, header) {

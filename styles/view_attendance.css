@@ -19,12 +19,24 @@
     padding: 20px;
     color: #fff;
     text-align: center;
-    min-height: 120px;
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex: 1;
+    min-width: 250px;
+}
+
+.mod_teamsattendance .action-card .card-content {
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    flex: 1;
-    min-width: 250px;
+}
+
+.mod_teamsattendance .action-card .card-actions {
+    margin-top: auto;
+    padding-top: 15px;
 }
 
 .mod_teamsattendance .action-card h4 {
