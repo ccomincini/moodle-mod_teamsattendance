@@ -27,55 +27,26 @@ function render_unassigned_interface($context) {
     .suggestion-none-row {
         background-color: #ffffff !important; /* White */
     }
-    .card-name-suggestions {
-        background: linear-gradient(135deg, #2196f3, #64b5f6);
+    .simple-counters {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+        border: 1px solid #dee2e6;
     }
-    .card-email-suggestions {
-        background: linear-gradient(135deg, #9c27b0, #ba68c8);
+    .counter-item {
+        display: inline-block;
+        margin-right: 25px;
+        font-size: 14px;
+    }
+    .counter-number {
+        font-weight: bold;
+        color: #2196f3;
+        font-size: 16px;
     }
     </style>';
     
-    // Performance Dashboard with Suggestion Counters
     $output .= '<div class="teamsattendance-performance-container">';
-    $output .= '<div class="row mb-4">';
-    
-    // Total Records Card
-    $output .= '<div class="col-md-3">';
-    $output .= '<div class="card text-white bg-primary">';
-    $output .= '<div class="card-body">';
-    $output .= '<h5 class="card-title">' . get_string('total_records', 'teamsattendance') . '</h5>';
-    $output .= '<h2 class="card-text">' . $context->total_records . '</h2>';
-    $output .= '<small>Non assegnati</small>';
-    $output .= '</div></div></div>';
-    
-    // Name-based Suggestions Card (Light Blue)
-    $output .= '<div class="col-md-3">';
-    $output .= '<div class="card text-white card-name-suggestions">';
-    $output .= '<div class="card-body">';
-    $output .= '<h5 class="card-title">' . get_string('name_suggestions_count', 'teamsattendance') . '</h5>';
-    $output .= '<h2 class="card-text">' . $context->name_suggestions_count . '</h2>';
-    $output .= '<small>Corrispondenze per nome</small>';
-    $output .= '</div></div></div>';
-    
-    // Email-based Suggestions Card (Light Purple)
-    $output .= '<div class="col-md-3">';
-    $output .= '<div class="card text-white card-email-suggestions">';
-    $output .= '<div class="card-body">';
-    $output .= '<h5 class="card-title">' . get_string('email_suggestions_count', 'teamsattendance') . '</h5>';
-    $output .= '<h2 class="card-text">' . $context->email_suggestions_count . '</h2>';
-    $output .= '<small>Desunte da email</small>';
-    $output .= '</div></div></div>';
-    
-    // Available Users Card
-    $output .= '<div class="col-md-3">';
-    $output .= '<div class="card text-white bg-success">';
-    $output .= '<div class="card-body">';
-    $output .= '<h5 class="card-title">' . get_string('available_users', 'teamsattendance') . '</h5>';
-    $output .= '<h2 class="card-text">' . $context->available_users_count . '</h2>';
-    $output .= '<small>' . get_string('for_assignment', 'teamsattendance') . '</small>';
-    $output .= '</div></div></div>';
-    
-    $output .= '</div>'; // End row
     
     // Filter and Control Panel
     $output .= '<div class="card mb-4">';
@@ -106,18 +77,28 @@ function render_unassigned_interface($context) {
     $output .= '</select>';
     $output .= '</div>';
     
-    // Action Buttons
+    // Action Buttons (solo bulk assign)
     $output .= '<div class="col-md-4">';
     $output .= '<label>&nbsp;</label><br>';
-    $output .= '<button id="refresh-btn" class="btn btn-secondary">';
-    $output .= '<i class="fa fa-refresh"></i> ' . get_string('refresh', 'teamsattendance');
-    $output .= '</button> ';
     $output .= '<button id="bulk-assign-btn" class="btn btn-success" disabled>';
     $output .= '<i class="fa fa-check-circle"></i> ' . get_string('apply_selected', 'teamsattendance');
     $output .= '</button>';
     $output .= '</div>';
     
     $output .= '</div></div></div>'; // End row, card-body, card
+    
+    // Contatori semplici dopo i filtri
+    $output .= '<div class="simple-counters">';
+    $output .= '<div class="counter-item">';
+    $output .= 'N. suggerimenti desunti dal nome: <span class="counter-number" id="name-suggestions-count">' . $context->name_suggestions_count . '</span>';
+    $output .= '</div>';
+    $output .= '<div class="counter-item">';
+    $output .= 'N. suggerimenti desunti dall\'email: <span class="counter-number" id="email-suggestions-count">' . $context->email_suggestions_count . '</span>';
+    $output .= '</div>';
+    $output .= '<div class="counter-item">';
+    $output .= 'N. record non associati senza suggerimenti: <span class="counter-number" id="no-suggestions-count">' . ($context->total_records - $context->name_suggestions_count - $context->email_suggestions_count) . '</span>';
+    $output .= '</div>';
+    $output .= '</div>';
     
     // Loading Indicator
     $output .= '<div id="loading-indicator" class="text-center mb-4" style="display: none;">';
