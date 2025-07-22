@@ -121,6 +121,9 @@ class performance_data_handler {
         
         $per_page = min(max($per_page, 10), 100);
         
+        // Ensure page is not negative
+        $page = max(0, $page);
+        
         // Include filters in cache key
         $filter_hash = md5(serialize($filters));
         $cache_key = "teamsattendance_records_{$this->teamsattendance->id}_{$page}_{$per_page}_{$filter_hash}";
@@ -155,7 +158,7 @@ class performance_data_handler {
             'total_count' => $total_count,
             'page' => $page,
             'per_page' => $per_page,
-            'total_pages' => ceil($total_count / $per_page),
+            'total_pages' => $total_count > 0 ? ceil($total_count / $per_page) : 1,
             'has_next' => (($page + 1) * $per_page) < $total_count,
             'has_previous' => $page > 0
         );
@@ -169,6 +172,9 @@ class performance_data_handler {
      */
     private function get_records_with_suggestion_filter($page, $per_page, $filters) {
         global $DB, $CFG;
+        
+        // Ensure page is not negative
+        $page = max(0, $page);
         
         // Get all unassigned records
         $sql = "SELECT tad.*, u.firstname, u.lastname, u.email
@@ -219,9 +225,24 @@ class performance_data_handler {
             }
         }
         
-        // Apply pagination to filtered results
+        // Calculate pagination
         $total_filtered = count($filtered_records);
+        $total_pages = $total_filtered > 0 ? ceil($total_filtered / $per_page) : 1;
+        
+        // Ensure page doesn't exceed available pages
+        if ($page >= $total_pages && $total_filtered > 0) {
+            $page = $total_pages - 1;
+        }
+        
+        // Apply pagination to filtered results
         $offset = $page * $per_page;
+        
+        // Handle edge case where offset exceeds available records
+        if ($offset >= $total_filtered) {
+            $offset = 0;
+            $page = 0;
+        }
+        
         $paginated_records = array_slice($filtered_records, $offset, $per_page);
         
         $result = array(
@@ -229,7 +250,7 @@ class performance_data_handler {
             'total_count' => $total_filtered,
             'page' => $page,
             'per_page' => $per_page,
-            'total_pages' => ceil($total_filtered / $per_page),
+            'total_pages' => $total_pages,
             'has_next' => (($page + 1) * $per_page) < $total_filtered,
             'has_previous' => $page > 0
         );
