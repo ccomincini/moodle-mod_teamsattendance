@@ -79,7 +79,7 @@ $string['exporttoxlsx'] = 'Export to Excel';
 // Table headers
 $string['cognome'] = 'Last Name';
 $string['nome'] = 'First Name';
-$string['codice_fiscale'] = 'ID Number';
+$string['codice_identificativo'] = 'ID Number';
 $string['role'] = 'Role';
 $string['tempo_totale'] = 'Total Time';
 $string['attendance_percentage'] = 'Attendance %';
