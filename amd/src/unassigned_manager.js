@@ -70,9 +70,18 @@ function($, Ajax, Notification, Str) {
          * Initialize the manager
          */
         init: function() {
+            this.syncSelectValues(); // Sincronizza i valori delle select all'avvio
             this.loadPage(0);
             this.bindEvents();
             this.updateStatistics();
+        },
+
+        /**
+         * Sync select values with current state
+         */
+        syncSelectValues: function() {
+            $('#filter-select').val(this.currentFilter);
+            $('#page-size-select').val(this.currentPageSize);
         },
 
         /**
@@ -90,26 +99,41 @@ function($, Ajax, Notification, Str) {
         },
 
         /**
+         * Apply both filter and page size settings
+         */
+        applySettings: function() {
+            // Leggi i valori correnti dalle select
+            this.currentFilter = $('#filter-select').val();
+            this.currentPageSize = parseInt($('#page-size-select').val()) || this.currentPageSize;
+            
+            // Reset alla prima pagina quando cambiano le impostazioni
+            this.currentPage = 0;
+            this.selectedRecords.clear();
+            this.updateBulkButton();
+            
+            // Carica la prima pagina con le nuove impostazioni
+            this.loadPage(0);
+            this.updateStatistics();
+            
+            console.log('Settings applied - Filter:', this.currentFilter, 'Page size:', this.currentPageSize);
+        },
+
+        /**
          * Bind event handlers
          */
         bindEvents: function() {
             var self = this;
 
-            // Filter change
+            // Filter change - applica entrambe le impostazioni
             $('#filter-select').on('change', function() {
-                self.currentFilter = $(this).val();
-                self.currentPage = 0;
-                self.selectedRecords.clear();
-                self.updateBulkButton();
-                self.loadPage(0);
-                self.updateStatistics();
+                console.log('Filter changed to:', $(this).val());
+                self.applySettings();
             });
 
-            // Page size change
+            // Page size change - applica entrambe le impostazioni
             $('#page-size-select').on('change', function() {
-                self.currentPageSize = parseInt($(this).val());
-                self.currentPage = 0;
-                self.loadPage(0);
+                console.log('Page size changed to:', $(this).val());
+                self.applySettings();
             });
 
             // Bulk assign button
@@ -163,6 +187,8 @@ function($, Ajax, Notification, Str) {
                 return;
             }
 
+            console.log('Loading page:', page, 'Page size:', this.currentPageSize, 'Filters:', filters);
+
             $.ajax({
                 url: window.location.href,
                 method: 'GET',
@@ -174,6 +200,7 @@ function($, Ajax, Notification, Str) {
                     filters: JSON.stringify(filters)
                 },
                 success: function(response) {
+                    console.log('Load page response:', response);
                     if (response.success) {
                         sessionStorage.setItem(cacheKey, JSON.stringify(response.data));
                         self.renderPage(response.data);
@@ -182,6 +209,7 @@ function($, Ajax, Notification, Str) {
                     }
                 },
                 error: function(xhr, status, error) {
+                    console.error('Load page error:', error);
                     self.showError('Connection error: ' + error);
                 },
                 complete: function() {
@@ -196,11 +224,18 @@ function($, Ajax, Notification, Str) {
          * @param {Object} data Page data
          */
         renderPage: function(data) {
+            console.log('Rendering page data:', data);
+            
             this.currentPage = data.pagination.page;
             this.renderTable(data.records);
             this.renderPagination(data.pagination);
             this.updateBulkButton();
             this.bindTableEvents();
+            
+            // Log per debug
+            console.log('Rendered page:', data.pagination.page, 
+                       'Records shown:', data.records.length,
+                       'Total filtered:', data.pagination.total_count);
         },
 
         /**
@@ -208,6 +243,8 @@ function($, Ajax, Notification, Str) {
          * @param {Array} records Array of records
          */
         renderTable: function(records) {
+            console.log('Rendering table with', records.length, 'records');
+            
             // No more client-side filtering - records are already filtered server-side
             var html = '<div class="table-responsive">';
             html += '<table class="table table-striped table-hover">';
@@ -312,45 +349,64 @@ function($, Ajax, Notification, Str) {
          */
         renderPagination: function(pagination) {
             var self = this;
+            
+            console.log('Rendering pagination:', pagination);
+            
+            // Se ci sono 0 record totali, non mostrare pagination
+            if (pagination.total_count === 0) {
+                $('#pagination-container').html('<div class="text-center mt-2 text-muted">Nessun record trovato per il filtro selezionato</div>');
+                return;
+            }
+            
             var html = '<nav aria-label="Pagination">';
             html += '<ul class="pagination justify-content-center">';
 
-            html += '<li class="page-item ' + (pagination.has_previous ? '' : 'disabled') + '">';
-            html += '<a class="page-link" href="#" data-page="' + (pagination.page - 1) + '">';
-            html += (this.strings.previous || 'Precedente');
-            html += '</a></li>';
+            // Mostra paginazione solo se ci sono più pagine
+            if (pagination.total_pages > 1) {
+                html += '<li class="page-item ' + (pagination.has_previous ? '' : 'disabled') + '">';
+                html += '<a class="page-link" href="#" data-page="' + (pagination.page - 1) + '">';
+                html += (this.strings.previous || 'Precedente');
+                html += '</a></li>';
 
-            var startPage = Math.max(0, pagination.page - 2);
-            var endPage = Math.min(pagination.total_pages - 1, pagination.page + 2);
+                var startPage = Math.max(0, pagination.page - 2);
+                var endPage = Math.min(pagination.total_pages - 1, pagination.page + 2);
 
-            for (var i = startPage; i <= endPage; i++) {
-                html += '<li class="page-item ' + (i === pagination.page ? 'active' : '') + '">';
-                html += '<a class="page-link" href="#" data-page="' + i + '">' + (i + 1) + '</a>';
-                html += '</li>';
+                for (var i = startPage; i <= endPage; i++) {
+                    html += '<li class="page-item ' + (i === pagination.page ? 'active' : '') + '">';
+                    html += '<a class="page-link" href="#" data-page="' + i + '">' + (i + 1) + '</a>';
+                    html += '</li>';
+                }
+
+                html += '<li class="page-item ' + (pagination.has_next ? '' : 'disabled') + '">';
+                html += '<a class="page-link" href="#" data-page="' + (pagination.page + 1) + '">';
+                html += (this.strings.next || 'Successivo');
+                html += '</a></li>';
             }
-
-            html += '<li class="page-item ' + (pagination.has_next ? '' : 'disabled') + '">';
-            html += '<a class="page-link" href="#" data-page="' + (pagination.page + 1) + '">';
-            html += (this.strings.next || 'Successivo');
-            html += '</a></li>';
+            
             html += '</ul>';
 
+            // Info sempre visibile
             html += '<div class="text-center mt-2">';
-            html += (this.strings.page || 'Pagina') + ' ' + (pagination.page + 1) + ' ';
-            html += (this.strings.of || 'di') + ' ' + pagination.total_pages + ' ';
-            html += '(' + pagination.total_count + ' ' + (this.strings.total_records || 'record totali') + ')';
+            if (pagination.total_pages > 1) {
+                html += (this.strings.page || 'Pagina') + ' ' + (pagination.page + 1) + ' ';
+                html += (this.strings.of || 'di') + ' ' + pagination.total_pages + ' - ';
+            }
+            html += pagination.total_count + ' ' + (this.strings.total_records || 'record') + ' trovati';
             html += '</div>';
             html += '</nav>';
 
             $('#pagination-container').html(html);
 
-            $('.page-link').on('click', function(e) {
-                e.preventDefault();
-                var page = parseInt($(this).data('page'));
-                if (page >= 0 && page < pagination.total_pages) {
-                    self.loadPage(page);
-                }
-            });
+            // Bind pagination clicks solo se ci sono più pagine
+            if (pagination.total_pages > 1) {
+                $('.page-link').on('click', function(e) {
+                    e.preventDefault();
+                    var page = parseInt($(this).data('page'));
+                    if (page >= 0 && page < pagination.total_pages) {
+                        self.loadPage(page);
+                    }
+                });
+            }
         },
 
         /**
