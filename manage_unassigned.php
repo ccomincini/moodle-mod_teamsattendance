@@ -126,10 +126,17 @@ if ($ajax) {
     try {
         switch ($action) {
             case 'load_page':
-                // Always load with 'all' filter - filtering will be done client-side
-                $paginated_data = $performance_handler->get_unassigned_records_paginated($page, $per_page, 'all');
+                // Get filters from request
+                $filters_json = optional_param('filters', '{}', PARAM_RAW);
+                $filters = json_decode($filters_json, true);
+                if (!is_array($filters)) {
+                    $filters = array();
+                }
                 
-                // Get suggestions for current page
+                // Apply server-side filtering
+                $paginated_data = $performance_handler->get_unassigned_records_paginated($page, $per_page, $filters);
+                
+                // Get suggestions for current page records
                 $suggestions = $performance_handler->get_suggestions_for_batch($paginated_data['records']);
                 
                 // Prepare data for frontend
@@ -146,12 +153,20 @@ if ($ajax) {
                 );
                 
                 foreach ($paginated_data['records'] as $record) {
+                    $suggestion = isset($suggestions[$record->id]) ? $suggestions[$record->id] : null;
+                    $suggestion_type = 'none';
+                    
+                    if ($suggestion) {
+                        $suggestion_type = $suggestion['type'];
+                    }
+                    
                     $record_data = array(
                         'id' => $record->id,
                         'teams_user_id' => $record->teams_user_id,
                         'attendance_duration' => $record->attendance_duration,
                         'has_suggestion' => isset($suggestions[$record->id]),
-                        'suggestion' => isset($suggestions[$record->id]) ? $suggestions[$record->id] : null
+                        'suggestion' => $suggestion,
+                        'suggestion_type' => $suggestion_type
                     );
                     $response_data['records'][] = $record_data;
                 }
