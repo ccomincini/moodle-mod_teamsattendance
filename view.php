@@ -150,37 +150,16 @@ if ($unassigned_count > 0) {
     }
 }
 
-// Reset accepted suggestions button  
+// Reset manual assignments button  
 if (has_capability('mod/teamsattendance:manageattendance', $context)) {
-    // Get all manually assigned records
-    $manual_records = $DB->get_records('teamsattendance_data', [
+    $manual_records_count = $DB->count_records('teamsattendance_data', [
         'sessionid' => $session->id,
         'manually_assigned' => 1
     ]);
-
-    $potential_suggestions = 0;
     
-    if (!empty($manual_records)) {
-        // Generate suggestions to check which manual assignments match current suggestions
-        $context_course = context_course::instance($course->id);
-        $enrolled_users = get_enrolled_users($context_course, '', 0, 'u.id, u.firstname, u.lastname, u.email');
-        
-        require_once($CFG->dirroot . '/mod/teamsattendance/classes/suggestion_engine.php');
-        $suggestion_engine = new suggestion_engine($enrolled_users);
-        $suggestions = $suggestion_engine->generate_suggestions($manual_records);
-        
-        // Count how many manual assignments match current suggestions
-        foreach ($manual_records as $record) {
-            if (isset($suggestions[$record->id]) && 
-                $suggestions[$record->id]['user']->id == $record->userid) {
-                $potential_suggestions++;
-            }
-        }
-    }
-    
-    if ($potential_suggestions > 0) {
+    if ($manual_records_count > 0) {
         echo $OUTPUT->notification(
-            get_string('potential_suggestions_info', 'mod_teamsattendance', $potential_suggestions),
+            get_string('manual_assignments_info', 'mod_teamsattendance', $manual_records_count),
             'alert alert-info'
         );
         
@@ -191,11 +170,11 @@ if (has_capability('mod/teamsattendance:manageattendance', $context)) {
         ]);
         
         echo html_writer::div(
-            html_writer::link($reseturl, get_string('reset_suggestion_assignments', 'mod_teamsattendance'), [
+            html_writer::link($reseturl, get_string('reset_manual_assignments', 'mod_teamsattendance'), [
                 'class' => 'btn btn-warning mb-3',
-                'onclick' => 'return confirm("' . get_string('confirm_reset_suggestions', 'mod_teamsattendance') . '")'
+                'onclick' => 'return confirm("' . get_string('confirm_reset_manual_assignments', 'mod_teamsattendance') . '")'
             ]),
-            'reset-suggestions-link'
+            'reset-manual-assignments-link'
         );
     }
 }
