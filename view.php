@@ -47,46 +47,35 @@ $PAGE->set_url('/mod/teamsattendance/view.php', ['id' => $cm->id]);
 $PAGE->set_title(format_string($cm->name));
 $PAGE->set_heading(format_string($course->fullname));
 
-// Handle reset automatic assignments action
+// Fetch session data first (needed for sessionid)
+$session = $DB->get_record('teamsattendance', ['id' => $cm->instance], '*', MUST_EXIST);
+
+// Handle reset manual assignments action
 $action = optional_param('action', '', PARAM_TEXT);
 if ($action === 'reset_accepted_suggestions' && confirm_sesskey() && has_capability('mod/teamsattendance:manageattendance', $context)) {
     
+    // Get all manually assigned records for this session
     $manual_records = $DB->get_records('teamsattendance_data', [
-        'sessionid' => $cm->instance,
+        'sessionid' => $session->id,
         'manually_assigned' => 1
     ]);
     
-    $deleted_count = 0;
+    $reset_count = 0;
     
     if (!empty($manual_records)) {
-        // Generate current suggestions
-        $context_course = context_course::instance($course->id);
-        $enrolled_users = get_enrolled_users($context_course, '', 0, 'u.id, u.firstname, u.lastname, u.email');
-        
-        require_once($CFG->dirroot . '/mod/teamsattendance/classes/suggestion_engine.php');
-        $suggestion_engine = new suggestion_engine($enrolled_users);
-        $suggestions = $suggestion_engine->generate_suggestions($manual_records);
-        
         foreach ($manual_records as $record) {
-            // If current assignment matches suggestion, it's likely from a suggestion
-            if (isset($suggestions[$record->id]) && 
-                $suggestions[$record->id]['user']->id == $record->userid) {
-                
-                $record->userid = $CFG->siteguest;
-                $record->manually_assigned = 0;
-                
-                if ($DB->update_record('teamsattendance_data', $record)) {
-                    $deleted_count++;
-                }
+            // Reset to unassigned status
+            $record->userid = $CFG->siteguest;
+            $record->manually_assigned = 0;
+            
+            if ($DB->update_record('teamsattendance_data', $record)) {
+                $reset_count++;
             }
         }
     }
     
-    redirect($PAGE->url, get_string('suggestion_assignments_reset', 'mod_teamsattendance', $deleted_count), null, \core\output\notification::NOTIFY_SUCCESS);
+    redirect($PAGE->url, get_string('suggestion_assignments_reset', 'mod_teamsattendance', $reset_count), null, \core\output\notification::NOTIFY_SUCCESS);
 }
-
-// Fetch session data
-$session = $DB->get_record('teamsattendance', ['id' => $cm->instance], '*', MUST_EXIST);
 
 $PAGE->requires->css('/mod/teamsattendance/styles/view_attendance.css');
 
@@ -370,8 +359,8 @@ document.addEventListener("DOMContentLoaded", function() {
     
     function parseTimeToSeconds(timeStr) {
         let totalSeconds = 0;
-        const oreMatch = timeStr.match(/(\d+)\s*ore?/);
-        const minMatch = timeStr.match(/(\d+)\s*min/);
+        const oreMatch = timeStr.match(/(\\d+)\\s*ore?/);
+        const minMatch = timeStr.match(/(\\d+)\\s*min/);
         
         if (oreMatch) totalSeconds += parseInt(oreMatch[1]) * 3600;
         if (minMatch) totalSeconds += parseInt(minMatch[1]) * 60;
