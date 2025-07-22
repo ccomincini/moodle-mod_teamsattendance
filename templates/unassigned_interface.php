@@ -27,22 +27,33 @@ function render_unassigned_interface($context) {
     .suggestion-none-row {
         background-color: #ffffff !important; /* White */
     }
-    .simple-counters {
-        background-color: #f8f9fa;
-        padding: 15px;
-        border-radius: 5px;
-        margin-bottom: 20px;
-        border: 1px solid #dee2e6;
+    .counter-card-name {
+        background-color: #e3f2fd;
+        border: 1px solid #bbdefb;
     }
-    .counter-item {
-        display: inline-block;
-        margin-right: 25px;
-        font-size: 14px;
+    .counter-card-email {
+        background-color: #f3e5f5;
+        border: 1px solid #e1bee7;
+    }
+    .counter-card-none {
+        background-color: #ffffff;
+        border: 1px solid #e0e0e0;
+    }
+    .counter-card {
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+        margin-bottom: 10px;
     }
     .counter-number {
         font-weight: bold;
-        color: #2196f3;
-        font-size: 16px;
+        font-size: 24px;
+        display: block;
+        margin-bottom: 5px;
+    }
+    .counter-label {
+        font-size: 14px;
+        color: #666;
     }
     </style>';
     
@@ -87,18 +98,34 @@ function render_unassigned_interface($context) {
     
     $output .= '</div></div></div>'; // End row, card-body, card
     
-    // Contatori semplici dopo i filtri
-    $output .= '<div class="simple-counters">';
-    $output .= '<div class="counter-item">';
-    $output .= 'N. suggerimenti desunti dal nome: <span class="counter-number" id="name-suggestions-count">' . $context->name_suggestions_count . '</span>';
-    $output .= '</div>';
-    $output .= '<div class="counter-item">';
-    $output .= 'N. suggerimenti desunti dall\'email: <span class="counter-number" id="email-suggestions-count">' . $context->email_suggestions_count . '</span>';
-    $output .= '</div>';
-    $output .= '<div class="counter-item">';
-    $output .= 'N. record non associati senza suggerimenti: <span class="counter-number" id="no-suggestions-count">' . ($context->total_records - $context->name_suggestions_count - $context->email_suggestions_count) . '</span>';
+    // Card colorate per i contatori
+    $output .= '<div class="row mb-4">';
+    
+    // Card suggerimenti dal nome (azzurro)
+    $output .= '<div class="col-md-4">';
+    $output .= '<div class="counter-card counter-card-name">';
+    $output .= '<span class="counter-number" id="name-suggestions-count" style="color: #1976d2;">' . $context->name_suggestions_count . '</span>';
+    $output .= '<div class="counter-label">Suggerimenti desunti dal nome</div>';
     $output .= '</div>';
     $output .= '</div>';
+    
+    // Card suggerimenti dall'email (viola)
+    $output .= '<div class="col-md-4">';
+    $output .= '<div class="counter-card counter-card-email">';
+    $output .= '<span class="counter-number" id="email-suggestions-count" style="color: #7b1fa2;">' . $context->email_suggestions_count . '</span>';
+    $output .= '<div class="counter-label">Suggerimenti desunti dall\'email</div>';
+    $output .= '</div>';
+    $output .= '</div>';
+    
+    // Card senza suggerimenti (senza sfondo)
+    $output .= '<div class="col-md-4">';
+    $output .= '<div class="counter-card counter-card-none">';
+    $output .= '<span class="counter-number" id="no-suggestions-count" style="color: #424242;">' . ($context->total_records - $context->name_suggestions_count - $context->email_suggestions_count) . '</span>';
+    $output .= '<div class="counter-label">Record non associati senza suggerimenti</div>';
+    $output .= '</div>';
+    $output .= '</div>';
+    
+    $output .= '</div>'; // End row
     
     // Loading Indicator
     $output .= '<div id="loading-indicator" class="text-center mb-4" style="display: none;">';
