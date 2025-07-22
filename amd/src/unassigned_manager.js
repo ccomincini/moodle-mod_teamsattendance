@@ -30,11 +30,45 @@ function($, Ajax, Notification, Str) {
 
     UnassignedRecordsManager.prototype = {
         /**
+         * Update statistics cards
+         */
+        updateStatistics: function() {
+            var self = this;
+            console.log('updateStatistics called');
+            $.ajax({
+                url: window.location.href,
+                data: {ajax: 1, action: 'get_statistics'},
+                success: function(response) {
+                    console.log('Statistics response:', response);
+                    if (response.success) {
+                        var data = response.data;
+                        console.log('Statistics data:', data);
+                        
+                        // Debug: verifica quali elementi esistono
+                        console.log('#total-unassigned-count exists:', $('#total-unassigned-count').length);
+                        console.log('#name-suggestions-count exists:', $('#name-suggestions-count').length);
+                        console.log('#email-suggestions-count exists:', $('#email-suggestions-count').length);
+                        console.log('#available-users-count exists:', $('#available-users-count').length);
+                        
+                        $('#total-unassigned-count').text(data.total_unassigned);
+                        $('#name-suggestions-count').text(data.name_suggestions);
+                        $('#email-suggestions-count').text(data.email_suggestions);
+                        $('#available-users-count').text(data.available_users);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Statistics error:', error);
+                }
+            });
+        },
+        
+        /**
          * Initialize the manager
          */
         init: function() {
             this.loadPage(0);
             this.bindEvents();
+            this.updateStatistics();
         },
 
         /**
@@ -50,6 +84,7 @@ function($, Ajax, Notification, Str) {
                 self.selectedRecords.clear();
                 self.updateBulkButton();
                 self.loadPage(0);
+                self.updateStatistics();
             });
 
             // Page size change
@@ -62,6 +97,7 @@ function($, Ajax, Notification, Str) {
             // Refresh button
             $('#refresh-btn').on('click', function() {
                 self.loadPage(self.currentPage, true);
+                self.updateStatistics();
             });
 
             // Bulk assign button
@@ -432,6 +468,7 @@ function($, Ajax, Notification, Str) {
                         self.selectedRecords.delete(recordId);
                         self.updateBulkButton();
                         sessionStorage.clear();
+                        self.updateStatistics(); 
                         self.showSuccess(response.message);
                     } else {
                         self.showError(response.error);
@@ -490,6 +527,7 @@ function($, Ajax, Notification, Str) {
 
                         self.selectedRecords.clear();
                         sessionStorage.clear();
+                        self.updateStatistics();
 
                         setTimeout(function() {
                             $('#progress-container').hide();

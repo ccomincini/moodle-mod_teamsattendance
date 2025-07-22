@@ -378,8 +378,8 @@ class performance_data_handler {
         $cache_dir = $CFG->tempdir . '/teamsattendance_cache';
         
         if (is_dir($cache_dir)) {
-            $pattern = $cache_dir . '/*teamsattendance*' . $this->teamsattendance->id . '*.cache';
-            $files = glob($pattern);
+            // Cancella TUTTI i file cache - approccio semplice e sicuro
+            $files = glob($cache_dir . '/*.cache');
             
             foreach ($files as $file) {
                 if (is_file($file)) {
