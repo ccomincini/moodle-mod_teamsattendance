@@ -30,6 +30,71 @@ defined('MOODLE_INTERNAL') || die();
 class name_parser {
     
     /**
+     * Clean Teams ID by removing noise (titles, organizations, etc.)
+     *
+     * @param string $teams_id Raw Teams user ID
+     * @return string Cleaned text containing mainly names
+     */
+    private function clean_teams_id($teams_id) {
+        $cleaned = strtolower(trim($teams_id));
+        
+        // Skip if it's an email address
+        if (filter_var($teams_id, FILTER_VALIDATE_EMAIL)) {
+            return '';
+        }
+        
+        // Remove professional titles and prefixes
+        $titles = [
+            'dott\.?', 'dr\.?', 'arch\.?', 'ing\.?', 'geom\.?', 'avv\.?', 'prof\.?',
+            'c\.te', 'sindaco', 'mayor', 'presidente', 'direttore'
+        ];
+        foreach ($titles as $title) {
+            $cleaned = preg_replace('/\b' . $title . '\s+/i', '', $cleaned);
+            $cleaned = preg_replace('/\s+' . $title . '\b/i', '', $cleaned);
+        }
+        
+        // Remove organizational information
+        $organizations = [
+            'comune di [^,\-\n]+',
+            'comune [^,\-\n]+',
+            'provincia di [^,\-\n]+',
+            'provincia [^,\-\n]+',
+            'aipo[^,\-\n]*',
+            'utc[^,\-\n]*',
+            'ufficiotecnico[^,\-\n]*',
+            'ufficio tecnico[^,\-\n]*',
+            'protezione civile[^,\-\n]*',
+            'prot\. civile[^,\-\n]*',
+            'polizia locale[^,\-\n]*',
+            'p\.l\.[^,\-\n]*',
+            'cm [^,\-\n]*',
+            'comunità montana[^,\-\n]*',
+            'uclam[^,\-\n]*'
+        ];
+        foreach ($organizations as $org) {
+            $cleaned = preg_replace('/' . $org . '/i', '', $cleaned);
+        }
+        
+        // Remove separator characters and punctuation
+        $cleaned = preg_replace('/[,\-()_\.;|]+/', ' ', $cleaned);
+        
+        // Remove generic words that don't help identification
+        $generic_words = [
+            'guest', 'meeting', 'tecnico', 'comunale', 'sindaco', 'presidente',
+            'user', 'utente', 'partecipante', 'participant'
+        ];
+        foreach ($generic_words as $word) {
+            $cleaned = preg_replace('/\b' . $word . '\b/i', '', $cleaned);
+        }
+        
+        // Remove multiple spaces and trim
+        $cleaned = preg_replace('/\s+/', ' ', $cleaned);
+        $cleaned = trim($cleaned);
+        
+        return $cleaned;
+    }
+    
+    /**
      * Parse Teams display name into possible firstname/lastname combinations
      *
      * @param string $teams_name Teams display name
@@ -38,42 +103,51 @@ class name_parser {
     public function parse_teams_name($teams_name) {
         $names = array();
         
-        // Remove common separators and clean up
-        $clean_name = preg_replace('/[,;|]/', ' ', $teams_name);
-        $clean_name = preg_replace('/\s+/', ' ', trim($clean_name));
+        // First, try to clean the Teams ID to remove noise
+        $cleaned_name = $this->clean_teams_id($teams_name);
+        
+        // If cleaning resulted in empty string, fall back to original
+        if (empty($cleaned_name)) {
+            $clean_name = preg_replace('/[,;|]/', ' ', $teams_name);
+            $clean_name = preg_replace('/\s+/', ' ', trim($clean_name));
+        } else {
+            $clean_name = $cleaned_name;
+        }
         
         if (empty($clean_name)) {
             return $names;
         }
         
         $parts = explode(' ', $clean_name);
-        $parts = array_filter($parts); // Remove empty parts
+        $parts = array_filter($parts, function($part) {
+            return strlen(trim($part)) >= 2; // Filter out single characters and empty parts
+        });
         
         if (count($parts) >= 2) {
-            // Try "LastName, FirstName" format (comma-separated)
+            // Try "LastName, FirstName" format (comma-separated) with original input
             if (strpos($teams_name, ',') !== false) {
                 $comma_parts = array_map('trim', explode(',', $teams_name));
-                if (count($comma_parts) >= 2) {
+                if (count($comma_parts) >= 2 && strlen($comma_parts[0]) >= 2 && strlen($comma_parts[1]) >= 2) {
                     $names[] = array(
                         'firstname' => $comma_parts[1],
                         'lastname' => $comma_parts[0],
-                        'source' => 'comma_separated'
+                        'source' => 'comma_separated_cleaned'
                     );
                 }
             }
             
-            // Try "FirstName LastName" format
+            // Try "FirstName LastName" format with cleaned data
             $names[] = array(
                 'firstname' => $parts[0],
                 'lastname' => $parts[count($parts) - 1],
-                'source' => 'first_last'
+                'source' => 'first_last_cleaned'
             );
             
-            // Try "LastName FirstName" format (inverted)
+            // Try "LastName FirstName" format (inverted) with cleaned data
             $names[] = array(
                 'firstname' => $parts[count($parts) - 1],
                 'lastname' => $parts[0],
-                'source' => 'last_first'
+                'source' => 'last_first_cleaned'
             );
             
             // If more than 2 parts, try compound first name
@@ -81,15 +155,24 @@ class name_parser {
                 $names[] = array(
                     'firstname' => $parts[0] . ' ' . $parts[1],
                     'lastname' => $parts[count($parts) - 1],
-                    'source' => 'compound_first'
+                    'source' => 'compound_first_cleaned'
                 );
                 
                 // Try compound last name
                 $names[] = array(
                     'firstname' => $parts[0],
                     'lastname' => implode(' ', array_slice($parts, 1)),
-                    'source' => 'compound_last'
+                    'source' => 'compound_last_cleaned'
                 );
+                
+                // Try middle combinations for cases like "Mario Rossi Bianchi"
+                if (count($parts) >= 3) {
+                    $names[] = array(
+                        'firstname' => $parts[0],
+                        'lastname' => $parts[1],
+                        'source' => 'middle_name_cleaned'
+                    );
+                }
             }
         }
         
