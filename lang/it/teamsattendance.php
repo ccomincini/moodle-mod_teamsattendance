@@ -99,8 +99,8 @@ $string['manually_assigned_tooltip'] = 'Questo utente è stato assegnato manualm
 $string['automatically_assigned_tooltip'] = 'Questo utente è stato associato automaticamente basandosi sull\'indirizzo email';
 
 // Unassigned management
-$string['unassigned_records'] = 'Gestisci Record Non Assegnati';
-$string['manage_unassigned'] = 'Gestisci Record Non Assegnati';
+$string['unassigned_records'] = 'Record non assegnati';
+$string['manage_unassigned'] = 'Gestisci record non assegnati';
 $string['manage_manual_assignments'] = 'Gestisci Assegnazioni Manuali';
 $string['no_unassigned'] = 'Tutti i record di presenza sono stati assegnati agli utenti.';
 $string['unassigned_users_alert'] = 'Ci sono {$a} record di presenza non assegnati che necessitano revisione manuale.';
