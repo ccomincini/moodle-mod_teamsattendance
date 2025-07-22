@@ -215,6 +215,10 @@ $string['reset_automatic_assignments'] = 'Resetta tutte le assegnazioni effettua
 $string['confirm_reset_automatic'] = 'Se sicuro di voler resettare tutte le associazioni basate su suggerimenti? Tutte le associazioni resettate dovranno essere nuovamente effettuate manualmente.';
 $string['automatic_assignments_reset'] = '{$a} assegnazioni automatiche resettate.';
 
+$string['manual_assignments_info'] = '{$a} assegnazioni manuali trovate.';
+$string['reset_manual_assignments'] = 'Reimposta Assegnazioni Manuali';
+$string['confirm_reset_manual_assignments'] = 'Sei sicuro di voler reimpostare tutte le assegnazioni manuali?';
+
 $string['potential_suggestions_info'] = 'Ci sono {$a} associazioni manuali che corrispondono ai suggerimenti automatici attuali';
 $string['reset_suggestion_assignments'] = 'Reimposta associazioni da suggerimenti';
 $string['confirm_reset_suggestions'] = 'Reimpostare gli associazioni che corrispondono ai suggerimenti automatici?';

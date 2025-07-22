@@ -214,6 +214,10 @@ $string['reset_automatic_assignments'] = 'Reset all assignments made based on su
 $string['confirm_reset_automatic'] = 'Are you sure you want to reset all associations based on suggestions? All reset associations will need to be made manually again.';
 $string['automatic_assignments_reset'] = '{$a} automatic assignments reset.';
 
+$string['manual_assignments_info'] = '{$a} manual assignments found.';
+$string['reset_manual_assignments'] = 'Reset Manual Assignments';
+$string['confirm_reset_manual_assignments'] = 'Are you sure you want to reset all manual assignments?';
+
 $string['potential_suggestions_info'] = 'There are {$a} manual assignments that match current automatic suggestions';
 $string['reset_suggestion_assignments'] = 'Reset suggestion-based assignments';
 $string['confirm_reset_suggestions'] = 'Reset assignments that match automatic suggestions?';
