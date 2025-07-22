@@ -30,7 +30,7 @@ function($, Ajax, Notification, Str) {
 
     UnassignedRecordsManager.prototype = {
         /**
-         * Update statistics cards
+         * Update statistics counters
          */
         updateStatistics: function() {
             var self = this;
@@ -45,15 +45,19 @@ function($, Ajax, Notification, Str) {
                         console.log('Statistics data:', data);
                         
                         // Debug: verifica quali elementi esistono
-                        console.log('#total-unassigned-count exists:', $('#total-unassigned-count').length);
                         console.log('#name-suggestions-count exists:', $('#name-suggestions-count').length);
                         console.log('#email-suggestions-count exists:', $('#email-suggestions-count').length);
-                        console.log('#available-users-count exists:', $('#available-users-count').length);
+                        console.log('#no-suggestions-count exists:', $('#no-suggestions-count').length);
                         
-                        $('#total-unassigned-count').text(data.total_unassigned);
+                        // Aggiorna i 3 contatori semplici
                         $('#name-suggestions-count').text(data.name_suggestions);
                         $('#email-suggestions-count').text(data.email_suggestions);
-                        $('#available-users-count').text(data.available_users);
+                        
+                        // Calcola record senza suggerimenti
+                        var noSuggestions = data.total_unassigned - data.name_suggestions - data.email_suggestions;
+                        $('#no-suggestions-count').text(noSuggestions);
+                        
+                        console.log('Counters updated - Name:', data.name_suggestions, 'Email:', data.email_suggestions, 'No suggestions:', noSuggestions);
                     }
                 },
                 error: function(xhr, status, error) {
@@ -92,12 +96,6 @@ function($, Ajax, Notification, Str) {
                 self.currentPageSize = parseInt($(this).val());
                 self.currentPage = 0;
                 self.loadPage(0);
-            });
-
-            // Refresh button
-            $('#refresh-btn').on('click', function() {
-                self.loadPage(self.currentPage, true);
-                self.updateStatistics();
             });
 
             // Bulk assign button
