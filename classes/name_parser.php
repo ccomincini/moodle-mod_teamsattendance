@@ -118,10 +118,11 @@ class name_parser {
             return $names;
         }
         
-        $parts = explode(' ', $clean_name);
+	$parts = explode(' ', $clean_name);
         $parts = array_filter($parts, function($part) {
             return strlen(trim($part)) >= 2; // Filter out single characters and empty parts
         });
+        $parts = array_values($parts); // Re-index array to prevent gaps
         
         if (count($parts) >= 2) {
             // Try "LastName, FirstName" format (comma-separated) with original input
@@ -150,23 +151,27 @@ class name_parser {
                 'source' => 'last_first_cleaned'
             );
             
-            // If more than 2 parts, try compound first name
-            if (count($parts) > 2 && isset($parts[1])) {
-                $names[] = array(
-                    'firstname' => $parts[0] . ' ' . $parts[1],
-                    'lastname' => $parts[count($parts) - 1],
-                    'source' => 'compound_first_cleaned'
-                );
+	    // If more than 2 parts, try compound first name
+            if (count($parts) > 2) {
+                if (isset($parts[0]) && isset($parts[1])) {
+                    $names[] = array(
+                        'firstname' => $parts[0] . ' ' . $parts[1],
+                        'lastname' => $parts[count($parts) - 1],
+                        'source' => 'compound_first_cleaned'
+                    );
+                }
                 
                 // Try compound last name
-                $names[] = array(
-                    'firstname' => $parts[0],
-                    'lastname' => implode(' ', array_slice($parts, 1)),
-                    'source' => 'compound_last_cleaned'
-                );
+                if (isset($parts[0])) {
+                    $names[] = array(
+                        'firstname' => $parts[0],
+                        'lastname' => implode(' ', array_slice($parts, 1)),
+                        'source' => 'compound_last_cleaned'
+                    );
+                }
                 
                 // Try middle combinations for cases like "Mario Rossi Bianchi"
-                if (count($parts) >= 3 && isset($parts[1])) {
+                if (count($parts) >= 3 && isset($parts[0]) && isset($parts[1])) {
                     $names[] = array(
                         'firstname' => $parts[0],
                         'lastname' => $parts[1],

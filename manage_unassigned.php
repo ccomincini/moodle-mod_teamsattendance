@@ -114,12 +114,16 @@ $suggestion_stats = $suggestion_engine->get_suggestion_statistics($all_suggestio
 // ========================= AJAX HANDLERS =========================
 
 if ($ajax) {
-    // Clean any PHP warnings/errors from output buffer
+    // Suppress PHP warnings/errors for AJAX calls
+    error_reporting(0);
+    ini_set('display_errors', 0);
+    
+    // Clean any output buffer
     if (ob_get_level()) {
         ob_clean();
     }
     header('Content-Type: application/json');
-    
+
     try {
         switch ($action) {
             case 'load_page':
