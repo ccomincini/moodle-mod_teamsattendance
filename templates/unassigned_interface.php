@@ -64,14 +64,15 @@ function render_unassigned_interface($context) {
     $output .= '<div class="card-body">';
     $output .= '<div class="row">';
     
-    // Filter Select with default "all"
+    // Filter Select with current filter selected
+    $current_filter = isset($context->current_filter) ? $context->current_filter : 'all';
     $output .= '<div class="col-md-4">';
     $output .= '<label for="filter-select">' . get_string('filter_by', 'teamsattendance') . ':</label>';
     $output .= '<select id="filter-select" class="form-control">';
-    $output .= '<option value="all" selected>' . get_string('filter_all', 'teamsattendance') . '</option>';
-    $output .= '<option value="name_suggestions">' . get_string('filter_name_suggestions', 'teamsattendance') . '</option>';
-    $output .= '<option value="email_suggestions">' . get_string('filter_email_suggestions', 'teamsattendance') . '</option>';
-    $output .= '<option value="without_suggestions">' . get_string('without_suggestions', 'teamsattendance') . '</option>';
+    $output .= '<option value="all"' . ($current_filter === 'all' ? ' selected' : '') . '>' . get_string('filter_all', 'teamsattendance') . '</option>';
+    $output .= '<option value="name_suggestions"' . ($current_filter === 'name_suggestions' ? ' selected' : '') . '>' . get_string('filter_name_suggestions', 'teamsattendance') . '</option>';
+    $output .= '<option value="email_suggestions"' . ($current_filter === 'email_suggestions' ? ' selected' : '') . '>' . get_string('filter_email_suggestions', 'teamsattendance') . '</option>';
+    $output .= '<option value="without_suggestions"' . ($current_filter === 'without_suggestions' ? ' selected' : '') . '>' . get_string('without_suggestions', 'teamsattendance') . '</option>';
     $output .= '</select>';
     $output .= '</div>';
     
