@@ -64,27 +64,25 @@ function render_unassigned_interface($context) {
     $output .= '<div class="card-body">';
     $output .= '<div class="row">';
     
-    // Filter Select with new options
+    // Filter Select with default "all"
     $output .= '<div class="col-md-4">';
     $output .= '<label for="filter-select">' . get_string('filter_by', 'teamsattendance') . ':</label>';
     $output .= '<select id="filter-select" class="form-control">';
-    $output .= '<option value="all">' . get_string('filter_all', 'teamsattendance') . '</option>';
+    $output .= '<option value="all" selected>' . get_string('filter_all', 'teamsattendance') . '</option>';
     $output .= '<option value="name_suggestions">' . get_string('filter_name_suggestions', 'teamsattendance') . '</option>';
     $output .= '<option value="email_suggestions">' . get_string('filter_email_suggestions', 'teamsattendance') . '</option>';
     $output .= '<option value="without_suggestions">' . get_string('without_suggestions', 'teamsattendance') . '</option>';
     $output .= '</select>';
     $output .= '</div>';
     
-    // Page Size Select
+    // Page Size Select with new options and default 20
     $output .= '<div class="col-md-4">';
     $output .= '<label for="page-size-select">' . get_string('records_per_page', 'teamsattendance') . ':</label>';
     $output .= '<select id="page-size-select" class="form-control">';
-    $output .= '<option value="10">10</option>';
-    $output .= '<option value="15"' . ($context->per_page == 15 ? ' selected' : '') . '>15</option>';
-    $output .= '<option value="20"' . ($context->per_page == 20 ? ' selected' : '') . '>20</option>';
-    $output .= '<option value="25"' . ($context->per_page == 25 ? ' selected' : '') . '>25</option>';
-    $output .= '<option value="50"' . ($context->per_page == 50 ? ' selected' : '') . '>50</option>';
-    $output .= '<option value="100">100 (' . get_string('advanced_users', 'teamsattendance') . ')</option>';
+    $output .= '<option value="20" selected>20</option>';
+    $output .= '<option value="50">50</option>';
+    $output .= '<option value="100">100</option>';
+    $output .= '<option value="all">' . get_string('all_records', 'teamsattendance') . '</option>';
     $output .= '</select>';
     $output .= '</div>';
     
