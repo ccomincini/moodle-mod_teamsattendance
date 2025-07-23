@@ -37,7 +37,7 @@ require_once($CFG->dirroot . '/mod/teamsattendance/templates/unassigned_interfac
 // Get parameters
 $id = required_param('id', PARAM_INT); // Course module ID
 $page = optional_param('page', 0, PARAM_INT);
-$per_page = optional_param('per_page', 0, PARAM_INT);
+$per_page = optional_param('per_page', 20, PARAM_INT); // Default to 20
 $filter = optional_param('filter', 'all', PARAM_ALPHA);
 $action = optional_param('action', '', PARAM_TEXT);
 
@@ -66,9 +66,9 @@ $performance_handler = new performance_data_handler($cm, $teamsattendance, $cour
 // Get performance statistics first
 $perf_stats = $performance_handler->get_performance_statistics();
 
-// Set optimal page size if not specified
+// Set default page size to 20 if not specified
 if ($per_page <= 0) {
-    $per_page = $perf_stats['recommended_page_size'];
+    $per_page = 20;
 }
 
 // Get available users for manual assignment
@@ -133,6 +133,14 @@ if ($ajax) {
                     $filters = array();
                 }
                 
+                // Handle pagesize - could be "all" or numeric
+                $per_page_param = optional_param('per_page', 20, PARAM_RAW);
+                if ($per_page_param === 'all') {
+                    $per_page = 'all';
+                } else {
+                    $per_page = (int)$per_page_param;
+                }
+                
                 // Apply server-side filtering
                 $paginated_data = $performance_handler->get_unassigned_records_paginated($page, $per_page, $filters);
                 
@@ -148,7 +156,8 @@ if ($ajax) {
                         'total_pages' => $paginated_data['total_pages'],
                         'total_count' => $paginated_data['total_count'],
                         'has_next' => $paginated_data['has_next'],
-                        'has_previous' => $paginated_data['has_previous']
+                        'has_previous' => $paginated_data['has_previous'],
+                        'show_all' => $paginated_data['show_all']
                     )
                 );
                 
@@ -309,9 +318,9 @@ echo $OUTPUT->header();
 
 echo $OUTPUT->heading(get_string('manage_unassigned', 'teamsattendance'));
 
-// Prepare template context with suggestion statistics
+// Prepare template context with suggestion statistics and default pagesize 20
 $template_context = (object) array(
-    'per_page' => $per_page,
+    'per_page' => 20, // Force default to 20
     'cm_id' => $cm->id,
     'total_records' => $perf_stats['total_unassigned'],
     'name_suggestions_count' => $suggestion_stats['name_based'],
@@ -322,9 +331,9 @@ $template_context = (object) array(
 // Render the interface using the template
 echo render_unassigned_interface($template_context);
 
-// Initialize JavaScript with configuration
+// Initialize JavaScript with configuration and default pagesize 20
 $js_config = array(
-    'defaultPageSize' => $per_page,
+    'defaultPageSize' => 20, // Force default to 20
     'cmId' => $cm->id,
     'sesskey' => sesskey(),
     'strings' => array(
