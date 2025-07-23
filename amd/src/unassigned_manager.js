@@ -16,7 +16,7 @@ function($, Ajax, Notification, Str) {
     var UnassignedRecordsManager = function(config) {
         this.currentPage = 0;
         this.currentFilter = 'all';
-        this.currentPageSize = 20; // Default 20
+        this.currentPageSize = 50; // Default 50
         this.selectedRecords = new Set();
         this.isLoading = false;
         this.cmId = config.cmId;

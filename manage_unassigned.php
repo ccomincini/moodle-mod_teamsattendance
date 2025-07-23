@@ -318,9 +318,9 @@ echo $OUTPUT->header();
 
 echo $OUTPUT->heading(get_string('manage_unassigned', 'teamsattendance'));
 
-// Prepare template context with suggestion statistics and default pagesize 20
+// Prepare template context with suggestion statistics and default pagesize 50
 $template_context = (object) array(
-    'per_page' => 20, // Force default to 20
+    'per_page' => 50, // Force default to 50
     'cm_id' => $cm->id,
     'total_records' => $perf_stats['total_unassigned'],
     'name_suggestions_count' => $suggestion_stats['name_based'],
@@ -331,9 +331,9 @@ $template_context = (object) array(
 // Render the interface using the template
 echo render_unassigned_interface($template_context);
 
-// Initialize JavaScript with configuration and default pagesize 20
+// Initialize JavaScript with configuration and default pagesize 50
 $js_config = array(
-    'defaultPageSize' => 20, // Force default to 20
+    'defaultPageSize' => 50, // Force default to 50
     'cmId' => $cm->id,
     'sesskey' => sesskey(),
     'strings' => array(
