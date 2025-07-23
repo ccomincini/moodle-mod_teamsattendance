@@ -16,7 +16,7 @@ function($, Ajax, Notification, Str) {
     var UnassignedRecordsManager = function(config) {
         this.currentPage = 0;
         this.currentFilter = 'all';
-        this.currentPageSize = config.defaultPageSize || 20;
+        this.currentPageSize = 20; // Default 20
         this.selectedRecords = new Set();
         this.isLoading = false;
         this.cmId = config.cmId;
@@ -34,34 +34,17 @@ function($, Ajax, Notification, Str) {
          */
         updateStatistics: function() {
             var self = this;
-            console.log('updateStatistics called');
             $.ajax({
                 url: window.location.href,
                 data: {ajax: 1, action: 'get_statistics'},
                 success: function(response) {
-                    console.log('Statistics response:', response);
                     if (response.success) {
                         var data = response.data;
-                        console.log('Statistics data:', data);
-                        
-                        // Debug: verifica quali elementi esistono
-                        console.log('#name-suggestions-count exists:', $('#name-suggestions-count').length);
-                        console.log('#email-suggestions-count exists:', $('#email-suggestions-count').length);
-                        console.log('#no-suggestions-count exists:', $('#no-suggestions-count').length);
-                        
-                        // Aggiorna i 3 contatori semplici
                         $('#name-suggestions-count').text(data.name_suggestions);
                         $('#email-suggestions-count').text(data.email_suggestions);
-                        
-                        // Calcola record senza suggerimenti
                         var noSuggestions = data.total_unassigned - data.name_suggestions - data.email_suggestions;
                         $('#no-suggestions-count').text(noSuggestions);
-                        
-                        console.log('Counters updated - Name:', data.name_suggestions, 'Email:', data.email_suggestions, 'No suggestions:', noSuggestions);
                     }
-                },
-                error: function(xhr, status, error) {
-                    console.error('Statistics error:', error);
                 }
             });
         },
@@ -70,9 +53,9 @@ function($, Ajax, Notification, Str) {
          * Initialize the manager
          */
         init: function() {
-            this.syncSelectValues(); // Sincronizza i valori delle select all'avvio
-            this.loadPage(0);
+            this.syncSelectValues();
             this.bindEvents();
+            this.loadPage(0);
             this.updateStatistics();
         },
 
@@ -99,23 +82,28 @@ function($, Ajax, Notification, Str) {
         },
 
         /**
-         * Apply both filter and page size settings
+         * Apply current settings from both selects
          */
-        applySettings: function() {
-            // Leggi i valori correnti dalle select
+        applyCurrentSettings: function() {
+            // Read current values from both selects
             this.currentFilter = $('#filter-select').val();
-            this.currentPageSize = parseInt($('#page-size-select').val()) || this.currentPageSize;
+            var pageSizeValue = $('#page-size-select').val();
             
-            // Reset alla prima pagina quando cambiano le impostazioni
+            // Handle "all" pagesize
+            if (pageSizeValue === 'all') {
+                this.currentPageSize = 999999; // Large number for "all"
+            } else {
+                this.currentPageSize = parseInt(pageSizeValue);
+            }
+            
+            // Reset to first page
             this.currentPage = 0;
             this.selectedRecords.clear();
             this.updateBulkButton();
             
-            // Carica la prima pagina con le nuove impostazioni
+            // Load data with current settings
             this.loadPage(0);
             this.updateStatistics();
-            
-            console.log('Settings applied - Filter:', this.currentFilter, 'Page size:', this.currentPageSize);
         },
 
         /**
@@ -124,16 +112,9 @@ function($, Ajax, Notification, Str) {
         bindEvents: function() {
             var self = this;
 
-            // Filter change - applica entrambe le impostazioni
-            $('#filter-select').on('change', function() {
-                console.log('Filter changed to:', $(this).val());
-                self.applySettings();
-            });
-
-            // Page size change - applica entrambe le impostazioni
-            $('#page-size-select').on('change', function() {
-                console.log('Page size changed to:', $(this).val());
-                self.applySettings();
+            // Both selects trigger the same update function
+            $('#filter-select, #page-size-select').on('change', function() {
+                self.applyCurrentSettings();
             });
 
             // Bulk assign button
@@ -174,10 +155,11 @@ function($, Ajax, Notification, Str) {
             this.isLoading = true;
             $('#loading-indicator').show();
 
-            // Include current filters in cache key
             var filters = this.getCurrentFilters();
+            var actualPageSize = this.currentPageSize === 999999 ? 'all' : this.currentPageSize;
+            
             var filtersHash = JSON.stringify(filters);
-            var cacheKey = 'page_' + page + '_' + filtersHash + '_' + this.currentPageSize;
+            var cacheKey = 'page_' + page + '_' + filtersHash + '_' + actualPageSize;
 
             if (!forceRefresh && sessionStorage.getItem(cacheKey)) {
                 var cachedData = JSON.parse(sessionStorage.getItem(cacheKey));
@@ -187,8 +169,6 @@ function($, Ajax, Notification, Str) {
                 return;
             }
 
-            console.log('Loading page:', page, 'Page size:', this.currentPageSize, 'Filters:', filters);
-
             $.ajax({
                 url: window.location.href,
                 method: 'GET',
@@ -196,11 +176,10 @@ function($, Ajax, Notification, Str) {
                     ajax: 1,
                     action: 'load_page',
                     page: page,
-                    per_page: this.currentPageSize,
+                    per_page: actualPageSize,
                     filters: JSON.stringify(filters)
                 },
                 success: function(response) {
-                    console.log('Load page response:', response);
                     if (response.success) {
                         sessionStorage.setItem(cacheKey, JSON.stringify(response.data));
                         self.renderPage(response.data);
@@ -209,7 +188,6 @@ function($, Ajax, Notification, Str) {
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.error('Load page error:', error);
                     self.showError('Connection error: ' + error);
                 },
                 complete: function() {
@@ -224,19 +202,11 @@ function($, Ajax, Notification, Str) {
          * @param {Object} data Page data
          */
         renderPage: function(data) {
-            console.log('Rendering page data:', data);
-            
             this.currentPage = data.pagination.page;
             this.renderTable(data.records);
             this.renderPagination(data.pagination);
             this.updateBulkButton();
             this.bindTableEvents();
-            
-            // Log per debug
-            console.log('Rendered page:', data.pagination.page, 
-                       'Records shown:', data.records.length,
-                       'Total filtered:', data.pagination.total_count,
-                       'Show all:', data.pagination.show_all);
         },
 
         /**
@@ -244,9 +214,6 @@ function($, Ajax, Notification, Str) {
          * @param {Array} records Array of records
          */
         renderTable: function(records) {
-            console.log('Rendering table with', records.length, 'records');
-            
-            // No more client-side filtering - records are already filtered server-side
             var html = '<div class="table-responsive">';
             html += '<table class="table table-striped table-hover">';
             html += '<thead class="thead-dark">';
@@ -346,14 +313,10 @@ function($, Ajax, Notification, Str) {
 
         /**
          * Render pagination controls
-         * @param {Object} pagination Pagination data
          */
         renderPagination: function(pagination) {
             var self = this;
             
-            console.log('Rendering pagination:', pagination);
-            
-            // Se ci sono 0 record totali, non mostrare pagination
             if (pagination.total_count === 0) {
                 $('#pagination-container').html('<div class="text-center mt-2 text-muted">Nessun record trovato per il filtro selezionato</div>');
                 return;
@@ -361,7 +324,7 @@ function($, Ajax, Notification, Str) {
             
             var html = '<nav aria-label="Pagination">';
             
-            // SMART PAGINATION: Se show_all è true, non mostrare i controlli di paginazione
+            // Show pagination only if not showing all and multiple pages
             if (!pagination.show_all && pagination.total_pages > 1) {
                 html += '<ul class="pagination justify-content-center">';
 
@@ -387,21 +350,16 @@ function($, Ajax, Notification, Str) {
                 html += '</ul>';
             }
 
-            // Info sempre visibile
+            // Info display
             html += '<div class="text-center mt-2">';
             
-            if (pagination.show_all) {
-                // Quando tutti i record sono mostrati
-                html += '<strong>' + pagination.total_count + ' ' + (this.strings.total_records || 'record') + ' trovati</strong>';
-                html += ' <span class="text-muted">(tutti visualizzati)</span>';
+            if (pagination.show_all || this.currentPageSize === 999999) {
+                html += '<strong>' + pagination.total_count + ' record trovati (tutti visualizzati)</strong>';
             } else if (pagination.total_pages > 1) {
-                // Paginazione normale
-                html += (this.strings.page || 'Pagina') + ' ' + (pagination.page + 1) + ' ';
-                html += (this.strings.of || 'di') + ' ' + pagination.total_pages + ' - ';
-                html += pagination.total_count + ' ' + (this.strings.total_records || 'record') + ' totali';
+                html += 'Pagina ' + (pagination.page + 1) + ' di ' + pagination.total_pages + ' - ';
+                html += pagination.total_count + ' record totali';
             } else {
-                // Solo una pagina ma non è show_all (edge case)
-                html += pagination.total_count + ' ' + (this.strings.total_records || 'record') + ' trovati';
+                html += pagination.total_count + ' record trovati';
             }
             
             html += '</div>';
@@ -409,7 +367,7 @@ function($, Ajax, Notification, Str) {
 
             $('#pagination-container').html(html);
 
-            // Bind pagination clicks solo se ci sono controlli di paginazione
+            // Bind pagination clicks
             if (!pagination.show_all && pagination.total_pages > 1) {
                 $('.page-link').on('click', function(e) {
                     e.preventDefault();
