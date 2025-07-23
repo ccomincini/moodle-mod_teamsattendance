@@ -42,6 +42,8 @@ $id = required_param('id', PARAM_INT); // Course module ID
 $page = optional_param('page', 0, PARAM_INT);
 $per_page = optional_param('per_page', 20, PARAM_INT); // Default to 20
 $filter = optional_param('filter', 'all', PARAM_ALPHA);
+echo "<p style='background:red;color:white;padding:5px;'>DEBUG: filter=[" . $filter . "] from URL</p>";
+
 $action = optional_param('action', '', PARAM_TEXT);
 
 // AJAX parameters
@@ -137,7 +139,7 @@ if ($ajax) {
                 }
                 
                 // Handle pagesize - could be "all" or numeric
-                $per_page_param = optional_param('per_page', 20, PARAM_RAW);
+                $per_page_param = optional_param('per_page', 50, PARAM_RAW);
                 if ($per_page_param === 'all') {
                     $per_page = 'all';
                 } else {
@@ -338,7 +340,6 @@ if ($filter && $filter !== 'all') {
             break;
     }
 }
-
 // Get initial data for page 0 with CURRENT filter and pagesize
 $initial_page = 0;
 $initial_per_page = 50; // Default pagesize
@@ -369,6 +370,32 @@ foreach ($initial_data['records'] as $record) {
     );
     $initial_records[] = $record_data;
 }
+
+
+// === DEBUG COMPLETO FILTRI ===
+echo "<div style='background: yellow; padding: 10px; margin: 10px; font-family: monospace;'>";
+echo "<h3>FILTER DEBUG</h3>";
+echo "URL filter parameter: " . htmlspecialchars($filter) . "<br>";
+echo "initial_filter array: " . htmlspecialchars(print_r($initial_filter, true)) . "<br>";
+echo "initial_data count: " . count($initial_data['records']) . "<br>";
+echo "Total unassigned from DB: " . $perf_stats['total_unassigned'] . "<br>";
+
+// Test diretto della classe
+$test_records = $performance_handler->get_all_unassigned_records();
+echo "All unassigned records: " . count($test_records) . "<br>";
+
+// Test con filtro vuoto
+$test_no_filter = $performance_handler->get_unassigned_records_paginated(0, 50, array());
+echo "No filter result: " . count($test_no_filter['records']) . "<br>";
+
+// Test con filtro name_based
+$test_with_filter = $performance_handler->get_unassigned_records_paginated(0, 50, array('suggestion_type' => 'name_based'));
+echo "With name_based filter: " . count($test_with_filter['records']) . "<br>";
+
+echo "</div>";
+// === FINE DEBUG ===
+
+
 
 // Prepare template context with initial data included
 $template_context = (object) array(
