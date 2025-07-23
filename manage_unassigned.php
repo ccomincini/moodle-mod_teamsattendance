@@ -318,14 +318,61 @@ echo $OUTPUT->header();
 
 echo $OUTPUT->heading(get_string('manage_unassigned', 'teamsattendance'));
 
-// Prepare template context with suggestion statistics and default pagesize 50
+// ========================= CARICAMENTO DATI INIZIALI =========================
+
+// Get initial data for page 0 with default filter and pagesize
+$initial_page = 0;
+$initial_per_page = 50; // Default pagesize
+$initial_filter = array(); // Default: no filter applied
+
+// Load initial paginated data
+$initial_data = $performance_handler->get_unassigned_records_paginated($initial_page, $initial_per_page, $initial_filter);
+
+// Get suggestions for initial page records
+$initial_suggestions = $performance_handler->get_suggestions_for_batch($initial_data['records']);
+
+// Prepare initial records data for template
+$initial_records = array();
+foreach ($initial_data['records'] as $record) {
+    $suggestion = isset($initial_suggestions[$record->id]) ? $initial_suggestions[$record->id] : null;
+    $suggestion_type = 'none';
+    
+    if ($suggestion) {
+        $suggestion_type = $suggestion['type'];
+    }
+    
+    $record_data = array(
+        'id' => $record->id,
+        'teams_user_id' => $record->teams_user_id,
+        'attendance_duration' => $record->attendance_duration,
+        'has_suggestion' => isset($initial_suggestions[$record->id]),
+        'suggestion' => $suggestion,
+        'suggestion_type' => $suggestion_type
+    );
+    $initial_records[] = $record_data;
+}
+
+// Prepare template context with initial data included
 $template_context = (object) array(
-    'per_page' => 50, // Force default to 50
+    'per_page' => $initial_per_page,
     'cm_id' => $cm->id,
     'total_records' => $perf_stats['total_unassigned'],
     'name_suggestions_count' => $suggestion_stats['name_based'],
     'email_suggestions_count' => $suggestion_stats['email_based'],
-    'available_users_count' => count($available_users)
+    'available_users_count' => count($available_users),
+    // ADD: Initial data for first page load
+    'initial_data' => array(
+        'records' => $initial_records,
+        'pagination' => array(
+            'page' => $initial_data['page'],
+            'per_page' => $initial_data['per_page'],
+            'total_pages' => $initial_data['total_pages'],
+            'total_count' => $initial_data['total_count'],
+            'has_next' => $initial_data['has_next'],
+            'has_previous' => $initial_data['has_previous'],
+            'show_all' => $initial_data['show_all']
+        )
+    )
 );
 
 // Render the interface using the template
