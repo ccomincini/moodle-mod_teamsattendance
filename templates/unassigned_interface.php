@@ -75,12 +75,12 @@ function render_unassigned_interface($context) {
     $output .= '</select>';
     $output .= '</div>';
     
-    // Page Size Select with new options and default 20
+    // Page Size Select with new options and default 50 (FIXED)
     $output .= '<div class="col-md-4">';
     $output .= '<label for="page-size-select">' . get_string('records_per_page', 'teamsattendance') . ':</label>';
     $output .= '<select id="page-size-select" class="form-control">';
-    $output .= '<option value="20" selected>20</option>';
-    $output .= '<option value="50">50</option>';
+    $output .= '<option value="20">20</option>';
+    $output .= '<option value="50" selected>50</option>'; // CHANGED: selected su 50 invece di 20
     $output .= '<option value="100">100</option>';
     $output .= '<option value="all">' . get_string('all_records', 'teamsattendance') . '</option>';
     $output .= '</select>';
@@ -144,13 +144,22 @@ function render_unassigned_interface($context) {
     $output .= '<p id="progress-text" class="mt-2">0%</p>';
     $output .= '</div></div></div>';
     
-    // Records Table Container
+    // Records Table Container with initial data support
     $output .= '<div class="card">';
     $output .= '<div class="card-body">';
     $output .= '<div id="records-container">';
-    $output .= '<div class="text-center text-muted">';
-    $output .= '<p>' . get_string('loading_initial_data', 'teamsattendance') . '...</p>';
-    $output .= '</div>';
+
+    // Check if initial data is provided
+    if (isset($context->initial_data) && !empty($context->initial_data['records'])) {
+        // Render initial data instead of loading message
+        $output .= render_initial_records_table($context->initial_data);
+    } else {
+        // Fallback to loading message
+        $output .= '<div class="text-center text-muted">';
+        $output .= '<p>' . get_string('loading_initial_data', 'teamsattendance') . '...</p>';
+        $output .= '</div>';
+    }
+
     $output .= '</div>';
     $output .= '</div></div>';
     
@@ -165,6 +174,85 @@ function render_unassigned_interface($context) {
     $output .= '</form>';
     
     $output .= '</div>'; // End teamsattendance-performance-container
+    
+    return $output;
+}
+
+/**
+ * Render initial records table with data
+ * @param array $initial_data Initial records and pagination data
+ * @return string HTML table
+ */
+function render_initial_records_table($initial_data) {
+    $output = '';
+    
+    if (empty($initial_data['records'])) {
+        return '<div class="text-center text-muted"><p>' . get_string('no_records_found', 'teamsattendance') . '</p></div>';
+    }
+    
+    $output .= '<div class="table-responsive">';
+    $output .= '<table class="table table-striped">';
+    $output .= '<thead>';
+    $output .= '<tr>';
+    $output .= '<th><input type="checkbox" id="select-all" class="select-all-checkbox"></th>';
+    $output .= '<th>' . get_string('teams_user_id', 'teamsattendance') . '</th>';
+    $output .= '<th>' . get_string('attendance_duration', 'teamsattendance') . '</th>';
+    $output .= '<th>' . get_string('suggested_match', 'teamsattendance') . '</th>';
+    $output .= '<th>' . get_string('actions', 'teamsattendance') . '</th>';
+    $output .= '</tr>';
+    $output .= '</thead>';
+    $output .= '<tbody>';
+    
+    foreach ($initial_data['records'] as $record) {
+        $row_class = 'suggestion-' . $record['suggestion_type'] . '-row';
+        $output .= '<tr class="' . $row_class . '" data-record-id="' . $record['id'] . '">';
+        
+        // Checkbox
+        $checkbox_disabled = $record['has_suggestion'] ? '' : 'disabled';
+        $checkbox_checked = $record['has_suggestion'] ? 'checked' : '';
+        $output .= '<td><input type="checkbox" class="record-checkbox" data-record-id="' . $record['id'] . '" ' . $checkbox_disabled . ' ' . $checkbox_checked . '></td>';
+        
+        // Teams User ID
+        $output .= '<td>' . htmlspecialchars($record['teams_user_id']) . '</td>';
+        
+        // Duration
+        $output .= '<td>' . $record['attendance_duration'] . '</td>';
+        
+        // Suggestion
+        $output .= '<td>';
+        if ($record['has_suggestion']) {
+            $suggestion = $record['suggestion'];
+            $type_label = ($suggestion['type'] === 'name_based') ? 'nome' : 'email';
+            $output .= '<span class="badge badge-info">' . htmlspecialchars($suggestion['user']->firstname . ' ' . $suggestion['user']->lastname) . '</span>';
+            $output .= '<br><small>Suggerito da ' . $type_label . '</small>';
+        } else {
+            $output .= '<span class="text-muted">' . get_string('no_suggestion', 'teamsattendance') . '</span>';
+        }
+        $output .= '</td>';
+        
+        // Actions
+        $output .= '<td>';
+        if ($record['has_suggestion']) {
+            $output .= '<button class="btn btn-sm btn-success apply-suggestion-btn" data-record-id="' . $record['id'] . '" data-user-id="' . $record['suggestion']['user']->id . '">';
+            $output .= get_string('apply_suggestion', 'teamsattendance');
+            $output .= '</button>';
+        } else {
+            $output .= '<select class="form-control form-control-sm manual-user-select" data-record-id="' . $record['id'] . '">';
+            $output .= '<option value="">' . get_string('select_user', 'teamsattendance') . '</option>';
+            $output .= '<!-- Users will be loaded by JavaScript -->';
+            $output .= '</select>';
+            $output .= '<button class="btn btn-sm btn-primary assign-btn" data-record-id="' . $record['id'] . '" disabled>';
+            $output .= get_string('assign', 'teamsattendance');
+            $output .= '</button>';
+        }
+        $output .= '</td>';
+        
+        $output .= '</tr>';
+    }
+    
+    $output .= '</tbody>';
+    $output .= '</table>';
+    $output .= '</div>';
     
     return $output;
 }
