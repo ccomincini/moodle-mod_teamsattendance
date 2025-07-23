@@ -320,12 +320,27 @@ echo $OUTPUT->heading(get_string('manage_unassigned', 'teamsattendance'));
 
 // ========================= CARICAMENTO DATI INIZIALI =========================
 
-// Get initial data for page 0 with default filter and pagesize
+// Convert URL filter parameter to array format expected by get_unassigned_records_paginated
+$initial_filter = array();
+if ($filter && $filter !== 'all') {
+    switch ($filter) {
+        case 'name_suggestions':
+            $initial_filter['suggestion_type'] = 'name_based';
+            break;
+        case 'email_suggestions':
+            $initial_filter['suggestion_type'] = 'email_based';
+            break;
+        case 'without_suggestions':
+            $initial_filter['suggestion_type'] = 'none';
+            break;
+    }
+}
+
+// Get initial data for page 0 with CURRENT filter and pagesize
 $initial_page = 0;
 $initial_per_page = 50; // Default pagesize
-$initial_filter = array(); // Default: no filter applied
 
-// Load initial paginated data
+// Load initial paginated data with APPLIED FILTER
 $initial_data = $performance_handler->get_unassigned_records_paginated($initial_page, $initial_per_page, $initial_filter);
 
 // Get suggestions for initial page records
@@ -360,6 +375,7 @@ $template_context = (object) array(
     'name_suggestions_count' => $suggestion_stats['name_based'],
     'email_suggestions_count' => $suggestion_stats['email_based'],
     'available_users_count' => count($available_users),
+    'current_filter' => $filter, // ADD: Pass current filter to template
     // ADD: Initial data for first page load
     'initial_data' => array(
         'records' => $initial_records,
