@@ -34,6 +34,9 @@ require_once($CFG->dirroot . '/mod/teamsattendance/classes/ui_renderer.php');
 // Load modular components
 require_once($CFG->dirroot . '/mod/teamsattendance/templates/unassigned_interface.php');
 
+use mod_teamsattendance\performance_data_handler;
+
+
 // Get parameters
 $id = required_param('id', PARAM_INT); // Course module ID
 $page = optional_param('page', 0, PARAM_INT);
