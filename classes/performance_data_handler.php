@@ -299,7 +299,7 @@ class performance_data_handler {
             $enrolled_users = get_enrolled_users($context, '', 0, 'u.id, u.firstname, u.lastname, u.email');
             
             // Generate suggestions using the suggestion engine
-            $suggestion_engine = new suggestion_engine($enrolled_users);
+            $suggestion_engine = new \suggestion_engine($enrolled_users);
             $this->suggestions_cache = $suggestion_engine->generate_suggestions($records);
             $this->cache_loaded = true;
         }
