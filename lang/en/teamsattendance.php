@@ -79,7 +79,7 @@ $string['exporttoxlsx'] = 'Export to Excel';
 // Table headers
 $string['cognome'] = 'Last Name';
 $string['nome'] = 'First Name';
-$string['codice_identificativo'] = 'ID Number';
+$string['idnumber'] = 'ID Number';
 $string['role'] = 'Role';
 $string['tempo_totale'] = 'Total Time';
 $string['attendance_percentage'] = 'Attendance %';
@@ -115,6 +115,7 @@ $string['estimated_time'] = 'Estimated Time';
 $string['for_suggestions'] = 'for suggestions';
 $string['filter_by'] = 'Filter by';
 $string['filter_all'] = 'All records';
+$string['all_records'] = 'All records';
 $string['filter_name_suggestions'] = 'Suggested by name';
 $string['filter_email_suggestions'] = 'Suggested by email';
 $string['without_suggestions'] = 'Without Suggestions';

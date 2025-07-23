@@ -234,7 +234,7 @@ $table->define_columns(['lastname', 'firstname', 'idnumber', 'role', 'total_dura
 $table->define_headers([
     get_string('cognome', 'mod_teamsattendance'),
     get_string('nome', 'mod_teamsattendance'),
-    get_string('codice_identificativo', 'mod_teamsattendance'),
+    get_string('idnumber', 'mod_teamsattendance'),
     get_string('role', 'mod_teamsattendance'),
     get_string('tempo_totale', 'mod_teamsattendance'),
     get_string('attendance_percentage', 'mod_teamsattendance'),
