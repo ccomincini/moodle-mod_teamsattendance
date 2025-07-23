@@ -41,7 +41,7 @@ class performance_data_handler {
     private $course;
     
     /** @var int Records per page for pagination */
-    const RECORDS_PER_PAGE = 50;
+    const RECORDS_PER_PAGE = 20; // Changed default to 20
     
     /** @var int Max records to process suggestions at once */
     const MAX_SUGGESTION_BATCH = 100;
@@ -95,7 +95,7 @@ class performance_data_handler {
             $stats['recommended_page_size'] = 20;
         } else {
             $stats['performance_level'] = 'challenging';
-            $stats['recommended_page_size'] = 15;
+            $stats['recommended_page_size'] = 20; // Changed to 20
         }
         
         // Estimate processing time
@@ -115,11 +115,15 @@ class performance_data_handler {
         global $DB, $CFG;
         
         if ($per_page === null) {
-            $perf_stats = $this->get_performance_statistics();
-            $per_page = $perf_stats['recommended_page_size'];
+            $per_page = self::RECORDS_PER_PAGE;
         }
         
-        $per_page = min(max($per_page, 10), 100);
+        // Handle "all" pagesize
+        if ($per_page === 'all' || $per_page > 900000) {
+            $per_page = 999999; // Large number for "all"
+        } else {
+            $per_page = min(max($per_page, 10), 999999);
+        }
         
         // Ensure page is not negative
         $page = max(0, $page);
@@ -133,21 +137,21 @@ class performance_data_handler {
             return $cached;
         }
         
-        // If we have suggestion filters, we need to get all records first, then filter and paginate
+        // If we have suggestion filters, use suggestion filtering
         if (isset($filters['suggestion_type']) && $filters['suggestion_type'] !== 'all') {
             return $this->get_records_with_suggestion_filter($page, $per_page, $filters);
         }
         
-        // For no filters or 'all' filter, use simple pagination
+        // For "all" filter, get all records with alphabetical ordering
         $total_count = $this->get_total_unassigned_count();
         
-        // Smart pagination: if total_count <= per_page, show all records without pagination
+        // Smart pagination: if total_count <= per_page, show all records
         if ($total_count <= $per_page) {
             $sql = "SELECT tad.*, u.firstname, u.lastname, u.email
                     FROM {teamsattendance_data} tad
                     LEFT JOIN {user} u ON u.id = tad.userid
                     WHERE tad.sessionid = ? AND tad.userid = ?
-                    ORDER BY tad.teams_user_id";
+                    ORDER BY LOWER(tad.teams_user_id)"; // Alphabetical ascending order
             
             $params = array($this->teamsattendance->id, $CFG->siteguest);
             $records = $DB->get_records_sql($sql, $params);
@@ -160,21 +164,20 @@ class performance_data_handler {
                 'total_pages' => 1,
                 'has_next' => false,
                 'has_previous' => false,
-                'show_all' => true // Flag to indicate all records are shown
+                'show_all' => true
             );
         } else {
-            // Normal pagination
+            // Normal pagination with alphabetical ordering
             $offset = $page * $per_page;
             
             $sql = "SELECT tad.*, u.firstname, u.lastname, u.email
                     FROM {teamsattendance_data} tad
                     LEFT JOIN {user} u ON u.id = tad.userid
-                    WHERE tad.sessionid = ? AND tad.userid = ?";
+                    WHERE tad.sessionid = ? AND tad.userid = ?
+                    ORDER BY LOWER(tad.teams_user_id)
+                    LIMIT $per_page OFFSET $offset"; // Alphabetical ascending order
             
             $params = array($this->teamsattendance->id, $CFG->siteguest);
-            
-            $sql .= " ORDER BY tad.teams_user_id LIMIT $per_page OFFSET $offset";
-            
             $records = $DB->get_records_sql($sql, $params);
             
             $result = array(
@@ -202,12 +205,12 @@ class performance_data_handler {
         // Ensure page is not negative
         $page = max(0, $page);
         
-        // Get all unassigned records
+        // Get all unassigned records with alphabetical ordering
         $sql = "SELECT tad.*, u.firstname, u.lastname, u.email
                 FROM {teamsattendance_data} tad
                 LEFT JOIN {user} u ON u.id = tad.userid
                 WHERE tad.sessionid = ? AND tad.userid = ?
-                ORDER BY tad.teams_user_id";
+                ORDER BY LOWER(tad.teams_user_id)"; // Alphabetical ascending order
         
         $params = array($this->teamsattendance->id, $CFG->siteguest);
         $all_records = $DB->get_records_sql($sql, $params);
@@ -235,7 +238,7 @@ class performance_data_handler {
                     }
                     break;
                     
-                case 'no_suggestions':
+                case 'without_suggestions':
                     if (!isset($suggestions[$record->id])) {
                         $include_record = true;
                     }
@@ -263,7 +266,7 @@ class performance_data_handler {
                 'total_pages' => 1,
                 'has_next' => false,
                 'has_previous' => false,
-                'show_all' => true // Flag to indicate all records are shown
+                'show_all' => true
             );
         } else {
             // Normal pagination
@@ -368,7 +371,7 @@ class performance_data_handler {
                 FROM {teamsattendance_data} tad
                 LEFT JOIN {user} u ON u.id = tad.userid
                 WHERE tad.sessionid = ? AND tad.userid = ?
-                ORDER BY tad.teams_user_id";
+                ORDER BY LOWER(tad.teams_user_id)"; // Alphabetical ascending order
         
         $params = array($this->teamsattendance->id, $CFG->siteguest);
         $records = $DB->get_records_sql($sql, $params);
