@@ -235,7 +235,8 @@ function($, Ajax, Notification, Str) {
             // Log per debug
             console.log('Rendered page:', data.pagination.page, 
                        'Records shown:', data.records.length,
-                       'Total filtered:', data.pagination.total_count);
+                       'Total filtered:', data.pagination.total_count,
+                       'Show all:', data.pagination.show_all);
         },
 
         /**
@@ -359,10 +360,11 @@ function($, Ajax, Notification, Str) {
             }
             
             var html = '<nav aria-label="Pagination">';
-            html += '<ul class="pagination justify-content-center">';
+            
+            // SMART PAGINATION: Se show_all è true, non mostrare i controlli di paginazione
+            if (!pagination.show_all && pagination.total_pages > 1) {
+                html += '<ul class="pagination justify-content-center">';
 
-            // Mostra paginazione solo se ci sono più pagine
-            if (pagination.total_pages > 1) {
                 html += '<li class="page-item ' + (pagination.has_previous ? '' : 'disabled') + '">';
                 html += '<a class="page-link" href="#" data-page="' + (pagination.page - 1) + '">';
                 html += (this.strings.previous || 'Precedente');
@@ -381,24 +383,34 @@ function($, Ajax, Notification, Str) {
                 html += '<a class="page-link" href="#" data-page="' + (pagination.page + 1) + '">';
                 html += (this.strings.next || 'Successivo');
                 html += '</a></li>';
+                
+                html += '</ul>';
             }
-            
-            html += '</ul>';
 
             // Info sempre visibile
             html += '<div class="text-center mt-2">';
-            if (pagination.total_pages > 1) {
+            
+            if (pagination.show_all) {
+                // Quando tutti i record sono mostrati
+                html += '<strong>' + pagination.total_count + ' ' + (this.strings.total_records || 'record') + ' trovati</strong>';
+                html += ' <span class="text-muted">(tutti visualizzati)</span>';
+            } else if (pagination.total_pages > 1) {
+                // Paginazione normale
                 html += (this.strings.page || 'Pagina') + ' ' + (pagination.page + 1) + ' ';
                 html += (this.strings.of || 'di') + ' ' + pagination.total_pages + ' - ';
+                html += pagination.total_count + ' ' + (this.strings.total_records || 'record') + ' totali';
+            } else {
+                // Solo una pagina ma non è show_all (edge case)
+                html += pagination.total_count + ' ' + (this.strings.total_records || 'record') + ' trovati';
             }
-            html += pagination.total_count + ' ' + (this.strings.total_records || 'record') + ' trovati';
+            
             html += '</div>';
             html += '</nav>';
 
             $('#pagination-container').html(html);
 
-            // Bind pagination clicks solo se ci sono più pagine
-            if (pagination.total_pages > 1) {
+            // Bind pagination clicks solo se ci sono controlli di paginazione
+            if (!pagination.show_all && pagination.total_pages > 1) {
                 $('.page-link').on('click', function(e) {
                     e.preventDefault();
                     var page = parseInt($(this).data('page'));
