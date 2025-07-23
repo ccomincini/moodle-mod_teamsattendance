@@ -139,29 +139,55 @@ class performance_data_handler {
         }
         
         // For no filters or 'all' filter, use simple pagination
-        $offset = $page * $per_page;
-        
-        $sql = "SELECT tad.*, u.firstname, u.lastname, u.email
-                FROM {teamsattendance_data} tad
-                LEFT JOIN {user} u ON u.id = tad.userid
-                WHERE tad.sessionid = ? AND tad.userid = ?";
-        
-        $params = array($this->teamsattendance->id, $CFG->siteguest);
-        
-        $sql .= " ORDER BY tad.teams_user_id LIMIT $per_page OFFSET $offset";
-        
-        $records = $DB->get_records_sql($sql, $params);
         $total_count = $this->get_total_unassigned_count();
         
-        $result = array(
-            'records' => array_values($records),
-            'total_count' => $total_count,
-            'page' => $page,
-            'per_page' => $per_page,
-            'total_pages' => $total_count > 0 ? ceil($total_count / $per_page) : 1,
-            'has_next' => (($page + 1) * $per_page) < $total_count,
-            'has_previous' => $page > 0
-        );
+        // Smart pagination: if total_count <= per_page, show all records without pagination
+        if ($total_count <= $per_page) {
+            $sql = "SELECT tad.*, u.firstname, u.lastname, u.email
+                    FROM {teamsattendance_data} tad
+                    LEFT JOIN {user} u ON u.id = tad.userid
+                    WHERE tad.sessionid = ? AND tad.userid = ?
+                    ORDER BY tad.teams_user_id";
+            
+            $params = array($this->teamsattendance->id, $CFG->siteguest);
+            $records = $DB->get_records_sql($sql, $params);
+            
+            $result = array(
+                'records' => array_values($records),
+                'total_count' => $total_count,
+                'page' => 0,
+                'per_page' => $per_page,
+                'total_pages' => 1,
+                'has_next' => false,
+                'has_previous' => false,
+                'show_all' => true // Flag to indicate all records are shown
+            );
+        } else {
+            // Normal pagination
+            $offset = $page * $per_page;
+            
+            $sql = "SELECT tad.*, u.firstname, u.lastname, u.email
+                    FROM {teamsattendance_data} tad
+                    LEFT JOIN {user} u ON u.id = tad.userid
+                    WHERE tad.sessionid = ? AND tad.userid = ?";
+            
+            $params = array($this->teamsattendance->id, $CFG->siteguest);
+            
+            $sql .= " ORDER BY tad.teams_user_id LIMIT $per_page OFFSET $offset";
+            
+            $records = $DB->get_records_sql($sql, $params);
+            
+            $result = array(
+                'records' => array_values($records),
+                'total_count' => $total_count,
+                'page' => $page,
+                'per_page' => $per_page,
+                'total_pages' => ceil($total_count / $per_page),
+                'has_next' => (($page + 1) * $per_page) < $total_count,
+                'has_previous' => $page > 0,
+                'show_all' => false
+            );
+        }
         
         $this->set_cached_data($cache_key, $result);
         return $result;
@@ -225,35 +251,43 @@ class performance_data_handler {
             }
         }
         
-        // Calculate pagination
         $total_filtered = count($filtered_records);
-        $total_pages = $total_filtered > 0 ? ceil($total_filtered / $per_page) : 1;
         
-        // Ensure page doesn't exceed available pages
-        if ($page >= $total_pages && $total_filtered > 0) {
-            $page = $total_pages - 1;
+        // SMART PAGINATION: If filtered records <= per_page, show all without pagination
+        if ($total_filtered <= $per_page) {
+            $result = array(
+                'records' => array_values($filtered_records),
+                'total_count' => $total_filtered,
+                'page' => 0,
+                'per_page' => $per_page,
+                'total_pages' => 1,
+                'has_next' => false,
+                'has_previous' => false,
+                'show_all' => true // Flag to indicate all records are shown
+            );
+        } else {
+            // Normal pagination
+            $total_pages = ceil($total_filtered / $per_page);
+            
+            // Ensure page doesn't exceed available pages
+            if ($page >= $total_pages) {
+                $page = max(0, $total_pages - 1);
+            }
+            
+            $offset = $page * $per_page;
+            $paginated_records = array_slice($filtered_records, $offset, $per_page);
+            
+            $result = array(
+                'records' => array_values($paginated_records),
+                'total_count' => $total_filtered,
+                'page' => $page,
+                'per_page' => $per_page,
+                'total_pages' => $total_pages,
+                'has_next' => (($page + 1) * $per_page) < $total_filtered,
+                'has_previous' => $page > 0,
+                'show_all' => false
+            );
         }
-        
-        // Apply pagination to filtered results
-        $offset = $page * $per_page;
-        
-        // Handle edge case where offset exceeds available records
-        if ($offset >= $total_filtered) {
-            $offset = 0;
-            $page = 0;
-        }
-        
-        $paginated_records = array_slice($filtered_records, $offset, $per_page);
-        
-        $result = array(
-            'records' => array_values($paginated_records),
-            'total_count' => $total_filtered,
-            'page' => $page,
-            'per_page' => $per_page,
-            'total_pages' => $total_pages,
-            'has_next' => (($page + 1) * $per_page) < $total_filtered,
-            'has_previous' => $page > 0
-        );
         
         return $result;
     }
