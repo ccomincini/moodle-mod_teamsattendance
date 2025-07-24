@@ -1,194 +1,227 @@
-# Teams Attendance for Moodle
+# Teams Attendance per Moodle v3.0.0
 
-Advanced Moodle activity module for tracking attendance from Microsoft Teams meetings with intelligent user matching and performance optimization.
+[![Versione](https://img.shields.io/badge/versione-3.0.0-brightgreen.svg)](https://github.com/ccomincini/moodle-mod_teamsattendance)
+[![Moodle](https://img.shields.io/badge/Moodle-3.9%2B-blue.svg)](https://moodle.org)
+[![Licenza](https://img.shields.io/badge/licenza-GPL%20v3-orange.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
+[![Stabilità](https://img.shields.io/badge/stabilit%C3%A0-STABLE-green.svg)]()
 
-## Features
+Modulo di attività avanzato per Moodle che traccia la partecipazione dalle riunioni Microsoft Teams con matching intelligente degli utenti, sistema di filtri avanzato e ottimizzazioni delle performance.
 
-### Core Functionality
-- **Automatic Teams Integration**: Fetch attendance data directly from Microsoft Teams meetings
-- **Intelligent User Matching**: Advanced algorithm matches Teams participants to Moodle users
-- **Enhanced Name Recognition**: Handles titles, organizations, and complex name patterns
-- **Manual Assignment Management**: Easy interface for managing unassigned records
-- **Performance Optimization**: Handles 1000+ participants efficiently
+## 🎯 Caratteristiche Principali
 
-### Matching Capabilities
-- **Email Pattern Matching**: 10+ email patterns (marco.rossi@domain, mrossi@domain, etc.)
-- **Name Parsing**: Extracts names from Teams IDs with noise (titles, organizations)
-- **Anti-Ambiguity Logic**: Prevents false positive suggestions
-- **Inverted Names Support**: Handles surname/firstname field swaps
-- **International Characters**: Normalizes accents and special characters
+### ✨ Funzionalità Core
+- **Integrazione Teams Automatica**: Importa i dati di partecipazione direttamente da Microsoft Teams
+- **Matching Intelligente degli Utenti**: Algoritmo avanzato che associa automaticamente i partecipanti Teams agli utenti Moodle
+- **Sistema di Filtri Avanzato**: Filtra e gestisci i record non assegnati con precisione
+- **Interfaccia Performance Ottimizzata**: Gestisce efficacemente oltre 1000+ partecipanti
+- **Architettura Modulare**: Codice organizzato in componenti riutilizzabili e manutenibili
 
-### Performance Features
-- **Optimized Database Queries**: 85% faster loading with indexed queries
-- **Intelligent Caching**: 90%+ cache hit rate for suggestions
-- **AJAX Interface**: Real-time updates without page reloads
-- **Bulk Operations**: Process hundreds of assignments simultaneously
-- **Memory Management**: Stable 64-128MB usage with garbage collection
+### 🔍 Sistema di Filtri v3.0.0
+- **Filtro "Suggerimenti Nome"**: Visualizza solo i record con suggerimenti basati su similarità del nome
+- **Filtro "Suggerimenti Email"**: Mostra record con suggerimenti basati su pattern email riconosciuti
+- **Filtro "Senza Suggerimenti"**: Evidenzia record che richiedono assegnazione manuale
+- **Sincronizzazione URL**: I filtri si riflettono nell'URL per bookmarking e condivisione
+- **Aggiornamento Real-time**: Contatori e statistiche aggiornati dinamicamente
 
-## Installation
+### 🧠 Capacità di Matching
+- **Pattern Email Intelligenti**: Riconosce 10+ pattern email comuni (nome.cognome@domain, ncognome@domain, etc.)
+- **Parsing Avanzato dei Nomi**: Estrae nomi da ID Teams con rumore (titoli, organizzazioni)
+- **Logica Anti-Ambiguità**: Previene suggerimenti falsi positivi per match multipli
+- **Supporto Nomi Invertiti**: Gestisce scambi cognome/nome nei campi
+- **Caratteri Internazionali**: Normalizza accenti e caratteri speciali automaticamente
 
-### Requirements
-- Moodle 3.9+ (tested up to 4.0)
-- Microsoft 365 integration (auth_oidc plugin)
-- PHP 7.4+ with cURL and JSON support
+### ⚡ Ottimizzazioni Performance
+- **Query Database Ottimizzate**: 85% più veloce con query indicizzate
+- **Caching Intelligente**: 90%+ cache hit rate per i suggerimenti
+- **Interfaccia AJAX**: Aggiornamenti in tempo reale senza ricaricamenti
+- **Operazioni Bulk**: Elabora centinaia di assegnazioni simultaneamente
+- **Gestione Memoria**: Utilizzo stabile 64-128MB con garbage collection
 
-### Install Steps
-1. Download and extract to `/mod/teamsattendance/`
-2. Visit Site Administration → Notifications to complete installation
-3. Configure Microsoft API credentials in Site Administration → Plugins → Activity modules → Teams Attendance
+## 📋 Requisiti di Sistema
 
-### Configuration
+### Requisiti Minimi
+- **Moodle**: 3.9+ (testato fino alla 4.0)
+- **PHP**: 7.4+ con supporto cURL e JSON
+- **Database**: MySQL 5.7+ o PostgreSQL 10+
+- **Integrazione Microsoft 365**: Plugin auth_oidc attivo
+- **Memoria PHP**: Minimum 128MB, raccomandati 256MB per grandi dataset
+
+### Dipendenze
+- `auth_oidc` >= 2024100710 (Plugin autenticazione OIDC)
+- `mod_msteams` >= 2022012000 (Integrazione Microsoft Teams)
+
+## 🚀 Installazione
+
+### 1. Download e Estrazione
+```bash
+cd /path/to/moodle/mod/
+git clone https://github.com/ccomincini/moodle-mod_teamsattendance.git teamsattendance
+# oppure scarica e estrai il file ZIP
+```
+
+### 2. Completamento Installazione
+1. Vai in **Amministrazione del sito → Notifiche**
+2. Segui la procedura guidata di installazione
+3. Configura le credenziali API Microsoft
+
+### 3. Configurazione API Microsoft
+Configura in **Amministrazione del sito → Plugin → Moduli attività → Teams Attendance**:
+
 ```php
-// Required Microsoft API settings
+// Impostazioni API Microsoft richieste
 $tenant_id = 'your-tenant-id';
 $client_id = 'your-client-id'; 
 $client_secret = 'your-client-secret';
 $graph_endpoint = 'https://graph.microsoft.com/v1.0';
 ```
 
-## Usage
+### 4. Permessi API Graph
+Assicurati che l'applicazione Azure AD abbia i seguenti permessi:
+- `OnlineMeetings.Read.All`
+- `User.Read.All`
+- `Directory.Read.All`
 
-### Creating Activity
-1. Add "Teams Attendance" activity to course
-2. Configure meeting URL and required attendance percentage
-3. Set expected duration for completion tracking
+## 📖 Guida Utilizzo
 
-### Fetching Data
-1. Click "Fetch Attendance" in activity view
-2. System connects to Microsoft Graph API
-3. Attendance data imported automatically
+### Creazione di un'Attività
+1. **Aggiungi Attività**: Seleziona "Teams Attendance" nel corso
+2. **Configura Riunione**: Inserisci URL della riunione Teams
+3. **Imposta Parametri**: 
+   - Percentuale minima di partecipazione richiesta
+   - Durata prevista per il tracking del completamento
+   - Criteri di valutazione
 
-### Managing Assignments
-1. Click "Manage Unassigned" for unmapped records
-2. Review automatic suggestions (highlighted in colors)
-3. Apply bulk assignments or manual selections
-4. Reset assignments if needed
+### Importazione Dati Partecipazione
+1. **Avvia Import**: Clicca "Importa Partecipazione" nella vista attività
+2. **Connessione Automatica**: Il sistema si connette a Microsoft Graph API
+3. **Verifica Risultati**: Controlla i dati importati e le statistiche
 
-### Understanding Results
-- **Green rows**: Automatically assigned users
-- **Orange rows**: Manually assigned users  
-- **Blue highlights**: Name-based suggestions
-- **Purple highlights**: Email-based suggestions
+### Gestione Record Non Assegnati
+1. **Accedi alla Gestione**: Clicca "Gestisci Non Assegnati"
+2. **Utilizza i Filtri**:
+   - **Tutti i record**: Visualizzazione completa
+   - **Suggerimenti nome**: Solo record con match basati su nome
+   - **Suggerimenti email**: Solo record con match basati su email
+   - **Senza suggerimenti**: Record che richiedono assegnazione manuale
+3. **Applica Assegnazioni**:
+   - **Singole**: Clicca "Applica suggerimento" per singoli record
+   - **Bulk**: Seleziona multipli record e usa "Applica selezionati"
+   - **Manuali**: Usa il dropdown per assegnazioni personalizzate
 
-## Architecture
+### Interpretazione Risultati Visuali
+- **🟢 Righe verdi**: Utenti assegnati automaticamente
+- **🟠 Righe arancioni**: Utenti assegnati manualmente  
+- **🔵 Evidenziazioni blu**: Suggerimenti basati su nome
+- **🟣 Evidenziazioni viola**: Suggerimenti basati su email
+- **⚪ Righe neutre**: Record senza suggerimenti automatici
 
-### File Structure
+## 🏗️ Architettura Tecnica
+
+### Struttura File
 ```
 /mod/teamsattendance/
-├── classes/
-│   ├── suggestion_engine.php       # Core matching logic
-│   ├── name_parser.php             # Name extraction and parsing
-│   ├── email_pattern_matcher.php   # Email pattern matching
-│   ├── performance_data_handler.php # Optimized data operations
-│   └── user_assignment_handler.php # Assignment management
-├── amd/src/unassigned_manager.js   # Frontend AJAX interface
-├── styles/                         # CSS styling
-├── templates/                      # Modular UI templates
-└── db/                            # Database schema
+├── classes/                              # Classi PHP core
+│   ├── performance_data_handler.php      # Gestione dati ottimizzata
+│   ├── suggestion_engine.php             # Motore di suggerimenti
+│   ├── name_parser.php                   # Parser ed estrazione nomi
+│   ├── email_pattern_matcher.php         # Matching pattern email
+│   └── user_assignment_handler.php       # Gestione assegnazioni
+├── amd/                                  # JavaScript AMD
+│   ├── src/unassigned_manager.js         # Interfaccia AJAX frontend
+│   └── build/unassigned_manager.min.js   # Versione minificata
+├── templates/                            # Template modulari UI
+│   └── unassigned_interface.php          # Template principale
+├── styles/                               # Fogli di stile CSS
+│   └── unassigned_manager.css            # Stili interfaccia
+├── db/                                   # Schema database
+│   ├── install.xml                       # Schema tabelle
+│   └── upgrade.php                       # Script aggiornamenti
+├── lang/                                 # File lingue
+│   ├── en/teamsattendance.php            # Stringhe inglese
+│   └── it/teamsattendance.php            # Stringhe italiano
+└── tests/                                # Test unitari
+    └── enhanced_matching_test_cases.php  # Test algoritmi matching
 ```
 
-### Database Schema
-- **teamsattendance**: Activity configuration
-- **teamsattendance_data**: Attendance records with user assignments
-- **teamsattendance_reports**: Aggregated completion data
+## ⚡ Ottimizzazioni Performance
 
-### Matching Algorithm
-1. **Email Pattern Recognition**: 10 patterns with ambiguity detection
-2. **Name Extraction**: Removes titles (Dr., Arch.) and organizations
-3. **Similarity Scoring**: Levenshtein distance with 80% threshold
-4. **Anti-Ambiguity**: Prevents suggestions for multiple matches
+### Per Dataset Grandi (1000+ partecipanti)
+- **Dimensionamento Pagine Automatico**: Adattivo basato sulla dimensione dataset
+- **Elaborazione Batch**: Chunk da 100 record per i suggerimenti
+- **Query Ottimizzate**: Indici compositi per lookup veloci
+- **Strategia Cache**: Cache file-based con TTL 5 minuti
+- **Progress Tracking**: Feedback real-time per operazioni lunghe
 
-## Performance Optimization
+### Gestione Memoria
+- **Garbage Collection**: Pulizia automatica dopo operazioni
+- **Limiti Risorse**: Monitoraggio memoria integrato
+- **Connection Pooling**: Connessioni database efficienti
+- **Lazy Loading**: Caricamento dati on-demand
 
-### For Large Datasets (1000+ participants)
-- **Automatic Page Sizing**: Adaptive based on dataset size
-- **Batch Processing**: 100-record chunks for suggestions
-- **Optimized Queries**: Composite indexes for fast lookups
-- **Cache Strategy**: File-based caching with 5-minute TTL
-- **Progress Tracking**: Real-time feedback for long operations
+## 🔧 Risoluzione Problemi
 
-### Memory Management
-- **Garbage Collection**: Automatic cleanup after operations
-- **Resource Limits**: Built-in memory monitoring
-- **Connection Pooling**: Efficient database connections
+### Problemi Comuni
 
-## Troubleshooting
+#### ❌ Nessun dato partecipazione importato
+**Possibili cause:**
+- Credenziali API Microsoft errate
+- Formato URL riunione Teams non corretto  
+- Riunione scaduta o non più accessibile
+- Permessi insufficienti per OnlineMeetings API
 
-### Common Issues
+**Soluzioni:**
+1. Verifica credenziali in Amministrazione → Plugins
+2. Controlla formato URL: `https://teams.microsoft.com/l/meetup-join/...`
+3. Verifica che la riunione sia ancora attiva
+4. Controlla permessi Azure AD application
 
-**No attendance data fetched**
-- Verify Microsoft API credentials
-- Check Teams meeting URL format
-- Ensure meeting is not expired
-- Verify user permissions for OnlineMeetings API
+#### ❌ Suggerimenti non visualizzati
+**Possibili cause:**
+- Utenti iscritti senza firstname/lastname popolati
+- Teams ID non contengono nomi riconoscibili
+- Cache plugin obsoleta
 
-**Suggestions not appearing**
-- Check enrolled users have proper firstname/lastname fields
-- Verify Teams IDs contain recognizable names
-- Clear plugin cache if recently updated
+**Soluzioni:**
+1. Verifica campi nome utenti in Moodle
+2. Controlla formato Teams ID in dati importati
+3. Purga cache plugin: Amministrazione → Sviluppo → Purga cache
 
-**Performance issues**
-- Enable database query logging
-- Check for missing indexes
-- Review cache hit rates in performance dashboard
-- Consider increasing PHP memory limit
+## 📚 Riferimento API
 
-### Debug Mode
-Enable debugging by adding to config.php:
+### Classi Core
 ```php
-$CFG->debug = E_ALL;
-$CFG->debugdisplay = 1;
+// Gestore performance e dati
+performance_data_handler::class
+├── get_unassigned_records_paginated() // Paginazione filtrata
+├── get_suggestions_for_batch()        // Suggerimenti batch
+├── apply_bulk_assignments()           // Assegnazioni bulk
+└── clear_cache()                      // Pulizia cache
+
+// Motore suggerimenti  
+suggestion_engine::class
+├── generate_suggestions()             // Genera tutti i suggerimenti
+├── get_suggestion_statistics()        // Statistiche suggerimenti
+└── sort_records_by_suggestion_types() // Ordinamento intelligente
 ```
 
-## Development
+## 📄 Licenza
 
-### Coding Standards
-- Follows Moodle coding guidelines
-- PSR-12 compatible PHP code
-- ES6+ JavaScript with AMD modules
-- Responsive CSS with Bootstrap classes
+**GNU General Public License v3.0 o successiva**
 
-### Testing
-- Unit tests for matching algorithms
-- Performance testing with large datasets
-- Cross-browser compatibility testing
-- Accessibility compliance (WCAG 2.1)
+## 🆘 Supporto
 
-### Contributing
-1. Fork repository
-2. Create feature branch
-3. Follow coding standards
-4. Add tests for new features
-5. Submit pull request
+### Community Support
+- **Issues**: [GitHub Issues](https://github.com/ccomincini/moodle-mod_teamsattendance/issues)
+- **Discussioni**: [GitHub Discussions](https://github.com/ccomincini/moodle-mod_teamsattendance/discussions)
 
-## API Reference
-
-### Core Classes
-- `suggestion_engine`: Main matching coordinator
-- `name_parser`: Name extraction and normalization
-- `email_pattern_matcher`: Email pattern recognition
-- `performance_data_handler`: Optimized data operations
-
-### JavaScript API
-```javascript
-// Initialize unassigned manager
-require(['mod_teamsattendance/unassigned_manager'], function(manager) {
-    manager.init(config);
-});
-```
-
-## License
-
-GNU General Public License v3.0 or later
-
-## Support
-
-- **Documentation**: See inline code comments and PHPDoc
-- **Issues**: Report bugs via GitHub issues
-- **Performance**: Contact for enterprise support
+### Enterprise Support
+Per supporto enterprise, training o personalizzazioni:
+- **Email**: carlo@comincini.it
+- **Sito Web**: [invisiblefarm.it](https://invisiblefarm.it)
 
 ---
 
-**Version**: 2.1.5  
-**Compatibility**: Moodle 3.9 - 4.0  
-**Last Updated**: January 2025
+**📦 Versione**: v3.0.0  
+**🎯 Compatibilità**: Moodle 3.9 - 4.0  
+**📅 Ultimo Aggiornamento**: Luglio 2025  
+**👨‍💻 Maintainer**: Carlo Comincini <carlo@comincini.it>
