@@ -76,16 +76,6 @@ function render_unassigned_interface($context) {
     $output .= '</select>';
     $output .= '</div>';
 
-    // Search inputs
-    $output .= '<div class="col-md-3">';
-    $output .= '<label for="name-search">Cerca per nome:</label>';
-    $output .= '<input type="text" id="name-search" class="form-control" placeholder="Nome utente Teams...">';
-    $output .= '</div>';
-
-    $output .= '<div class="col-md-3">';
-    $output .= '<label for="email-search">Cerca per email:</label>';
-    $output .= '<input type="text" id="email-search" class="form-control" placeholder="Email utente Teams...">';
-
     // Page Size Select with new options and default 50 (FIXED)
     $output .= '<div class="col-md-3">';
     $output .= '<label for="page-size-select">' . get_string('records_per_page', 'teamsattendance') . ':</label>';
