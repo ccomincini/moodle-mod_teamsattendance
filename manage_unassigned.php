@@ -188,6 +188,14 @@ if ($ajax) {
                     );
                     $response_data['records'][] = $record_data;
                 }
+
+error_log("RESPONSE DEBUG: sending " . count($response_data['records']) . " records to frontend");
+if (!empty($response_data['records'])) {
+    $first_record = $response_data['records'][0];
+    error_log("RESPONSE DEBUG: first record suggestion_type = " . (isset($first_record['suggestion_type']) ? $first_record['suggestion_type'] : 'NOT_SET'));
+}
+
+
                 echo json_encode(array('success' => true, 'data' => $response_data));
                 break;
                 
