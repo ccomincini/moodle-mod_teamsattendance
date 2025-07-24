@@ -15,7 +15,7 @@ function($, Ajax, Notification, Str) {
      */
     var UnassignedRecordsManager = function(config) {
         this.currentPage = 0;
-        this.currentFilter = 'all';
+        this.currentFilter = this.getFilterFromURL(); // READ FROM URL
         this.currentPageSize = 50; // Default 50
         this.selectedRecords = new Set();
         this.isLoading = false;
@@ -29,6 +29,30 @@ function($, Ajax, Notification, Str) {
     };
 
     UnassignedRecordsManager.prototype = {
+        /**
+         * Get filter parameter from current URL
+         * @return {string} Filter value from URL or 'all' as default
+         */
+        getFilterFromURL: function() {
+            var urlParams = new URLSearchParams(window.location.search);
+            var filter = urlParams.get('filter');
+            return filter || 'all';
+        },
+
+        /**
+         * Update URL with current filter without reloading page
+         * @param {string} filter Filter value
+         */
+        updateURL: function(filter) {
+            var url = new URL(window.location);
+            if (filter && filter !== 'all') {
+                url.searchParams.set('filter', filter);
+            } else {
+                url.searchParams.delete('filter');
+            }
+            window.history.replaceState({}, '', url);
+        },
+
         /**
          * Update statistics counters
          */
@@ -75,7 +99,18 @@ function($, Ajax, Notification, Str) {
             var filters = {};
             
             if (this.currentFilter !== 'all') {
-                filters.suggestion_type = this.currentFilter;
+                // Convert URL filter format to backend format
+                switch (this.currentFilter) {
+                    case 'name_suggestions':
+                        filters.suggestion_type = 'name_based';
+                        break;
+                    case 'email_suggestions':
+                        filters.suggestion_type = 'email_based';
+                        break;
+                    case 'without_suggestions':
+                        filters.suggestion_type = 'none';
+                        break;
+                }
             }
             
             return filters;
@@ -88,6 +123,9 @@ function($, Ajax, Notification, Str) {
             // Read current values from both selects
             this.currentFilter = $('#filter-select').val();
             var pageSizeValue = $('#page-size-select').val();
+            
+            // Update URL to reflect current filter
+            this.updateURL(this.currentFilter);
             
             // Handle "all" pagesize
             if (pageSizeValue === 'all') {
