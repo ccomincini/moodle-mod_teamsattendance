@@ -245,46 +245,95 @@ class performance_data_handler {
      * @return array Filtered records
      */
     private function apply_suggestion_filter($all_records, $suggestion_type) {
-        // Get suggestions for all records (use cache if available)
-        $suggestions = $this->get_suggestions_for_all_records($all_records);
+    // Handle direct name/email filters first
+    if (strpos($suggestion_type, 'name:') === 0) {
+        $search_name = substr($suggestion_type, 5);
+        return $this->filter_by_name($all_records, $search_name);
+    }
+    
+    if (strpos($suggestion_type, 'email:') === 0) {
+        $search_email = substr($suggestion_type, 6);
+        return $this->filter_by_email($all_records, $search_email);
+    }
+    
+    // Get suggestions for all records (use cache if available)
+    $suggestions = $this->get_suggestions_for_all_records($all_records);
+    
+    // Filter records based on suggestion type
+    $filtered_records = array();
+    
+    foreach ($all_records as $record) {
+        $include_record = false;
         
-        // Filter records based on suggestion type
-        $filtered_records = array();
-        
-        foreach ($all_records as $record) {
-            $include_record = false;
-            
-            switch ($suggestion_type) {
-                case 'name_based':
-                    if (isset($suggestions[$record->id]) && $suggestions[$record->id]['type'] === 'name_based') {
-                        $include_record = true;
-                    }
-                    break;
-                    
-                case 'email_based':
-                    if (isset($suggestions[$record->id]) && $suggestions[$record->id]['type'] === 'email_based') {
-                        $include_record = true;
-                    }
-                    break;
-                    
-                case 'none':
-                    if (!isset($suggestions[$record->id])) {
-                        $include_record = true;
-                    }
-                    break;
-                    
-                default: // 'all'
+        switch ($suggestion_type) {
+            case 'name_based':
+                if (isset($suggestions[$record->id]) && $suggestions[$record->id]['type'] === 'name_based') {
                     $include_record = true;
-                    break;
-            }
-            
-            if ($include_record) {
-                $filtered_records[] = $record;
-            }
+                }
+                break;
+                
+            case 'email_based':
+                if (isset($suggestions[$record->id]) && $suggestions[$record->id]['type'] === 'email_based') {
+                    $include_record = true;
+                }
+                break;
+                
+            case 'none':
+                if (!isset($suggestions[$record->id])) {
+                    $include_record = true;
+                }
+                break;
+                
+            default: // 'all'
+                $include_record = true;
+                break;
         }
         
-        return $filtered_records;
+        if ($include_record) {
+            $filtered_records[] = $record;
+        }
     }
+    
+    return $filtered_records;
+}
+
+/**
+ * Filter records by name (case-insensitive partial match)
+ */
+private function filter_by_name($records, $search_name) {
+    $search_name = strtolower(trim($search_name));
+    if (empty($search_name)) {
+        return array_values($records);
+    }
+    
+    $filtered = array();
+    foreach ($records as $record) {
+        $teams_name = strtolower($record->teams_user_id);
+        if (strpos($teams_name, $search_name) !== false) {
+            $filtered[] = $record;
+        }
+    }
+    return $filtered;
+}
+
+/**
+ * Filter records by email (case-insensitive partial match)
+ */
+private function filter_by_email($records, $search_email) {
+    $search_email = strtolower(trim($search_email));
+    if (empty($search_email)) {
+        return array_values($records);
+    }
+    
+    $filtered = array();
+    foreach ($records as $record) {
+        $teams_email = strtolower($record->teams_user_email);
+        if (strpos($teams_email, $search_email) !== false) {
+            $filtered[] = $record;
+        }
+    }
+    return $filtered;
+}
 
     /**
      * Get suggestions for all records (with caching)
