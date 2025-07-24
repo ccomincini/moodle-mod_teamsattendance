@@ -245,34 +245,14 @@ class performance_data_handler {
      * @return array Filtered records
      */
     private function apply_suggestion_filter($all_records, $suggestion_type) {
-        // Handle direct name/email filters first
-        if (strpos($suggestion_type, 'name:') === 0) {
-            $search_name = substr($suggestion_type, 5);
-            return $this->filter_by_name($all_records, $search_name);
-        }
+        // Debug log
+        error_log("FILTER DEBUG: suggestion_type = " . $suggestion_type);
+        error_log("FILTER DEBUG: records in = " . count($all_records));
         
-        if (strpos($suggestion_type, 'email:') === 0) {
-            $search_email = substr($suggestion_type, 6);
-            return $this->filter_by_email($all_records, $search_email);
-        }
-        
-        // Get suggestions for all records (use cache if available)
+        // Get suggestions for all records
         $suggestions = $this->get_suggestions_for_all_records($all_records);
+        error_log("FILTER DEBUG: suggestions count = " . count($suggestions));
         
-        case 'name_based':
-            error_log("FILTER DEBUG: Processing name_based filter");
-            if (isset($suggestions[$record->id])) {
-                error_log("FILTER DEBUG: Record {$record->id} has suggestion type: " . $suggestions[$record->id]['type']);
-                if ($suggestions[$record->id]['type'] === 'name_based') {
-                    $include_record = true;
-                    error_log("FILTER DEBUG: Including record {$record->id}");
-                }
-            }
-            break;
-
-
-
-        // Filter records based on suggestion type
         $filtered_records = array();
         
         foreach ($all_records as $record) {
@@ -297,7 +277,7 @@ class performance_data_handler {
                     }
                     break;
                     
-                default: // 'all'
+                default:
                     $include_record = true;
                     break;
             }
@@ -306,49 +286,10 @@ class performance_data_handler {
                 $filtered_records[] = $record;
             }
         }
-    
-    return $filtered_records;
-    error_log("APPLY_FILTER DEBUG - Filter type: " . $suggestion_type);
-    error_log("APPLY_FILTER DEBUG - Records in: " . count($all_records) . ", Records out: " . count($filtered_records));
-}
-
-/**
- * Filter records by name (case-insensitive partial match)
- */
-private function filter_by_name($records, $search_name) {
-    $search_name = strtolower(trim($search_name));
-    if (empty($search_name)) {
-        return array_values($records);
+        
+        error_log("FILTER DEBUG: records out = " . count($filtered_records));
+        return $filtered_records;
     }
-    
-    $filtered = array();
-    foreach ($records as $record) {
-        $teams_name = strtolower($record->teams_user_id);
-        if (strpos($teams_name, $search_name) !== false) {
-            $filtered[] = $record;
-        }
-    }
-    return $filtered;
-}
-
-/**
- * Filter records by email (case-insensitive partial match)
- */
-private function filter_by_email($records, $search_email) {
-    $search_email = strtolower(trim($search_email));
-    if (empty($search_email)) {
-        return array_values($records);
-    }
-    
-    $filtered = array();
-    foreach ($records as $record) {
-        $teams_email = strtolower($record->teams_user_email);
-        if (strpos($teams_email, $search_email) !== false) {
-            $filtered[] = $record;
-        }
-    }
-    return $filtered;
-}
 
     /**
      * Get suggestions for all records (with caching)
