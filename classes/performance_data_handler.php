@@ -245,56 +245,58 @@ class performance_data_handler {
      * @return array Filtered records
      */
     private function apply_suggestion_filter($all_records, $suggestion_type) {
-    // Handle direct name/email filters first
-    if (strpos($suggestion_type, 'name:') === 0) {
-        $search_name = substr($suggestion_type, 5);
-        return $this->filter_by_name($all_records, $search_name);
-    }
-    
-    if (strpos($suggestion_type, 'email:') === 0) {
-        $search_email = substr($suggestion_type, 6);
-        return $this->filter_by_email($all_records, $search_email);
-    }
-    
-    // Get suggestions for all records (use cache if available)
-    $suggestions = $this->get_suggestions_for_all_records($all_records);
-    
-    // Filter records based on suggestion type
-    $filtered_records = array();
-    
-    foreach ($all_records as $record) {
-        $include_record = false;
-        
-        switch ($suggestion_type) {
-            case 'name_based':
-                if (isset($suggestions[$record->id]) && $suggestions[$record->id]['type'] === 'name_based') {
-                    $include_record = true;
-                }
-                break;
-                
-            case 'email_based':
-                if (isset($suggestions[$record->id]) && $suggestions[$record->id]['type'] === 'email_based') {
-                    $include_record = true;
-                }
-                break;
-                
-            case 'none':
-                if (!isset($suggestions[$record->id])) {
-                    $include_record = true;
-                }
-                break;
-                
-            default: // 'all'
-                $include_record = true;
-                break;
+        // Handle direct name/email filters first
+        if (strpos($suggestion_type, 'name:') === 0) {
+            $search_name = substr($suggestion_type, 5);
+            return $this->filter_by_name($all_records, $search_name);
         }
         
-        if ($include_record) {
-            $filtered_records[] = $record;
+        if (strpos($suggestion_type, 'email:') === 0) {
+            $search_email = substr($suggestion_type, 6);
+            return $this->filter_by_email($all_records, $search_email);
         }
-    }
+        
+        // Get suggestions for all records (use cache if available)
+        $suggestions = $this->get_suggestions_for_all_records($all_records);
+        
+        // Filter records based on suggestion type
+        $filtered_records = array();
+        
+        foreach ($all_records as $record) {
+            $include_record = false;
+            
+            switch ($suggestion_type) {
+                case 'name_based':
+                    if (isset($suggestions[$record->id]) && $suggestions[$record->id]['type'] === 'name_based') {
+                        $include_record = true;
+                    }
+                    break;
+                    
+                case 'email_based':
+                    if (isset($suggestions[$record->id]) && $suggestions[$record->id]['type'] === 'email_based') {
+                        $include_record = true;
+                    }
+                    break;
+                    
+                case 'none':
+                    if (!isset($suggestions[$record->id])) {
+                        $include_record = true;
+                    }
+                    break;
+                    
+                default: // 'all'
+                    $include_record = true;
+                    break;
+            }
+            
+            if ($include_record) {
+                $filtered_records[] = $record;
+            }
+        }
     
     return $filtered_records;
+    error_log("APPLY_FILTER DEBUG - Filter type: " . $suggestion_type);
+    error_log("APPLY_FILTER DEBUG - Records in: " . count($all_records) . ", Records out: " . count($filtered_records));
 }
 
 /**

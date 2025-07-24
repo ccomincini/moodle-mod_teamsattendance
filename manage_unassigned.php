@@ -186,9 +186,12 @@ if ($ajax) {
                         'suggestion' => $suggestion,
                         'suggestion_type' => $suggestion_type
                     );
+                    
+                    error_log("FILTER DEBUG - Filters received: " . print_r($filters, true));
+                    error_log("FILTER DEBUG - Records before filter: " . count($paginated_data['records']));
+ 
                     $response_data['records'][] = $record_data;
                 }
-                
                 echo json_encode(array('success' => true, 'data' => $response_data));
                 break;
                 
