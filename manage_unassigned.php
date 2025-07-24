@@ -135,9 +135,6 @@ if ($ajax) {
     try {
         switch ($action) {
             case 'load_page':
-                error_log("AJAX DEBUG - POST data: " . print_r($_POST, true));
-                error_log("AJAX DEBUG - GET data: " . print_r($_GET, true));
-                error_log("AJAX DEBUG - Raw filters param: " . optional_param('filters', 'NOT_FOUND', PARAM_RAW));
                 // Ottiene i filtri dalla richiesta
                 $filters_json = optional_param('filters', '{}', PARAM_RAW);
                 $filters = json_decode($filters_json, true);
@@ -189,10 +186,6 @@ if ($ajax) {
                         'suggestion' => $suggestion,
                         'suggestion_type' => $suggestion_type
                     );
-                    
-                    error_log("FILTER DEBUG - Filters received: " . print_r($filters, true));
-                    error_log("FILTER DEBUG - Records before filter: " . count($paginated_data['records'])); 
-                    
                     $response_data['records'][] = $record_data;
                 }
                 echo json_encode(array('success' => true, 'data' => $response_data));
