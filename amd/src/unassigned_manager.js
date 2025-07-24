@@ -79,6 +79,7 @@ function($, Ajax, Notification, Str) {
         init: function() {
             this.syncSelectValues();
             this.bindEvents();
+            this.bindSearchEvents();
             this.loadPage(0);
             this.updateStatistics();
         },
@@ -97,6 +98,20 @@ function($, Ajax, Notification, Str) {
          */
         getCurrentFilters: function() {
             var filters = {};
+            
+            // Check for search inputs
+            var nameSearch = $('#name-search').val();
+            var emailSearch = $('#email-search').val();
+            
+            if (nameSearch && nameSearch.trim()) {
+                filters.suggestion_type = 'name:' + nameSearch.trim();
+                return filters;
+            }
+            
+            if (emailSearch && emailSearch.trim()) {
+                filters.suggestion_type = 'email:' + emailSearch.trim();
+                return filters;
+            }
             
             if (this.currentFilter !== 'all') {
                 // Convert URL filter format to backend format
@@ -160,6 +175,24 @@ function($, Ajax, Notification, Str) {
                 if (self.selectedRecords.size > 0) {
                     self.performBulkAssignment();
                 }
+            });
+        },
+
+        /**
+         * Bind search input events
+         */
+        bindSearchEvents: function() {
+            var self = this;
+            var searchTimeout;
+            
+            $('#name-search, #email-search').on('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(function() {
+                    self.currentPage = 0;
+                    self.selectedRecords.clear();
+                    self.updateBulkButton();
+                    self.loadPage(0);
+                }, 500);
             });
         },
 
