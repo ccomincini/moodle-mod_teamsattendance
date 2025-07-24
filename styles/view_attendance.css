@@ -1,0 +1,234 @@
+/**
+ * CSS for Teams attendance view page
+ * @module     mod_teamsattendance/view_attendance  
+ * @package    mod_teamsattendance
+ * @copyright  2025 Invisiblefarm srl
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+/* Action buttons styling */
+.mod_teamsattendance .action-buttons-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.mod_teamsattendance .action-card {
+    border-radius: 8px;
+    padding: 20px;
+    color: #fff;
+    text-align: center;
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex: 1;
+    min-width: 250px;
+}
+
+.mod_teamsattendance .action-card .card-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.mod_teamsattendance .action-card .card-actions {
+    margin-top: auto;
+    padding-top: 15px;
+}
+
+.mod_teamsattendance .action-card h4 {
+    color: #fff;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+
+.mod_teamsattendance .action-card .btn {
+    margin-top: 10px;
+}
+
+/* Action card colors */
+.mod_teamsattendance .card-fetch {
+    background-color: #eaecee;
+    color: #2c3e50;
+}
+
+.mod_teamsattendance .card-fetch h4,
+.mod_teamsattendance .card-fetch p {
+    color: #2c3e50;
+}
+
+.mod_teamsattendance .card-manage {
+    background-color: #f9e79f;
+    color: #2c3e50;
+}
+
+.mod_teamsattendance .card-manage h4,
+.mod_teamsattendance .card-manage p {
+    color: #2c3e50;
+}
+
+.mod_teamsattendance .card-reset {
+    background-color: #f5eef8;
+    color: #2c3e50;
+}
+
+.mod_teamsattendance .card-reset h4,
+.mod_teamsattendance .card-reset p {
+    color: #2c3e50;
+}
+
+.mod_teamsattendance .btn-fetch {
+    background-color: #808b96 !important;
+    border-color: #808b96 !important;
+    color: white !important;
+}
+
+.mod_teamsattendance .btn-manage {
+    background-color: #fd7e14 !important;
+    border-color: #fd7e14 !important;
+    color: white !important;
+}
+
+.mod_teamsattendance .btn-reset {
+    background-color: #6f42c1 !important;
+    border-color: #6f42c1 !important;
+    color: white !important;
+}
+
+.mod_teamsattendance .card-export {
+    background-color: #6c757d; /* Gray */
+}
+
+/* Export buttons container */
+.mod_teamsattendance .export-buttons-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    justify-content: flex-start;
+}
+
+.mod_teamsattendance .export-buttons-container .btn {
+    margin: 0 5px 0 0;
+}
+
+/* Table styling */
+.mod_teamsattendance table.table {
+    margin-bottom: 20px;
+}
+
+.mod_teamsattendance table.table thead th {
+    background-color: #343a40;
+    color: #fff;
+    border-color: #454d55;
+    vertical-align: middle;
+    padding: .75rem;
+    cursor: pointer;
+    position: relative;
+}
+
+.mod_teamsattendance table.table thead th:hover {
+    background-color: #495057;
+}
+
+.mod_teamsattendance table.table thead th.sortable::after {
+    content: "⇅";
+    position: absolute;
+    right: 8px;
+    opacity: 0.5;
+}
+
+.mod_teamsattendance table.table thead th.sort-asc::after {
+    content: "↑";
+    opacity: 1;
+}
+
+.mod_teamsattendance table.table thead th.sort-desc::after {
+    content: "↓";
+    opacity: 1;
+}
+
+.mod_teamsattendance table.table tbody td {
+    vertical-align: middle;
+    padding: .75rem;
+}
+
+.mod_teamsattendance table.table tbody tr:hover {
+    background-color: #f2f2f2;
+}
+
+/* Row colors based on assignment type */
+.mod_teamsattendance .automatic-assignment {
+    background-color: #d4edda !important; /* Light green */
+}
+
+.mod_teamsattendance .manual-assignment {
+    background-color: #fff3cd !important; /* Light orange */
+}
+
+.mod_teamsattendance .automatic-assignment:hover {
+    background-color: #c3e6cb !important;
+}
+
+.mod_teamsattendance .manual-assignment:hover {
+    background-color: #ffeaa7 !important;
+}
+
+/* Statistics counters */
+.mod_teamsattendance .stats-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.mod_teamsattendance .stats-card {
+    border-radius: 8px;
+    padding: 20px;
+    color: #fff;
+    text-align: center;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+    min-width: 200px;
+}
+
+.mod_teamsattendance .stats-card h4 {
+    color: #fff;
+    margin-bottom: 10px;
+    font-size: 1rem;
+}
+
+.mod_teamsattendance .stats-card .metric {
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+.mod_teamsattendance .card-total {
+    background-color: #808b96;
+}
+
+.mod_teamsattendance .card-automatic {
+    background-color: #d5f5e3;
+    color: #2c3e50 !important;
+}
+
+.mod_teamsattendance .card-manual {
+    background-color: #f9e79f;
+    color: #2c3e50 !important;
+}
+
+.mod_teamsattendance .card-unassigned {
+    background-color: #f2d7d5;
+    color: #2c3e50 !important;
+}
+
+.mod_teamsattendance .card-automatic h4,
+.mod_teamsattendance .card-manual h4,
+.mod_teamsattendance .card-unassigned h4 {
+    color: #2c3e50 !important;
+}

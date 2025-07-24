@@ -24,8 +24,8 @@
 // Include Moodle config
 require('../../config.php');
 
-// Include PhpSpreadsheet Autoloader - Adjust the path if your vendor directory is elsewhere
-require(__DIR__ . '/vendor/autoload.php');
+// Include PhpSpreadsheet Autoloader
+require(__DIR__ . '/phpoffice/autoload.php');
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;

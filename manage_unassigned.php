@@ -14,170 +14,426 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+/**
+ * Gestione dei record non assegnati di Teams attendance (Versione Modulare Ottimizzata)
+ *
+ * @package    mod_teamsattendance
+ * @copyright  2025 Invisiblefarm srl
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @version    2.1.0
+ */
+
 require_once('../../config.php');
 require_once($CFG->dirroot.'/mod/teamsattendance/lib.php');
 
-$id = required_param('id', PARAM_INT); // Course module ID
-$action = optional_param('action', '', PARAM_ALPHA);
+// Carica le componenti ottimizzate per le performance
+require_once($CFG->dirroot . '/mod/teamsattendance/classes/performance_data_handler.php');
+require_once($CFG->dirroot . '/mod/teamsattendance/classes/suggestion_engine.php');
+require_once($CFG->dirroot . '/mod/teamsattendance/classes/ui_renderer.php');
+
+// Carica le componenti modulari per l'interfaccia
+require_once($CFG->dirroot . '/mod/teamsattendance/templates/unassigned_interface.php');
+
+use mod_teamsattendance\performance_data_handler;
+
+// Parametri della richiesta
+$id = required_param('id', PARAM_INT); // ID del modulo corso
+$page = optional_param('page', 0, PARAM_INT);
+$per_page = optional_param('per_page', 20, PARAM_INT);
+$filter = optional_param('filter', 'all', PARAM_TEXT);
+
+// Validazione del parametro filtro per sicurezza
+$allowed_filters = array('all', 'name_suggestions', 'email_suggestions', 'without_suggestions');
+if (!in_array($filter, $allowed_filters)) {
+    $filter = 'all';
+}
+
+$action = optional_param('action', '', PARAM_TEXT);
+
+// Parametri per le chiamate AJAX
+$ajax = optional_param('ajax', 0, PARAM_INT);
 $recordid = optional_param('recordid', 0, PARAM_INT);
 $userid = optional_param('userid', 0, PARAM_INT);
 
+// Inizializza gli oggetti Moodle
 $cm = get_coursemodule_from_id('teamsattendance', $id, 0, false, MUST_EXIST);
 $course = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
 $teamsattendance = $DB->get_record('teamsattendance', array('id' => $cm->instance), '*', MUST_EXIST);
 
+// Controlli di sicurezza
 require_login($course, true, $cm);
 require_capability('mod/teamsattendance:manageattendance', context_module::instance($cm->id));
 
+// Configurazione della pagina
 $PAGE->set_url('/mod/teamsattendance/manage_unassigned.php', array('id' => $cm->id));
-$PAGE->set_title(format_string($teamsattendance->name));
+$PAGE->set_title(format_string($teamsattendance->name . ' - ' . get_string('manage_unassigned', 'teamsattendance')));
 $PAGE->set_heading(format_string($course->fullname));
 
-// Handle user assignment
-if ($action === 'assign' && $recordid && $userid && confirm_sesskey()) {
-    $record = $DB->get_record('teamsattendance_data', array('id' => $recordid), '*', MUST_EXIST);
-    $record->userid = $userid;
-    $record->manually_assigned = 1; // Mark as manually assigned
-    
-    if ($DB->update_record('teamsattendance_data', $record)) {
-        redirect($PAGE->url, get_string('user_assigned', 'mod_teamsattendance'));
-    } else {
-        redirect($PAGE->url, get_string('user_assignment_failed', 'mod_teamsattendance'));
+// Inizializza il gestore delle performance
+$performance_handler = new performance_data_handler($cm, $teamsattendance, $course);
+
+// Ottiene le statistiche delle performance
+$perf_stats = $performance_handler->get_performance_statistics();
+
+// Imposta la dimensione pagina predefinita
+if ($per_page <= 0) {
+    $per_page = 20;
+}
+
+// Ottiene gli utenti disponibili per l'assegnazione manuale
+$context = context_course::instance($course->id);
+$enrolled_users = get_enrolled_users($context, '', 0, 'u.id, u.firstname, u.lastname', 'u.lastname ASC, u.firstname ASC');
+
+// Ottiene gli utenti già assegnati per questa sessione
+$assigned_userids = $DB->get_fieldset_select('teamsattendance_data', 
+    'DISTINCT userid', 
+    'sessionid = ? AND userid IS NOT NULL AND userid > 0', 
+    array($teamsattendance->id)
+);
+
+// Prepara l'elenco degli utenti disponibili (non ancora assegnati)
+$available_users = array();
+foreach ($enrolled_users as $user) {
+    if (!in_array($user->id, $assigned_userids)) {
+        $available_users[] = array(
+            'id' => $user->id,
+            'name' => $user->lastname . ' ' . $user->firstname,
+            'firstname' => $user->firstname,
+            'lastname' => $user->lastname
+        );
     }
 }
 
-// Get unassigned records (where userid is guest)
-$unassigned = $DB->get_records_sql("
-    SELECT tad.*, u.firstname, u.lastname, u.email
-    FROM {teamsattendance_data} tad
-    LEFT JOIN {user} u ON u.id = tad.userid
-    WHERE tad.sessionid = ? AND tad.userid = ?
-    ORDER BY tad.teams_user_id
-", array($teamsattendance->id, $CFG->siteguest));
+// Ordina gli utenti disponibili per cognome e nome
+usort($available_users, function($a, $b) {
+    $firstname_cmp = strcasecmp($a['firstname'], $b['firstname']);
+    if ($firstname_cmp === 0) {
+        return strcasecmp($a['lastname'], $b['lastname']);
+    }
+    return $firstname_cmp;
+});
+
+// Genera le statistiche dei suggerimenti per la visualizzazione
+$unassigned_records = $performance_handler->get_all_unassigned_records();
+$suggestion_engine = new suggestion_engine($enrolled_users);
+$all_suggestions = $suggestion_engine->generate_suggestions($unassigned_records);
+$suggestion_stats = $suggestion_engine->get_suggestion_statistics($all_suggestions);
+
+// ========================= GESTORI AJAX =========================
+
+if ($ajax) {
+    // Sopprime avvisi/errori PHP per le chiamate AJAX
+    error_reporting(0);
+    ini_set('display_errors', 0);
+    
+    // Pulisce eventuali buffer di output
+    if (ob_get_level()) {
+        ob_clean();
+    }
+    header('Content-Type: application/json');
+
+    try {
+        switch ($action) {
+            case 'load_page':
+                // Ottiene i filtri dalla richiesta
+                $filters_json = optional_param('filters', '{}', PARAM_RAW);
+                $filters = json_decode($filters_json, true);
+                if (!is_array($filters)) {
+                    $filters = array();
+                }
+                
+                // Gestisce la dimensione pagina - può essere "all" o numerica
+                $per_page_param = optional_param('per_page', 50, PARAM_RAW);
+                if ($per_page_param === 'all') {
+                    $per_page = 'all';
+                } else {
+                    $per_page = (int)$per_page_param;
+                }
+                
+                // Applica il filtro lato server
+                $paginated_data = $performance_handler->get_unassigned_records_paginated($page, $per_page, $filters);
+                
+                // Ottiene i suggerimenti per i record della pagina corrente
+                $suggestions = $performance_handler->get_suggestions_for_batch($paginated_data['records']);
+                
+                // Prepara i dati per il frontend
+                $response_data = array(
+                    'records' => array(),
+                    'pagination' => array(
+                        'page' => $paginated_data['page'],
+                        'per_page' => $paginated_data['per_page'],
+                        'total_pages' => $paginated_data['total_pages'],
+                        'total_count' => $paginated_data['total_count'],
+                        'has_next' => $paginated_data['has_next'],
+                        'has_previous' => $paginated_data['has_previous'],
+                        'show_all' => $paginated_data['show_all']
+                    )
+                );
+                
+                foreach ($paginated_data['records'] as $record) {
+                    $suggestion = isset($suggestions[$record->id]) ? $suggestions[$record->id] : null;
+                    $suggestion_type = 'none';
+                    
+                    if ($suggestion) {
+                        $suggestion_type = $suggestion['type'];
+                    }
+                    
+                    $record_data = array(
+                        'id' => $record->id,
+                        'teams_user_id' => $record->teams_user_id,
+                        'attendance_duration' => $record->attendance_duration,
+                        'has_suggestion' => isset($suggestions[$record->id]),
+                        'suggestion' => $suggestion,
+                        'suggestion_type' => $suggestion_type
+                    );
+                    $response_data['records'][] = $record_data;
+                }
+
+error_log("RESPONSE DEBUG: sending " . count($response_data['records']) . " records to frontend");
+if (!empty($response_data['records'])) {
+    $first_record = $response_data['records'][0];
+    error_log("RESPONSE DEBUG: first record suggestion_type = " . (isset($first_record['suggestion_type']) ? $first_record['suggestion_type'] : 'NOT_SET'));
+}
+
+
+                echo json_encode(array('success' => true, 'data' => $response_data));
+                break;
+                
+            case 'assign_user':
+                if ($recordid && $userid && confirm_sesskey()) {
+                    // Usa il gestore di assegnazioni originale per le assegnazioni singole
+                    require_once($CFG->dirroot . '/mod/teamsattendance/classes/user_assignment_handler.php');
+                    $assignment_handler = new user_assignment_handler($cm, $teamsattendance, $course);
+                    $result = $assignment_handler->assign_single_user($recordid, $userid);
+                    
+                    if ($result['success']) {
+                        // Pulisce la cache dopo l'assegnazione
+                        $performance_handler->clear_cache();
+                        echo json_encode(array('success' => true, 'message' => 'Utente assegnato con successo'));
+                    } else {
+                        echo json_encode(array('success' => false, 'error' => $result['error']));
+                    }
+                } else {
+                    echo json_encode(array('success' => false, 'error' => 'Parametri non validi'));
+                }
+                break;
+                
+            case 'bulk_assign':
+                if (confirm_sesskey()) {
+                    $assignments = optional_param_array('assignments', array(), PARAM_INT);
+                    $result = $performance_handler->apply_bulk_assignments_with_progress($assignments);
+                    
+                    // Salva le preferenze per le assegnazioni in blocco
+                    foreach ($assignments as $recordid => $userid) {
+                        set_user_preference('teamsattendance_suggestion_applied_' . $recordid, $userid);
+                    }
+                    
+                    echo json_encode(array(
+                        'success' => true,
+                        'data' => $result
+                    ));
+                } else {
+                    echo json_encode(array('success' => false, 'error' => 'Sessione non valida'));
+                }
+                break;
+            
+            case 'get_available_users':
+                echo json_encode(array('success' => true, 'users' => $available_users));
+                break;    
+            
+            case 'get_statistics':
+                $unassigned_records = $performance_handler->get_all_unassigned_records();
+                $suggestion_engine = new suggestion_engine($enrolled_users);
+                $all_suggestions = $suggestion_engine->generate_suggestions($unassigned_records);
+                $suggestion_stats = $suggestion_engine->get_suggestion_statistics($all_suggestions);
+                
+                echo json_encode(array(
+                    'success' => true, 
+                    'data' => array(
+                        'total_unassigned' => count($unassigned_records),
+                        'name_suggestions' => $suggestion_stats['name_based'],
+                        'email_suggestions' => $suggestion_stats['email_based'],
+                        'available_users' => count($available_users)
+                    )
+                ));
+                break;
+
+            case 'get_suggestions':
+                $page = optional_param('page', 0, PARAM_INT);
+                $paginated_data = $performance_handler->get_unassigned_records_paginated($page, $per_page, $filter);
+                $suggestions = $performance_handler->get_suggestions_for_batch($paginated_data['records']);
+                echo json_encode(array('success' => true, 'suggestions' => $suggestions));
+                break;
+            
+            case 'retroactive_preferences':
+                if (confirm_sesskey() && has_capability('mod/teamsattendance:manageattendance', context_module::instance($cm->id))) {
+                    // Ottiene tutti i record assegnati manualmente
+                    $manual_records = $DB->get_records('teamsattendance_data', [
+                        'sessionid' => $teamsattendance->id,
+                        'manually_assigned' => 1
+                    ]);
+                    
+                    $updated_count = 0;
+                    
+                    // Ottiene gli utenti disponibili per la generazione dei suggerimenti
+                    $context = context_course::instance($course->id);
+                    $enrolled_users = get_enrolled_users($context, '', 0, 'u.id, u.firstname, u.lastname, u.email');
+                    
+                    require_once($CFG->dirroot . '/mod/teamsattendance/classes/suggestion_engine.php');
+                    $suggestion_engine = new suggestion_engine($enrolled_users);
+                    
+                    foreach ($manual_records as $record) {
+                        // Salta se la preferenza esiste già
+                        $preference_name = 'teamsattendance_suggestion_applied_' . $record->id;
+                        if (get_user_preference($preference_name)) {
+                            continue;
+                        }
+                        
+                        // Genera un suggerimento per questo record specifico
+                        $single_record_array = array($record->id => $record);
+                        $suggestions = $suggestion_engine->generate_suggestions($single_record_array);
+                        
+                        // Verifica se l'assegnazione corrente corrisponde al suggerimento
+                        if (isset($suggestions[$record->id])) {
+                            $suggestion = $suggestions[$record->id];
+                            if ($suggestion['user']->id == $record->userid) {
+                                // Questa assegnazione corrisponde al suggerimento - probabilmente è stata applicata
+                                set_user_preference($preference_name, $record->userid);
+                                $updated_count++;
+                            }
+                        }
+                    }
+                    
+                    echo json_encode(array(
+                        'success' => true, 
+                        'message' => "Aggiornate $updated_count preferenze retroattive"
+                    ));
+                } else {
+                    echo json_encode(array('success' => false, 'error' => 'Permesso negato'));
+                }
+                break;
+
+            default:
+                echo json_encode(array('success' => false, 'error' => 'Azione sconosciuta'));
+        }
+    } catch (Exception $e) {
+        echo json_encode(array('success' => false, 'error' => $e->getMessage()));
+    }
+    
+    exit;
+}
+
+// ========================= OUTPUT DELLA PAGINA =========================
+
+// Carica CSS e JavaScript
+$PAGE->requires->css('/mod/teamsattendance/styles/unassigned_manager.css');
+$PAGE->requires->jquery();
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('unassigned_records', 'mod_teamsattendance'));
 
-if (empty($unassigned)) {
-    echo $OUTPUT->notification(get_string('no_unassigned', 'mod_teamsattendance'), 'notifymessage');
-} else {
-    $table = new html_table();
-    $table->head = array(
-        get_string('teams_user', 'mod_teamsattendance'),
-        get_string('tempo_totale', 'mod_teamsattendance'),
-        get_string('attendance_percentage', 'mod_teamsattendance'),
-        get_string('assign_user', 'mod_teamsattendance')
-    );
+echo $OUTPUT->heading(get_string('manage_unassigned', 'teamsattendance'));
 
-    foreach ($unassigned as $record) {
-        // Create a form for user assignment with confirmation
-        $assign_form = html_writer::start_tag('form', array(
-            'method' => 'post',
-            'action' => $PAGE->url->out(),
-            'id' => 'assign_form_' . $record->id,
-            'onsubmit' => 'return confirmAssignment(this);'
-        ));
-        
-        $assign_form .= html_writer::empty_tag('input', array(
-            'type' => 'hidden',
-            'name' => 'action',
-            'value' => 'assign'
-        ));
-        
-        $assign_form .= html_writer::empty_tag('input', array(
-            'type' => 'hidden',
-            'name' => 'recordid',
-            'value' => $record->id
-        ));
-        
-        $assign_form .= html_writer::empty_tag('input', array(
-            'type' => 'hidden',
-            'name' => 'sesskey',
-            'value' => sesskey()
-        ));
-        
-        $assign_form .= html_writer::select(
-            get_users_list(),
-            'userid',
-            null,
-            array('' => get_string('select_user', 'mod_teamsattendance')),
-            array(
-                'id' => 'user_selector_' . $record->id,
-                'onchange' => 'enableAssignButton(' . $record->id . ');'
-            )
-        );
-        
-        $assign_form .= ' ';
-        
-        $assign_form .= html_writer::empty_tag('input', array(
-            'type' => 'submit',
-            'value' => get_string('assign', 'mod_teamsattendance'),
-            'id' => 'assign_btn_' . $record->id,
-            'disabled' => 'disabled',
-            'class' => 'btn btn-primary'
-        ));
-        
-        $assign_form .= html_writer::end_tag('form');
+// ========================= CARICAMENTO DATI INIZIALI =========================
 
-        $table->data[] = array(
-            $record->teams_user_id,
-            format_time($record->attendance_duration),
-            $record->actual_attendance . '%',
-            $assign_form
-        );
+// Converte il parametro filtro URL nel formato array atteso da get_unassigned_records_paginated
+$initial_filter = array();
+if ($filter && $filter !== 'all') {
+    switch ($filter) {
+        case 'name_suggestions':
+            $initial_filter['suggestion_type'] = 'name_based';
+            break;
+        case 'email_suggestions':
+            $initial_filter['suggestion_type'] = 'email_based';
+            break;
+        case 'without_suggestions':
+            $initial_filter['suggestion_type'] = 'none';
+            break;
     }
-
-    echo html_writer::table($table);
-    
-    // Add JavaScript for confirmation and button enabling
-    echo html_writer::start_tag('script', array('type' => 'text/javascript'));
-    echo '
-        function enableAssignButton(recordId) {
-            var select = document.getElementById("user_selector_" + recordId);
-            var button = document.getElementById("assign_btn_" + recordId);
-            
-            if (select.value !== "") {
-                button.disabled = false;
-            } else {
-                button.disabled = true;
-            }
-        }
-        
-        function confirmAssignment(form) {
-            var select = form.querySelector("select[name=\'userid\']");
-            var selectedOption = select.options[select.selectedIndex];
-            
-            if (select.value === "") {
-                alert("' . get_string('select_user_first', 'mod_teamsattendance') . '");
-                return false;
-            }
-            
-            var userName = selectedOption.text;
-            var confirmMessage = "' . get_string('confirm_assignment', 'mod_teamsattendance') . '".replace("{user}", userName);
-            
-            return confirm(confirmMessage);
-        }
-    ';
-    echo html_writer::end_tag('script');
 }
 
-echo $OUTPUT->footer();
+// Ottiene i dati iniziali per la pagina 0 con il filtro e la dimensione pagina correnti
+$initial_page = 0;
+$initial_per_page = 50;
 
-/**
- * Get a list of users for the selector
- *
- * @return array Array of userid => fullname
- */
-function get_users_list() {
-    global $DB, $COURSE;
+// Carica i dati paginati iniziali con il filtro applicato
+$initial_data = $performance_handler->get_unassigned_records_paginated($initial_page, $initial_per_page, $initial_filter);
+
+// Ottiene i suggerimenti per i record della pagina iniziale
+$initial_suggestions = $performance_handler->get_suggestions_for_batch($initial_data['records']);
+
+// Prepara i dati dei record iniziali per il template
+$initial_records = array();
+foreach ($initial_data['records'] as $record) {
+    $suggestion = isset($initial_suggestions[$record->id]) ? $initial_suggestions[$record->id] : null;
+    $suggestion_type = 'none';
     
-    $context = context_course::instance($COURSE->id);
-    $users = get_enrolled_users($context);
-    
-    $userlist = array();
-    foreach ($users as $user) {
-        $userlist[$user->id] = fullname($user) . ' (' . $user->email . ')';
+    if ($suggestion) {
+        $suggestion_type = $suggestion['type'];
     }
     
-    return $userlist;
-} 
+    $record_data = array(
+        'id' => $record->id,
+        'teams_user_id' => $record->teams_user_id,
+        'attendance_duration' => $record->attendance_duration,
+        'has_suggestion' => isset($initial_suggestions[$record->id]),
+        'suggestion' => $suggestion,
+        'suggestion_type' => $suggestion_type
+    );
+    $initial_records[] = $record_data;
+}
+
+// Prepara il contesto del template con i dati iniziali inclusi
+$template_context = (object) array(
+    'per_page' => $initial_per_page,
+    'cm_id' => $cm->id,
+    'total_records' => $perf_stats['total_unassigned'],
+    'name_suggestions_count' => $suggestion_stats['name_based'],
+    'email_suggestions_count' => $suggestion_stats['email_based'],
+    'available_users_count' => count($available_users),
+    'current_filter' => $filter,
+    'initial_data' => array(
+        'records' => $initial_records,
+        'pagination' => array(
+            'page' => $initial_data['page'],
+            'per_page' => $initial_data['per_page'],
+            'total_pages' => $initial_data['total_pages'],
+            'total_count' => $initial_data['total_count'],
+            'has_next' => $initial_data['has_next'],
+            'has_previous' => $initial_data['has_previous'],
+            'show_all' => $initial_data['show_all']
+        )
+    )
+);
+
+// Renderizza l'interfaccia usando il template
+echo render_unassigned_interface($template_context);
+
+// Inizializza JavaScript con la configurazione e la dimensione pagina predefinita
+$js_config = array(
+    'defaultPageSize' => 50,
+    'cmId' => $cm->id,
+    'sesskey' => sesskey(),
+    'strings' => array(
+        'teams_user_id' => get_string('teams_user_id', 'teamsattendance'),
+        'attendance_duration' => get_string('attendance_duration', 'teamsattendance'),
+        'suggested_match' => get_string('suggested_match', 'teamsattendance'),
+        'actions' => get_string('actions', 'teamsattendance'),
+        'apply_suggestion' => get_string('apply_suggestion', 'teamsattendance'),
+        'assign' => get_string('assign', 'teamsattendance'),
+        'select_user' => get_string('select_user', 'teamsattendance'),
+        'apply_selected' => get_string('apply_selected', 'teamsattendance'),
+        'applying' => get_string('applying', 'teamsattendance'),
+        'previous' => get_string('previous', 'teamsattendance'),
+        'next' => get_string('next', 'teamsattendance'),
+        'page' => get_string('page', 'teamsattendance'),
+        'of' => get_string('of', 'teamsattendance'),
+        'total_records' => get_string('total_records', 'teamsattendance'),
+        'no_records_found' => get_string('no_records_found', 'teamsattendance'),
+        'no_suggestion' => get_string('no_suggestion', 'teamsattendance')
+    )
+);
+
+// Carica il JavaScript modulare
+$PAGE->requires->js_call_amd('mod_teamsattendance/unassigned_manager', 'init', [$js_config]);
+
+echo $OUTPUT->footer();

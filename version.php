@@ -15,26 +15,26 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version metadata for the mod_teamsattendance plugin.
+ * Metadati di versione per il plugin mod_teamsattendance.
  *
  * @package   mod_teamsattendance
- * @copyright 2025, author_fullname <author_link>
+ * @copyright 2025, Carlo Comincini <carlo@comincini.it>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2025062300; // The current plugin version (Date: YYYYMMDDXX).
-$plugin->requires = 2022112800; // Requires this Moodle version.
-$plugin->supported = [39, 40];   // Available as of Moodle 3.9.0 or later.
-$plugin->component = 'mod_teamsattendance'; // Full name of the plugin (used for diagnostics).
-$plugin->maturity = MATURITY_STABLE; // This version's maturity level.
-$plugin->release = 'v1.0.7'; // Human-readable version name.
+$plugin->version = 2025072402; // Versione corrente del plugin (Data: YYYYMMDDXX).
+$plugin->requires = 2022112800; // Richiede questa versione di Moodle.
+$plugin->supported = [39, 40];   // Disponibile da Moodle 3.9.0 o successivo.
+$plugin->component = 'mod_teamsattendance'; // Nome completo del plugin (usato per diagnostica).
+$plugin->maturity = MATURITY_STABLE; // Livello di maturità di questa versione.
+$plugin->release = 'v3.0.0'; // Nome versione leggibile.
 
-// Register the module's icon
+// Registra l'icona del modulo
 $plugin->icon = 'pix/icon.svg';
 
 $plugin->dependencies = [
-	'auth_oidc' => 2024100710, // Requires the OIDC authentication plugin.
+	'auth_oidc' => 2024100710, // Richiede il plugin di autenticazione OIDC.
 	'mod_msteams' => 2022012000
 ];

@@ -1,0 +1,180 @@
+/**
+ * CSS for managing unassigned Teams attendance records
+ * @module     mod_teamsattendance/unassigned_manager
+ * @package    mod_teamsattendance
+ * @copyright  2025 Invisiblefarm srl
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+/* Main container styling */
+.mod_teamsattendance .unassigned-manager-container {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,.05);
+    margin-top: 20px;
+}
+
+/* Card styling for statistics */
+.mod_teamsattendance .stats-card {
+    border-radius: 8px;
+    padding: 20px;
+    color: #fff;
+    text-align: center;
+    margin-bottom: 20px;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.mod_teamsattendance .stats-card h4 {
+    color: #fff;
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+}
+
+.mod_teamsattendance .stats-card .metric {
+    font-size: 2.5rem;
+    font-weight: bold;
+}
+
+.mod_teamsattendance .stats-card .description {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+/* Specific card colors */
+.mod_teamsattendance .card-total {
+    background-color: #28a745; /* Bootstrap success green */
+}
+
+.mod_teamsattendance .card-name-suggestions {
+    background-color: #007bff; /* Bootstrap primary blue */
+}
+
+.mod_teamsattendance .card-email-suggestions {
+    background-color: #6f42c1; /* Bootstrap purple */
+}
+
+.mod_teamsattendance .card-available-users {
+    background-color: #6c757d; /* Bootstrap secondary gray */
+}
+
+/* Filter and pagination controls */
+.mod_teamsattendance .controls-container {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap; /* Allows items to wrap on smaller screens */
+    gap: 15px; /* Spacing between elements */
+    align-items: flex-end; /* Aligns items to the bottom */
+}
+
+.mod_teamsattendance .controls-container .form-group {
+    margin-bottom: 0; /* Remove default mb to use gap */
+    flex: 1; /* Allows form groups to grow and shrink */
+    min-width: 180px; /* Minimum width for select boxes to not be too small */
+}
+
+.mod_teamsattendance .controls-container .btn-group {
+    flex-shrink: 0; /* Prevents buttons from shrinking */
+}
+
+
+/* Table specific styling */
+.mod_teamsattendance .table-responsive {
+    overflow-x: auto; /* IMPORTANT: Enables horizontal scrolling */
+    -webkit-overflow-scrolling: touch; /* Improved scrolling on iOS */
+}
+
+.mod_teamsattendance table.table {
+    margin-bottom: 0;
+    min-width: 700px; /* IMPORTANT: Ensures a minimum width for the table */
+}
+
+.mod_teamsattendance table.table thead th {
+    background-color: #343a40;
+    color: #fff;
+    border-color: #454d55;
+    vertical-align: middle;
+    padding: .75rem;
+}
+
+.mod_teamsattendance table.table tbody td {
+    vertical-align: middle;
+    padding: .75rem;
+}
+
+.mod_teamsattendance table.table tbody tr:hover {
+    background-color: #f2f2f2;
+}
+
+.mod_teamsattendance .suggestion-none-row {
+    background-color: #f8f9fa; /* Light grey for records without suggestions */
+}
+
+.mod_teamsattendance .suggestion-name-row {
+    background-color: #e6f7ff; /* Light blue for name suggestions */
+}
+
+.mod_teamsattendance .suggestion-email-row {
+    background-color: #f3e6ff; /* Light purple for email suggestions */
+}
+
+.mod_teamsattendance .badge {
+    white-space: normal; /* Allows text to wrap within the badge */
+    word-wrap: break-word; /* Breaks long words if they don't fit */
+    display: inline-block; /* Ensures padding and margins are respected */
+    padding: 0.4em 0.6em; /* Adjust padding for better look */
+}
+
+.mod_teamsattendance .badge-success {
+    background-color: #28a745;
+    color: #fff;
+}
+
+.mod_teamsattendance .badge-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+
+/* Pagination styling */
+.mod_teamsattendance .pagination {
+    margin-top: 20px;
+}
+
+.mod_teamsattendance .pagination .page-item.active .page-link {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.mod_teamsattendance .pagination .page-link {
+    color: #007bff;
+}
+
+/* Loading indicator */
+.mod_teamsattendance #loading-indicator {
+    text-align: center;
+    padding: 20px;
+    font-size: 1.2rem;
+    color: #6c757d;
+}
+
+/* Progress bar (for bulk operations) */
+.mod_teamsattendance #progress-container {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.mod_teamsattendance .progress-bar {
+    transition: width 0.5s ease-in-out;
+}
+
+/* Toast notifications */
+.alert.position-fixed {
+    z-index: 1050; /* Ensure it's above other content */
+}

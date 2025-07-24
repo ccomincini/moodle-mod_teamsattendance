@@ -81,7 +81,6 @@ function teamsattendance_check_completion($cm, $userid)
     // Fetch the session and user attendance data
     $session = $DB->get_record('teamsattendance', ['id' => $cm->instance], '*', MUST_EXIST);
     if (!$session) {
-        debugging("Session record not found for cm->instance: {$cm->instance}", DEBUG_DEVELOPER);
         return false;
     }
     $attendance = $DB->get_record('teamsattendance_data', [
@@ -90,13 +89,11 @@ function teamsattendance_check_completion($cm, $userid)
     ]);
 
     if (!$attendance) {
-        debugging("Attendance record not found for userid: {$userid}, sessionid: {$cm->instance}", DEBUG_DEVELOPER);
         return false; // No attendance record found
     }
 
     // Ensure the attendance duration is valid
     if ($attendance->attendance_duration <= 0) {
-        debugging("Invalid attendance duration (<= 0) for userid: {$userid}, duration: {$attendance->attendance_duration}", DEBUG_DEVELOPER);
         return false; // Invalid attendance duration
     }
 
@@ -132,7 +129,6 @@ function teamsattendance_check_completion($cm, $userid)
             ]
         ])->trigger();
     }
-    debugging("teamsattendance_check_completion: User: {$userid}, cmid: {$cm->id}, Completion Met: " . ($completion_met ? 'Yes' : 'No') . ", Percentage: {$attendance_percentage}", DEBUG_DEVELOPER);
 
     return $completion_met;
 }
@@ -198,14 +194,18 @@ function teamsattendance_add_instance($data, $mform)
     $record->start_datetime = isset($data->start_datetime) ? $data->start_datetime : 0;
     $record->end_datetime = isset($data->end_datetime) ? $data->end_datetime : 0;
 
-    // Convert duration to seconds if hours were selected
-    $duration = $data->expected_duration;
-    if ($data->duration_unit === 'hours') {
-        $duration *= 3600; // Convert hours to seconds
+    // Calculate duration from start and end datetime (automatically calculated in form)
+    // The expected_duration from the form is already in minutes, convert to seconds for storage
+    if (isset($data->expected_duration) && $data->expected_duration > 0) {
+        $record->expected_duration = $data->expected_duration * 60; // Convert minutes to seconds
+    } else if (!empty($data->start_datetime) && !empty($data->end_datetime)) {
+        // Fallback: calculate from datetime if expected_duration is not provided
+        $duration_seconds = $data->end_datetime - $data->start_datetime;
+        $record->expected_duration = $duration_seconds;
     } else {
-        $duration *= 60; // Convert minutes to seconds
+        // Default duration if no datetime provided
+        $record->expected_duration = 3600; // 1 hour in seconds
     }
-    $record->expected_duration = $duration;
 
     $record->required_attendance = $data->required_attendance;
     $record->status = 'open'; // Open by default
@@ -243,14 +243,19 @@ function teamsattendance_update_instance($data, $mform)
     $record->start_datetime = isset($data->start_datetime) ? $data->start_datetime : 0;
     $record->end_datetime = isset($data->end_datetime) ? $data->end_datetime : 0;
 
-    // Convert duration to seconds if hours were selected
-    $duration = $data->expected_duration;
-    if ($data->duration_unit === 'hours') {
-        $duration *= 3600; // Convert hours to seconds
+    // Calculate duration from start and end datetime (automatically calculated in form)
+    // The expected_duration from the form is already in minutes, convert to seconds for storage
+    if (isset($data->expected_duration) && $data->expected_duration > 0) {
+        $record->expected_duration = $data->expected_duration * 60; // Convert minutes to seconds
+    } else if (!empty($data->start_datetime) && !empty($data->end_datetime)) {
+        // Fallback: calculate from datetime if expected_duration is not provided
+        $duration_seconds = $data->end_datetime - $data->start_datetime;
+        $record->expected_duration = $duration_seconds;
     } else {
-        $duration *= 60; // Convert minutes to seconds
+        // Keep existing duration if no new data provided
+        $existing = $DB->get_record('teamsattendance', ['id' => $data->instance], 'expected_duration');
+        $record->expected_duration = $existing ? $existing->expected_duration : 3600;
     }
-    $record->expected_duration = $duration;
 
     $record->required_attendance = $data->required_attendance;
     $record->timemodified = time();
@@ -295,32 +300,32 @@ function teamsattendance_fetch_attendance($cmid)
 {
     global $DB, $CFG;
 
-    // Get course module and context
-    list($course, $cm) = get_course_and_cm_from_cmid($cmid, 'teamsattendance');
-    $context = context_module::instance($cm->id);
-
-    // Get OIDC settings from auth_oidc configuration
-    $client_id = get_config('auth_oidc', 'clientid');
-    $client_secret = get_config('auth_oidc', 'clientsecret');
-
-    // Get module-specific settings
-    $tenant_id = get_config('mod_teamsattendance', 'tenantid');
-
-    if (!$client_id || !$client_secret) {
-        throw new moodle_exception('missingapicredentials', 'mod_teamsattendance');
-    }
-
-    if (!$tenant_id) {
-        throw new moodle_exception('missingtenantid', 'mod_teamsattendance');
-    }
-
-    // Get the session record
-    $session = $DB->get_record('teamsattendance', ['id' => $cm->instance], '*', MUST_EXIST);
-    if (!$session) {
-        throw new moodle_exception('sessionnotfound', 'mod_teamsattendance', $cm->instance);
-    }
-
     try {
+        // Get course module and context
+        list($course, $cm) = get_course_and_cm_from_cmid($cmid, 'teamsattendance');
+        $context = context_module::instance($cm->id);
+
+        // Get OIDC settings from auth_oidc configuration
+        $client_id = get_config('auth_oidc', 'clientid');
+        $client_secret = get_config('auth_oidc', 'clientsecret');
+
+        // Get module-specific settings
+        $tenant_id = get_config('mod_teamsattendance', 'tenantid');
+
+        if (!$client_id || !$client_secret) {
+            throw new moodle_exception('missingapicredentials', 'mod_teamsattendance');
+        }
+
+        if (!$tenant_id) {
+            throw new moodle_exception('missingtenantid', 'mod_teamsattendance');
+        }
+
+        // Get the session record
+        $session = $DB->get_record('teamsattendance', ['id' => $cm->instance], '*', MUST_EXIST);
+        if (!$session) {
+            throw new moodle_exception('sessionnotfound', 'mod_teamsattendance', $cm->instance);
+        }
+
         $access_token = get_graph_access_token($client_id, $client_secret, $tenant_id);
         if (!$access_token) {
             throw new moodle_exception('invalidaccesstoken', 'mod_teamsattendance');
@@ -342,9 +347,6 @@ function teamsattendance_fetch_attendance($cmid)
             // Convert to UTC
             $start_dt->setTimezone(new DateTimeZone('UTC'));
             $start_datetime_utc = $start_dt->getTimestamp();
-            
-            debugging("Converting start datetime: Local=" . date('Y-m-d H:i:s', $session->start_datetime) . 
-                     " ({$user_timezone}) -> UTC=" . gmdate('Y-m-d H:i:s', $start_datetime_utc), DEBUG_DEVELOPER);
         }
         
         if (!empty($session->end_datetime)) {
@@ -359,9 +361,6 @@ function teamsattendance_fetch_attendance($cmid)
             // Convert to UTC
             $end_dt->setTimezone(new DateTimeZone('UTC'));
             $end_datetime_utc = $end_dt->getTimestamp();
-            
-            debugging("Converting end datetime: Local=" . date('Y-m-d H:i:s', $session->end_datetime) . 
-                     " ({$user_timezone}) -> UTC=" . gmdate('Y-m-d H:i:s', $end_datetime_utc), DEBUG_DEVELOPER);
         }
 
         $attendance_data = fetch_attendance_data($session->meetingurl, $session->organizer_email, $access_token, $start_datetime_utc, $end_datetime_utc);
@@ -375,15 +374,11 @@ function teamsattendance_fetch_attendance($cmid)
         $processed = 0;
         $user_completion_data = []; // Array to store user completion data for batch update
 
-        // Debug: Log total records received from API
-        debugging("Total attendance records received from API: " . count($attendance_data['value']), DEBUG_DEVELOPER);
-
         foreach ($attendance_data['value'] as $record) {
             $processed++;
             if (!isset($record['userId']) || !isset($record['totalAttendanceInSeconds'])) {
                 $errors[] = "Invalid record format: missing required fields for record #$processed";
                 $skipped++;
-                debugging("Skipped record #$processed: missing userId or totalAttendanceInSeconds", DEBUG_DEVELOPER);
                 continue;
             }
 
@@ -403,7 +398,6 @@ function teamsattendance_fetch_attendance($cmid)
                 $userid = $CFG->siteguest; // Not an email, treat as unassigned
             }
 
-
             try {
                 $attendance_duration = $record['totalAttendanceInSeconds'];
 
@@ -414,7 +408,6 @@ function teamsattendance_fetch_attendance($cmid)
                 ]);
 
                 if ($attendance_record) {
-                    debugging("Found existing record for teams_user_id: $teams_user_id (record #$processed)", DEBUG_DEVELOPER);
                     // Preserve manual user assignments - only update userid if it's currently unassigned
                     if ($attendance_record->userid == $CFG->siteguest) {
                         $attendance_record->userid = $userid;
@@ -433,7 +426,6 @@ function teamsattendance_fetch_attendance($cmid)
                     ]);
 
                 } else {
-                    debugging("Creating new record for teams_user_id: $teams_user_id (record #$processed)", DEBUG_DEVELOPER);
                     $attendance_record = new stdClass();
                     $attendance_record->sessionid = $session->id;
                     $attendance_record->userid = $userid;
@@ -464,17 +456,8 @@ function teamsattendance_fetch_attendance($cmid)
             } catch (Exception $e) {
                 $errors[] = "Error processing attendance for user {$record['userId']}: " . $e->getMessage() . 'data ' . json_encode($record);
                 $skipped++;
-                debugging("Database error for record #$processed (user: {$record['userId']}): " . $e->getMessage(), DEBUG_DEVELOPER);
                 continue;
             }
-        }
-
-        // Debug: Log processing summary
-        debugging("Processing Summary - Total API records: " . count($attendance_data['value']) . 
-                 ", Processed: $processed, Updated: $updated, Skipped: $skipped", DEBUG_DEVELOPER);
-        
-        if (!empty($errors)) {
-            debugging("Errors encountered: " . implode('; ', $errors), DEBUG_DEVELOPER);
         }
 
         //for each user in the attendance data, calculate the attendance percentage from the report data (there can be multiple reports for each user)
@@ -493,10 +476,6 @@ function teamsattendance_fetch_attendance($cmid)
             $user->completion_met = ($user->actual_attendance >= $session->required_attendance) ? 1 : 0;
 
             $DB->update_record('teamsattendance_data', $user);
-
-            $course = get_course($cm->course);
-
-
 
             $course = get_course($cm->course);
             $completion = new \completion_info($course); // Oggetto da lib/completionlib.php
@@ -520,7 +499,6 @@ function teamsattendance_fetch_attendance($cmid)
         ]);
 
         if ($unassigned_count > 0) {
-
             if (has_capability('mod/teamsattendance:manageattendance', $context)) {
                 $manageurl = new moodle_url('/mod/teamsattendance/manage_unassigned.php', ['id' => $cm->id]);
             }
@@ -528,8 +506,9 @@ function teamsattendance_fetch_attendance($cmid)
 
         return true;
     } catch (Exception $e) {
-        debugging('Error fetching attendance: ' . $e->getMessage(), DEBUG_DEVELOPER);
-        return false;
+        // Log the error without exposing sensitive information
+        error_log('Teams Attendance fetch error: ' . $e->getMessage());
+        throw new moodle_exception('attendancefetchfailed', 'mod_teamsattendance', '', 'Failed to fetch attendance data from Teams API');
     }
 }
 
@@ -591,5 +570,3 @@ function mod_teamsattendance_get_completion_active_rule_descriptions($cm)
     }
     return $descriptions;
 }
-
-
