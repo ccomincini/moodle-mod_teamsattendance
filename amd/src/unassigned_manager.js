@@ -24,6 +24,12 @@ function($, Ajax, Notification, Str) {
         this.strings = config.strings || {};
         this.availableUsers = [];
 
+        console.log('MANAGER INIT: constructor called with config:', config);
+        console.log('MANAGER INIT: initial filter from URL:', this.currentFilter);
+        
+        // Store reference in global scope for debugging
+        window.unassignedManager = this;
+
         this.init();
         this.loadAvailableUsers();
     };
@@ -36,6 +42,7 @@ function($, Ajax, Notification, Str) {
         getFilterFromURL: function() {
             var urlParams = new URLSearchParams(window.location.search);
             var filter = urlParams.get('filter');
+            console.log('GET FILTER FROM URL:', filter);
             return filter || 'all';
         },
 
@@ -50,6 +57,7 @@ function($, Ajax, Notification, Str) {
             } else {
                 url.searchParams.delete('filter');
             }
+            console.log('UPDATE URL: new URL will be:', url.toString());
             window.history.replaceState({}, '', url);
         },
 
@@ -58,10 +66,12 @@ function($, Ajax, Notification, Str) {
          */
         updateStatistics: function() {
             var self = this;
+            console.log('UPDATE STATISTICS: called');
             $.ajax({
                 url: window.location.href,
                 data: {ajax: 1, action: 'get_statistics'},
                 success: function(response) {
+                    console.log('UPDATE STATISTICS: response:', response);
                     if (response.success) {
                         var data = response.data;
                         $('#name-suggestions-count').text(data.name_suggestions);
@@ -77,18 +87,23 @@ function($, Ajax, Notification, Str) {
          * Initialize the manager
          */
         init: function() {
+            console.log('MANAGER INIT: starting initialization...');
             this.syncSelectValues();
             this.bindEvents();
             this.loadPage(0);
             this.updateStatistics();
+            console.log('MANAGER INIT: initialization complete');
         },
 
         /**
          * Sync select values with current state
          */
         syncSelectValues: function() {
+            console.log('SYNC VALUES: filter =', this.currentFilter, 'pageSize =', this.currentPageSize);
             $('#filter-select').val(this.currentFilter);
             $('#page-size-select').val(this.currentPageSize);
+            console.log('SYNC VALUES: after sync - filter select value:', $('#filter-select').val());
+            console.log('SYNC VALUES: after sync - pagesize select value:', $('#page-size-select').val());
         },
 
         /**
@@ -113,6 +128,7 @@ function($, Ajax, Notification, Str) {
                 }
             }
             
+            console.log('GET CURRENT FILTERS: currentFilter =', this.currentFilter, 'converted filters =', filters);
             return filters;
         },
 
@@ -120,9 +136,16 @@ function($, Ajax, Notification, Str) {
          * Apply current settings from both selects
          */
         applyCurrentSettings: function() {
+            console.log('APPLY SETTINGS: === START ===');
+            
             // Read current values from both selects
-            this.currentFilter = $('#filter-select').val();
+            var newFilter = $('#filter-select').val();
             var pageSizeValue = $('#page-size-select').val();
+            
+            console.log('APPLY SETTINGS: reading from DOM - filter:', newFilter, 'pageSize:', pageSizeValue);
+            console.log('APPLY SETTINGS: previous values - filter:', this.currentFilter, 'pageSize:', this.currentPageSize);
+            
+            this.currentFilter = newFilter;
             
             // Update URL to reflect current filter
             this.updateURL(this.currentFilter);
@@ -134,14 +157,20 @@ function($, Ajax, Notification, Str) {
                 this.currentPageSize = parseInt(pageSizeValue);
             }
             
+            console.log('APPLY SETTINGS: new values set - filter:', this.currentFilter, 'pageSize:', this.currentPageSize);
+            
             // Reset to first page
             this.currentPage = 0;
             this.selectedRecords.clear();
             this.updateBulkButton();
             
+            console.log('APPLY SETTINGS: about to call loadPage(0)...');
+            
             // Load data with current settings
             this.loadPage(0);
             this.updateStatistics();
+            
+            console.log('APPLY SETTINGS: === END ===');
         },
 
         /**
@@ -149,18 +178,45 @@ function($, Ajax, Notification, Str) {
          */
         bindEvents: function() {
             var self = this;
+            
+            console.log('BIND EVENTS: starting to bind events...');
+            
+            // Check if elements exist before binding
+            if ($('#filter-select').length === 0) {
+                console.error('BIND EVENTS: #filter-select not found!');
+                return;
+            }
+            if ($('#page-size-select').length === 0) {
+                console.error('BIND EVENTS: #page-size-select not found!');
+                return;
+            }
+            
+            console.log('BIND EVENTS: elements found, binding change events...');
 
             // Both selects trigger the same update function
-            $('#filter-select, #page-size-select').on('change', function() {
+            $('#filter-select, #page-size-select').on('change', function(event) {
+                console.log('EVENT TRIGGERED: change event on', event.target.id, 'new value:', $(this).val());
                 self.applyCurrentSettings();
             });
 
+            // Test binding immediately
+            console.log('BIND EVENTS: testing event binding...');
+            setTimeout(function() {
+                var filterEvents = $._data($('#filter-select')[0], 'events');
+                var pageSizeEvents = $._data($('#page-size-select')[0], 'events');
+                console.log('BIND EVENTS: filter events bound:', filterEvents ? Object.keys(filterEvents) : 'NONE');
+                console.log('BIND EVENTS: pagesize events bound:', pageSizeEvents ? Object.keys(pageSizeEvents) : 'NONE');
+            }, 100);
+
             // Bulk assign button
             $('#bulk-assign-btn').on('click', function() {
+                console.log('BULK ASSIGN: button clicked, selected records:', self.selectedRecords.size);
                 if (self.selectedRecords.size > 0) {
                     self.performBulkAssignment();
                 }
             });
+            
+            console.log('BIND EVENTS: events binding complete');
         },
 
         /**
@@ -168,13 +224,19 @@ function($, Ajax, Notification, Str) {
          */
         loadAvailableUsers: function() {
             var self = this;
+            console.log('LOAD USERS: requesting available users...');
             $.ajax({
                 url: window.location.href,
                 data: {ajax: 1, action: 'get_available_users'},
                 success: function(response) {
+                    console.log('LOAD USERS: response:', response);
                     if (response.success) {
                         self.availableUsers = response.users;
+                        console.log('LOAD USERS: loaded', self.availableUsers.length, 'users');
                     }
+                },
+                error: function(xhr, status, error) {
+                    console.error('LOAD USERS: error:', error);
                 }
             });
         },
@@ -186,6 +248,7 @@ function($, Ajax, Notification, Str) {
          */
         loadPage: function(page, forceRefresh) {
             if (this.isLoading) {
+                console.log('LOAD PAGE: already loading, skipping...');
                 return;
             }
 
@@ -196,10 +259,15 @@ function($, Ajax, Notification, Str) {
             var filters = this.getCurrentFilters();
             var actualPageSize = this.currentPageSize === 999999 ? 'all' : this.currentPageSize;
             
+            console.log('LOAD PAGE: === AJAX REQUEST START ===');
+            console.log('LOAD PAGE: page =', page, 'pageSize =', actualPageSize);
+            console.log('LOAD PAGE: filters =', filters);
+            
             var filtersHash = JSON.stringify(filters);
             var cacheKey = 'page_' + page + '_' + filtersHash + '_' + actualPageSize;
 
             if (!forceRefresh && sessionStorage.getItem(cacheKey)) {
+                console.log('LOAD PAGE: using cached data for key:', cacheKey);
                 var cachedData = JSON.parse(sessionStorage.getItem(cacheKey));
                 this.renderPage(cachedData);
                 this.isLoading = false;
@@ -207,10 +275,8 @@ function($, Ajax, Notification, Str) {
                 return;
             }
 
-var filters = this.getCurrentFilters();
-console.log('JS DEBUG: currentFilter =', this.currentFilter);
-console.log('JS DEBUG: filters =', filters);
-
+            console.log('LOAD PAGE: making AJAX request...');
+            
             $.ajax({
                 url: window.location.href,
                 method: 'GET',
@@ -223,17 +289,22 @@ console.log('JS DEBUG: filters =', filters);
                     sesskey: this.sesskey
                 },
                 success: function(response) {
+                    console.log('LOAD PAGE: AJAX success, response:', response);
                     if (response.success) {
                         sessionStorage.setItem(cacheKey, JSON.stringify(response.data));
                         self.renderPage(response.data);
+                        console.log('LOAD PAGE: rendered', response.data.records.length, 'records');
                     } else {
+                        console.error('LOAD PAGE: server error:', response.error);
                         self.showError('Failed to load data: ' + (response.error || 'Unknown error'));
                     }
                 },
                 error: function(xhr, status, error) {
+                    console.error('LOAD PAGE: AJAX error:', error, 'status:', status, 'xhr:', xhr);
                     self.showError('Connection error: ' + error);
                 },
                 complete: function() {
+                    console.log('LOAD PAGE: === AJAX REQUEST END ===');
                     self.isLoading = false;
                     $('#loading-indicator').hide();
                 }
@@ -245,6 +316,7 @@ console.log('JS DEBUG: filters =', filters);
          * @param {Object} data Page data
          */
         renderPage: function(data) {
+            console.log('RENDER PAGE: rendering data for page', data.pagination.page);
             this.currentPage = data.pagination.page;
             this.renderTable(data.records);
             this.renderPagination(data.pagination);
@@ -257,6 +329,7 @@ console.log('JS DEBUG: filters =', filters);
          * @param {Array} records Array of records
          */
         renderTable: function(records) {
+            console.log('RENDER TABLE: rendering', records.length, 'records');
             var html = '<div class="table-responsive">';
             html += '<table class="table table-striped table-hover">';
             html += '<thead class="thead-dark">';
@@ -292,9 +365,9 @@ console.log('JS DEBUG: filters =', filters);
         renderTableRow: function(record) {
             var rowClass = 'suggestion-none-row';
             if (record.has_suggestion && record.suggestion) {
-                if (record.suggestion_type === 'name') {
+                if (record.suggestion_type === 'name_based') {
                     rowClass = 'suggestion-name-row';
-                } else if (record.suggestion_type === 'email') {
+                } else if (record.suggestion_type === 'email_based') {
                     rowClass = 'suggestion-email-row';
                 }
             }
