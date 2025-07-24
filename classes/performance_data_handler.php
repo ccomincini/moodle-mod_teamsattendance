@@ -251,7 +251,13 @@ class performance_data_handler {
         
         // Get suggestions for all records
         $suggestions = $this->get_suggestions_for_all_records($all_records);
-        error_log("FILTER DEBUG: suggestions count = " . count($suggestions));
+        // Debug suggestion types  
+        $type_counts = array();
+        foreach ($suggestions as $suggestion) {
+            $type = $suggestion['type'];
+            $type_counts[$type] = isset($type_counts[$type]) ? $type_counts[$type] + 1 : 1;
+        }
+        error_log("FILTER DEBUG: suggestion types = " . print_r($type_counts, true));
         
         $filtered_records = array();
         
