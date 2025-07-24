@@ -266,13 +266,13 @@ class performance_data_handler {
             
             switch ($suggestion_type) {
                 case 'name_based':
-                    if (isset($suggestions[$record->id]) && $suggestions[$record->id]['type'] === 'name_based') {
+                    if (isset($suggestions[$record->id]) && $suggestions[$record->id]['type'] === 'name') {
                         $include_record = true;
                     }
                     break;
                     
                 case 'email_based':
-                    if (isset($suggestions[$record->id]) && $suggestions[$record->id]['type'] === 'email_based') {
+                    if (isset($suggestions[$record->id]) && $suggestions[$record->id]['type'] === 'email') {
                         $include_record = true;
                     }
                     break;
