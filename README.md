@@ -186,6 +186,15 @@ Assicurati che l'applicazione Azure AD abbia i seguenti permessi:
 2. Controlla formato Teams ID in dati importati
 3. Purga cache plugin: Amministrazione → Sviluppo → Purga cache
 
+#### ❌ Filtri non funzionano con page size 20 o 50 (Risolto v3.0.0)
+**Problema risolto nel luglio 2025:**
+- **Sintomo**: I filtri funzionavano solo con page size 100 o "all records"
+- **Causa**: Cache JavaScript non invalidata correttamente su cambio filtri
+- **Fix**: Implementata invalidazione cache automatica e force refresh delle chiamate AJAX
+- **Commits**: 8c8f3ba, 732c1f9 su branch `refactor/modular-unassigned-management`
+
+**Nota tecnica per sviluppatori**: La cache sessionStorage viene ora automaticamente pulita quando cambiano filtri o page size, garantendo che le chiamate AJAX vengano sempre eseguite con i parametri corretti.
+
 ## 📚 Riferimento API
 
 ### Classi Core
@@ -203,6 +212,43 @@ suggestion_engine::class
 ├── get_suggestion_statistics()        // Statistiche suggerimenti
 └── sort_records_by_suggestion_types() // Ordinamento intelligente
 ```
+
+### JavaScript Frontend
+```javascript
+// Manager principale interfaccia non assegnati
+UnassignedRecordsManager
+├── applyCurrentSettings()             // Applica filtri/paginazione
+├── loadPage(page, forceRefresh)       // Carica dati con opzione force refresh
+├── renderTable(records)               // Renderizza tabella risultati
+└── performBulkAssignment()            // Esegue assegnazioni multiple
+
+// Note implementazione cache
+// - sessionStorage.clear() viene chiamato automaticamente su cambio filtri
+// - forceRefresh=true bypassa la cache per garantire dati aggiornati
+// - Cache utile solo per navigazione tra pagine dello stesso filtro
+```
+
+## 🐛 Note Tecniche per Sviluppatori
+
+### Sistema di Cache Frontend (v3.0.0)
+La cache sessionStorage viene utilizzata per ottimizzare la navigazione tra pagine, ma presenta limitazioni:
+
+**Utilizzo Attuale:**
+- Cache Key: `'page_' + pageNum + '_' + JSON.stringify(filters) + '_' + pageSize`
+- Invalidazione: Automatica su cambio filtri, page size, o dopo assegnazioni
+- Utilità: Beneficia solo la navigazione tra pagine dello stesso filtro
+
+**Considerazioni Future:**
+- La cache aggiunge complessità significativa al codice
+- L'utilità effettiva è marginale (solo navigazione pagine, scenario raro)
+- Il recente bug era causato proprio dalla logica di cache
+- **Raccomandazione**: Valutare rimozione completa della cache per semplificare il codice
+
+**Per Rimuovere la Cache (futuro refactoring):**
+1. Eliminare logica cache key generation in `loadPage()`
+2. Rimuovere parameter `forceRefresh` e logica sessionStorage
+3. Eseguire sempre chiamate AJAX dirette
+4. Mantenere solo loading indicators e error handling
 
 ## 📄 Licenza
 
