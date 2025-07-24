@@ -259,6 +259,19 @@ class performance_data_handler {
         // Get suggestions for all records (use cache if available)
         $suggestions = $this->get_suggestions_for_all_records($all_records);
         
+        case 'name_based':
+            error_log("FILTER DEBUG: Processing name_based filter");
+            if (isset($suggestions[$record->id])) {
+                error_log("FILTER DEBUG: Record {$record->id} has suggestion type: " . $suggestions[$record->id]['type']);
+                if ($suggestions[$record->id]['type'] === 'name_based') {
+                    $include_record = true;
+                    error_log("FILTER DEBUG: Including record {$record->id}");
+                }
+            }
+            break;
+
+
+
         // Filter records based on suggestion type
         $filtered_records = array();
         
