@@ -145,17 +145,32 @@ function($, Ajax, Notification, Str) {
             console.log('APPLY SETTINGS: reading from DOM - filter:', newFilter, 'pageSize:', pageSizeValue);
             console.log('APPLY SETTINGS: previous values - filter:', this.currentFilter, 'pageSize:', this.currentPageSize);
             
+            // *** CACHE INVALIDATION FIX ***
+            // Check if filter changed - if so, clear cache
+            var filterChanged = (newFilter !== this.currentFilter);
+            var pageSizeChanged = false;
+            
+            // Check if page size changed
+            var newPageSizeNum;
+            if (pageSizeValue === 'all') {
+                newPageSizeNum = 999999;
+            } else {
+                newPageSizeNum = parseInt(pageSizeValue);
+            }
+            pageSizeChanged = (newPageSizeNum !== this.currentPageSize);
+            
+            if (filterChanged || pageSizeChanged) {
+                console.log('APPLY SETTINGS: CLEARING CACHE due to changes - filter changed:', filterChanged, 'pageSize changed:', pageSizeChanged);
+                sessionStorage.clear(); // Clear all cache when filters or page size change
+            }
+            
             this.currentFilter = newFilter;
             
             // Update URL to reflect current filter
             this.updateURL(this.currentFilter);
             
             // Handle "all" pagesize
-            if (pageSizeValue === 'all') {
-                this.currentPageSize = 999999; // Large number for "all"
-            } else {
-                this.currentPageSize = parseInt(pageSizeValue);
-            }
+            this.currentPageSize = newPageSizeNum;
             
             console.log('APPLY SETTINGS: new values set - filter:', this.currentFilter, 'pageSize:', this.currentPageSize);
             
@@ -164,10 +179,10 @@ function($, Ajax, Notification, Str) {
             this.selectedRecords.clear();
             this.updateBulkButton();
             
-            console.log('APPLY SETTINGS: about to call loadPage(0)...');
+            console.log('APPLY SETTINGS: about to call loadPage(0) with force refresh...');
             
-            // Load data with current settings
-            this.loadPage(0);
+            // Load data with current settings - FORCE REFRESH to bypass cache
+            this.loadPage(0, true); // Force refresh = true
             this.updateStatistics();
             
             console.log('APPLY SETTINGS: === END ===');
@@ -262,6 +277,7 @@ function($, Ajax, Notification, Str) {
             console.log('LOAD PAGE: === AJAX REQUEST START ===');
             console.log('LOAD PAGE: page =', page, 'pageSize =', actualPageSize);
             console.log('LOAD PAGE: filters =', filters);
+            console.log('LOAD PAGE: forceRefresh =', forceRefresh);
             
             var filtersHash = JSON.stringify(filters);
             var cacheKey = 'page_' + page + '_' + filtersHash + '_' + actualPageSize;
@@ -275,7 +291,7 @@ function($, Ajax, Notification, Str) {
                 return;
             }
 
-            console.log('LOAD PAGE: making AJAX request...');
+            console.log('LOAD PAGE: making AJAX request (no cache or force refresh)...');
             
             $.ajax({
                 url: window.location.href,
