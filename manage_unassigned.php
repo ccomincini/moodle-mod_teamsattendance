@@ -134,12 +134,10 @@ if ($ajax) {
 
     try {
         switch ($action) {
-            
-            error_log("AJAX DEBUG - POST data: " . print_r($_POST, true));
-            error_log("AJAX DEBUG - GET data: " . print_r($_GET, true));
-            error_log("AJAX DEBUG - Raw filters param: " . optional_param('filters', 'NOT_FOUND', PARAM_RAW));
-            
             case 'load_page':
+                error_log("AJAX DEBUG - POST data: " . print_r($_POST, true));
+                error_log("AJAX DEBUG - GET data: " . print_r($_GET, true));
+                error_log("AJAX DEBUG - Raw filters param: " . optional_param('filters', 'NOT_FOUND', PARAM_RAW));
                 // Ottiene i filtri dalla richiesta
                 $filters_json = optional_param('filters', '{}', PARAM_RAW);
                 $filters = json_decode($filters_json, true);
