@@ -66,7 +66,7 @@ function render_unassigned_interface($context) {
     
     // Filter Select with current filter selected
     $current_filter = isset($context->current_filter) ? $context->current_filter : 'all';
-    $output .= '<div class="col-md-4">';
+    $output .= '<div class="col-md-3">';
     $output .= '<label for="filter-select">' . get_string('filter_by', 'teamsattendance') . ':</label>';
     $output .= '<select id="filter-select" class="form-control">';
     $output .= '<option value="all"' . ($current_filter === 'all' ? ' selected' : '') . '>' . get_string('filter_all', 'teamsattendance') . '</option>';
@@ -75,9 +75,19 @@ function render_unassigned_interface($context) {
     $output .= '<option value="without_suggestions"' . ($current_filter === 'without_suggestions' ? ' selected' : '') . '>' . get_string('without_suggestions', 'teamsattendance') . '</option>';
     $output .= '</select>';
     $output .= '</div>';
-    
+
+    // Search inputs
+    $output .= '<div class="col-md-3">';
+    $output .= '<label for="name-search">Cerca per nome:</label>';
+    $output .= '<input type="text" id="name-search" class="form-control" placeholder="Nome utente Teams...">';
+    $output .= '</div>';
+
+    $output .= '<div class="col-md-3">';
+    $output .= '<label for="email-search">Cerca per email:</label>';
+    $output .= '<input type="text" id="email-search" class="form-control" placeholder="Email utente Teams...">';
+
     // Page Size Select with new options and default 50 (FIXED)
-    $output .= '<div class="col-md-4">';
+    $output .= '<div class="col-md-3">';
     $output .= '<label for="page-size-select">' . get_string('records_per_page', 'teamsattendance') . ':</label>';
     $output .= '<select id="page-size-select" class="form-control">';
     $output .= '<option value="20">20</option>';
