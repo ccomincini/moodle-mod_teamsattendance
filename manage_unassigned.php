@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Performance-optimized manage unassigned Teams attendance records (Modular Version)
+ * Gestione dei record non assegnati di Teams attendance (Versione Modulare Ottimizzata)
  *
  * @package    mod_teamsattendance
  * @copyright  2025 Invisiblefarm srl
@@ -26,68 +26,72 @@
 require_once('../../config.php');
 require_once($CFG->dirroot.'/mod/teamsattendance/lib.php');
 
-// Load performance-optimized components
+// Carica le componenti ottimizzate per le performance
 require_once($CFG->dirroot . '/mod/teamsattendance/classes/performance_data_handler.php');
 require_once($CFG->dirroot . '/mod/teamsattendance/classes/suggestion_engine.php');
 require_once($CFG->dirroot . '/mod/teamsattendance/classes/ui_renderer.php');
 
-// Load modular components
+// Carica le componenti modulari per l'interfaccia
 require_once($CFG->dirroot . '/mod/teamsattendance/templates/unassigned_interface.php');
 
 use mod_teamsattendance\performance_data_handler;
 
-
-// Get parameters
-$id = required_param('id', PARAM_INT); // Course module ID
+// Parametri della richiesta
+$id = required_param('id', PARAM_INT); // ID del modulo corso
 $page = optional_param('page', 0, PARAM_INT);
-$per_page = optional_param('per_page', 20, PARAM_INT); // Default to 20
-$filter = optional_param('filter', 'all', PARAM_ALPHA);
-echo "<p style='background:red;color:white;padding:5px;'>DEBUG: filter=[" . $filter . "] from URL</p>";
+$per_page = optional_param('per_page', 20, PARAM_INT);
+$filter = optional_param('filter', 'all', PARAM_TEXT);
+
+// Validazione del parametro filtro per sicurezza
+$allowed_filters = array('all', 'name_suggestions', 'email_suggestions', 'without_suggestions');
+if (!in_array($filter, $allowed_filters)) {
+    $filter = 'all';
+}
 
 $action = optional_param('action', '', PARAM_TEXT);
 
-// AJAX parameters
+// Parametri per le chiamate AJAX
 $ajax = optional_param('ajax', 0, PARAM_INT);
 $recordid = optional_param('recordid', 0, PARAM_INT);
 $userid = optional_param('userid', 0, PARAM_INT);
 
-// Initialize Moodle objects
+// Inizializza gli oggetti Moodle
 $cm = get_coursemodule_from_id('teamsattendance', $id, 0, false, MUST_EXIST);
 $course = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
 $teamsattendance = $DB->get_record('teamsattendance', array('id' => $cm->instance), '*', MUST_EXIST);
 
-// Security checks
+// Controlli di sicurezza
 require_login($course, true, $cm);
 require_capability('mod/teamsattendance:manageattendance', context_module::instance($cm->id));
 
-// Setup page
+// Configurazione della pagina
 $PAGE->set_url('/mod/teamsattendance/manage_unassigned.php', array('id' => $cm->id));
 $PAGE->set_title(format_string($teamsattendance->name . ' - ' . get_string('manage_unassigned', 'teamsattendance')));
 $PAGE->set_heading(format_string($course->fullname));
 
-// Initialize performance handler
+// Inizializza il gestore delle performance
 $performance_handler = new performance_data_handler($cm, $teamsattendance, $course);
 
-// Get performance statistics first
+// Ottiene le statistiche delle performance
 $perf_stats = $performance_handler->get_performance_statistics();
 
-// Set default page size to 20 if not specified
+// Imposta la dimensione pagina predefinita
 if ($per_page <= 0) {
     $per_page = 20;
 }
 
-// Get available users for manual assignment
+// Ottiene gli utenti disponibili per l'assegnazione manuale
 $context = context_course::instance($course->id);
 $enrolled_users = get_enrolled_users($context, '', 0, 'u.id, u.firstname, u.lastname', 'u.lastname ASC, u.firstname ASC');
 
-// Get users already assigned for this session
+// Ottiene gli utenti già assegnati per questa sessione
 $assigned_userids = $DB->get_fieldset_select('teamsattendance_data', 
     'DISTINCT userid', 
     'sessionid = ? AND userid IS NOT NULL AND userid > 0', 
     array($teamsattendance->id)
 );
 
-// Get available users (not yet assigned)
+// Prepara l'elenco degli utenti disponibili (non ancora assegnati)
 $available_users = array();
 foreach ($enrolled_users as $user) {
     if (!in_array($user->id, $assigned_userids)) {
@@ -100,7 +104,7 @@ foreach ($enrolled_users as $user) {
     }
 }
 
-// Sort available users by lastname, firstname to ensure proper ordering
+// Ordina gli utenti disponibili per cognome e nome
 usort($available_users, function($a, $b) {
     $firstname_cmp = strcasecmp($a['firstname'], $b['firstname']);
     if ($firstname_cmp === 0) {
@@ -109,20 +113,20 @@ usort($available_users, function($a, $b) {
     return $firstname_cmp;
 });
 
-// Get suggestions statistics for display
+// Genera le statistiche dei suggerimenti per la visualizzazione
 $unassigned_records = $performance_handler->get_all_unassigned_records();
 $suggestion_engine = new suggestion_engine($enrolled_users);
 $all_suggestions = $suggestion_engine->generate_suggestions($unassigned_records);
 $suggestion_stats = $suggestion_engine->get_suggestion_statistics($all_suggestions);
 
-// ========================= AJAX HANDLERS =========================
+// ========================= GESTORI AJAX =========================
 
 if ($ajax) {
-    // Suppress PHP warnings/errors for AJAX calls
+    // Sopprime avvisi/errori PHP per le chiamate AJAX
     error_reporting(0);
     ini_set('display_errors', 0);
     
-    // Clean any output buffer
+    // Pulisce eventuali buffer di output
     if (ob_get_level()) {
         ob_clean();
     }
@@ -131,14 +135,14 @@ if ($ajax) {
     try {
         switch ($action) {
             case 'load_page':
-                // Get filters from request
+                // Ottiene i filtri dalla richiesta
                 $filters_json = optional_param('filters', '{}', PARAM_RAW);
                 $filters = json_decode($filters_json, true);
                 if (!is_array($filters)) {
                     $filters = array();
                 }
                 
-                // Handle pagesize - could be "all" or numeric
+                // Gestisce la dimensione pagina - può essere "all" o numerica
                 $per_page_param = optional_param('per_page', 50, PARAM_RAW);
                 if ($per_page_param === 'all') {
                     $per_page = 'all';
@@ -146,13 +150,13 @@ if ($ajax) {
                     $per_page = (int)$per_page_param;
                 }
                 
-                // Apply server-side filtering
+                // Applica il filtro lato server
                 $paginated_data = $performance_handler->get_unassigned_records_paginated($page, $per_page, $filters);
                 
-                // Get suggestions for current page records
+                // Ottiene i suggerimenti per i record della pagina corrente
                 $suggestions = $performance_handler->get_suggestions_for_batch($paginated_data['records']);
                 
-                // Prepare data for frontend
+                // Prepara i dati per il frontend
                 $response_data = array(
                     'records' => array(),
                     'pagination' => array(
@@ -190,20 +194,20 @@ if ($ajax) {
                 
             case 'assign_user':
                 if ($recordid && $userid && confirm_sesskey()) {
-                    // Use original assignment handler for single assignments
+                    // Usa il gestore di assegnazioni originale per le assegnazioni singole
                     require_once($CFG->dirroot . '/mod/teamsattendance/classes/user_assignment_handler.php');
                     $assignment_handler = new user_assignment_handler($cm, $teamsattendance, $course);
                     $result = $assignment_handler->assign_single_user($recordid, $userid);
                     
                     if ($result['success']) {
-                        // Clear cache after assignment
+                        // Pulisce la cache dopo l'assegnazione
                         $performance_handler->clear_cache();
-                        echo json_encode(array('success' => true, 'message' => 'User assigned successfully'));
+                        echo json_encode(array('success' => true, 'message' => 'Utente assegnato con successo'));
                     } else {
                         echo json_encode(array('success' => false, 'error' => $result['error']));
                     }
                 } else {
-                    echo json_encode(array('success' => false, 'error' => 'Invalid parameters'));
+                    echo json_encode(array('success' => false, 'error' => 'Parametri non validi'));
                 }
                 break;
                 
@@ -212,7 +216,7 @@ if ($ajax) {
                     $assignments = optional_param_array('assignments', array(), PARAM_INT);
                     $result = $performance_handler->apply_bulk_assignments_with_progress($assignments);
                     
-                    // AGGIUNGI: Salva preferenze per bulk assignments
+                    // Salva le preferenze per le assegnazioni in blocco
                     foreach ($assignments as $recordid => $userid) {
                         set_user_preference('teamsattendance_suggestion_applied_' . $recordid, $userid);
                     }
@@ -222,7 +226,7 @@ if ($ajax) {
                         'data' => $result
                     ));
                 } else {
-                    echo json_encode(array('success' => false, 'error' => 'Invalid session'));
+                    echo json_encode(array('success' => false, 'error' => 'Sessione non valida'));
                 }
                 break;
             
@@ -253,11 +257,10 @@ if ($ajax) {
                 $suggestions = $performance_handler->get_suggestions_for_batch($paginated_data['records']);
                 echo json_encode(array('success' => true, 'suggestions' => $suggestions));
                 break;
-
             
             case 'retroactive_preferences':
                 if (confirm_sesskey() && has_capability('mod/teamsattendance:manageattendance', context_module::instance($cm->id))) {
-                    // Get all manually assigned records
+                    // Ottiene tutti i record assegnati manualmente
                     $manual_records = $DB->get_records('teamsattendance_data', [
                         'sessionid' => $teamsattendance->id,
                         'manually_assigned' => 1
@@ -265,7 +268,7 @@ if ($ajax) {
                     
                     $updated_count = 0;
                     
-                    // Get available users for suggestion generation
+                    // Ottiene gli utenti disponibili per la generazione dei suggerimenti
                     $context = context_course::instance($course->id);
                     $enrolled_users = get_enrolled_users($context, '', 0, 'u.id, u.firstname, u.lastname, u.email');
                     
@@ -273,21 +276,21 @@ if ($ajax) {
                     $suggestion_engine = new suggestion_engine($enrolled_users);
                     
                     foreach ($manual_records as $record) {
-                        // Skip if preference already exists
+                        // Salta se la preferenza esiste già
                         $preference_name = 'teamsattendance_suggestion_applied_' . $record->id;
                         if (get_user_preference($preference_name)) {
                             continue;
                         }
                         
-                        // Generate suggestion for this specific record
+                        // Genera un suggerimento per questo record specifico
                         $single_record_array = array($record->id => $record);
                         $suggestions = $suggestion_engine->generate_suggestions($single_record_array);
                         
-                        // Check if current assignment matches suggestion
+                        // Verifica se l'assegnazione corrente corrisponde al suggerimento
                         if (isset($suggestions[$record->id])) {
                             $suggestion = $suggestions[$record->id];
                             if ($suggestion['user']->id == $record->userid) {
-                                // This assignment matches the suggestion - likely was applied
+                                // Questa assegnazione corrisponde al suggerimento - probabilmente è stata applicata
                                 set_user_preference($preference_name, $record->userid);
                                 $updated_count++;
                             }
@@ -296,15 +299,15 @@ if ($ajax) {
                     
                     echo json_encode(array(
                         'success' => true, 
-                        'message' => "Updated $updated_count retroactive preferences"
+                        'message' => "Aggiornate $updated_count preferenze retroattive"
                     ));
                 } else {
-                    echo json_encode(array('success' => false, 'error' => 'Permission denied'));
+                    echo json_encode(array('success' => false, 'error' => 'Permesso negato'));
                 }
                 break;
 
             default:
-                echo json_encode(array('success' => false, 'error' => 'Unknown action'));
+                echo json_encode(array('success' => false, 'error' => 'Azione sconosciuta'));
         }
     } catch (Exception $e) {
         echo json_encode(array('success' => false, 'error' => $e->getMessage()));
@@ -313,9 +316,9 @@ if ($ajax) {
     exit;
 }
 
-// ========================= PAGE OUTPUT =========================
+// ========================= OUTPUT DELLA PAGINA =========================
 
-// Load CSS and JavaScript
+// Carica CSS e JavaScript
 $PAGE->requires->css('/mod/teamsattendance/styles/unassigned_manager.css');
 $PAGE->requires->jquery();
 
@@ -325,7 +328,7 @@ echo $OUTPUT->heading(get_string('manage_unassigned', 'teamsattendance'));
 
 // ========================= CARICAMENTO DATI INIZIALI =========================
 
-// Convert URL filter parameter to array format expected by get_unassigned_records_paginated
+// Converte il parametro filtro URL nel formato array atteso da get_unassigned_records_paginated
 $initial_filter = array();
 if ($filter && $filter !== 'all') {
     switch ($filter) {
@@ -340,17 +343,18 @@ if ($filter && $filter !== 'all') {
             break;
     }
 }
-// Get initial data for page 0 with CURRENT filter and pagesize
-$initial_page = 0;
-$initial_per_page = 50; // Default pagesize
 
-// Load initial paginated data with APPLIED FILTER
+// Ottiene i dati iniziali per la pagina 0 con il filtro e la dimensione pagina correnti
+$initial_page = 0;
+$initial_per_page = 50;
+
+// Carica i dati paginati iniziali con il filtro applicato
 $initial_data = $performance_handler->get_unassigned_records_paginated($initial_page, $initial_per_page, $initial_filter);
 
-// Get suggestions for initial page records
+// Ottiene i suggerimenti per i record della pagina iniziale
 $initial_suggestions = $performance_handler->get_suggestions_for_batch($initial_data['records']);
 
-// Prepare initial records data for template
+// Prepara i dati dei record iniziali per il template
 $initial_records = array();
 foreach ($initial_data['records'] as $record) {
     $suggestion = isset($initial_suggestions[$record->id]) ? $initial_suggestions[$record->id] : null;
@@ -371,33 +375,7 @@ foreach ($initial_data['records'] as $record) {
     $initial_records[] = $record_data;
 }
 
-
-// === DEBUG COMPLETO FILTRI ===
-echo "<div style='background: yellow; padding: 10px; margin: 10px; font-family: monospace;'>";
-echo "<h3>FILTER DEBUG</h3>";
-echo "URL filter parameter: " . htmlspecialchars($filter) . "<br>";
-echo "initial_filter array: " . htmlspecialchars(print_r($initial_filter, true)) . "<br>";
-echo "initial_data count: " . count($initial_data['records']) . "<br>";
-echo "Total unassigned from DB: " . $perf_stats['total_unassigned'] . "<br>";
-
-// Test diretto della classe
-$test_records = $performance_handler->get_all_unassigned_records();
-echo "All unassigned records: " . count($test_records) . "<br>";
-
-// Test con filtro vuoto
-$test_no_filter = $performance_handler->get_unassigned_records_paginated(0, 50, array());
-echo "No filter result: " . count($test_no_filter['records']) . "<br>";
-
-// Test con filtro name_based
-$test_with_filter = $performance_handler->get_unassigned_records_paginated(0, 50, array('suggestion_type' => 'name_based'));
-echo "With name_based filter: " . count($test_with_filter['records']) . "<br>";
-
-echo "</div>";
-// === FINE DEBUG ===
-
-
-
-// Prepare template context with initial data included
+// Prepara il contesto del template con i dati iniziali inclusi
 $template_context = (object) array(
     'per_page' => $initial_per_page,
     'cm_id' => $cm->id,
@@ -405,8 +383,7 @@ $template_context = (object) array(
     'name_suggestions_count' => $suggestion_stats['name_based'],
     'email_suggestions_count' => $suggestion_stats['email_based'],
     'available_users_count' => count($available_users),
-    'current_filter' => $filter, // ADD: Pass current filter to template
-    // ADD: Initial data for first page load
+    'current_filter' => $filter,
     'initial_data' => array(
         'records' => $initial_records,
         'pagination' => array(
@@ -421,12 +398,12 @@ $template_context = (object) array(
     )
 );
 
-// Render the interface using the template
+// Renderizza l'interfaccia usando il template
 echo render_unassigned_interface($template_context);
 
-// Initialize JavaScript with configuration and default pagesize 50
+// Inizializza JavaScript con la configurazione e la dimensione pagina predefinita
 $js_config = array(
-    'defaultPageSize' => 50, // Force default to 50
+    'defaultPageSize' => 50,
     'cmId' => $cm->id,
     'sesskey' => sesskey(),
     'strings' => array(
@@ -449,7 +426,7 @@ $js_config = array(
     )
 );
 
-// Load modular JavaScript 
+// Carica il JavaScript modulare
 $PAGE->requires->js_call_amd('mod_teamsattendance/unassigned_manager', 'init', [$js_config]);
 
 echo $OUTPUT->footer();
