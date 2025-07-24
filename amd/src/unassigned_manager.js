@@ -207,6 +207,10 @@ function($, Ajax, Notification, Str) {
                 return;
             }
 
+var filters = this.getCurrentFilters();
+console.log('JS DEBUG: currentFilter =', this.currentFilter);
+console.log('JS DEBUG: filters =', filters);
+
             $.ajax({
                 url: window.location.href,
                 method: 'GET',
@@ -215,7 +219,8 @@ function($, Ajax, Notification, Str) {
                     action: 'load_page',
                     page: page,
                     per_page: actualPageSize,
-                    filters: JSON.stringify(filters)
+                    filters: JSON.stringify(filters),
+                    sesskey: this.sesskey
                 },
                 success: function(response) {
                     if (response.success) {
