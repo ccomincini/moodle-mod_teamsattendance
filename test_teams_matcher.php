@@ -4,6 +4,7 @@
 // Test script for teams_id_matcher functionality
 // Run this script via CLI to test the new pattern matching algorithm
 
+define('CLI_SCRIPT', true);
 require_once('../../config.php');
 require_once($CFG->dirroot . '/mod/teamsattendance/classes/teams_id_matcher.php');
 
