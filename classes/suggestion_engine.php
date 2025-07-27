@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot . '/mod/teamsattendance/classes/email_pattern_matcher.php');
-require_once($CFG->dirroot . '/mod/teamsattendance/classes/name_parser.php');
+require_once($CFG->dirroot . '/mod/teamsattendance/classes/teams_id_matcher.php');
 
 /**
  * Main suggestion engine that coordinates matching logic
@@ -35,14 +35,14 @@ class suggestion_engine {
     /** @var email_pattern_matcher Email pattern matching component */
     private $email_matcher;
     
-    /** @var name_parser Name parsing component */
-    private $name_parser;
+    /** @var teams_id_matcher Teams ID pattern matching component */
+    private $teams_matcher;
     
     /** @var array Available users for assignment */
     private $available_users;
     
-    /** @var float Similarity threshold for name matching */
-    const NAME_SIMILARITY_THRESHOLD = 0.8;
+    /** @var float Similarity threshold for Teams ID matching */
+    const TEAMS_SIMILARITY_THRESHOLD = 0.7;
     
     /** @var float Similarity threshold for email matching */
     const EMAIL_SIMILARITY_THRESHOLD = 0.7;
@@ -55,7 +55,7 @@ class suggestion_engine {
     public function __construct($available_users) {
         $this->available_users = $available_users;
         $this->email_matcher = new email_pattern_matcher($available_users);
-        $this->name_parser = new name_parser();
+        $this->teams_matcher = new teams_id_matcher($available_users);
     }
     
     /**
@@ -72,7 +72,7 @@ class suggestion_engine {
     }
     
     /**
-     * Get name-based suggestions for unassigned records
+     * Get name-based suggestions using Teams ID pattern matching
      *
      * @param array $unassigned_records Array of unassigned records
      * @return array Name-based suggestions
@@ -85,11 +85,11 @@ class suggestion_engine {
                 continue;
             }
             
-            $teams_name = trim($record->teams_user_id);
-            $parsed_names = $this->name_parser->parse_teams_name($teams_name);
+            $teams_id = trim($record->teams_user_id);
             
-            if (!empty($parsed_names)) {
-                $best_match = $this->find_best_name_match($parsed_names);
+            // Use Teams ID pattern matcher for non-email IDs
+            if (!filter_var($teams_id, FILTER_VALIDATE_EMAIL)) {
+                $best_match = $this->teams_matcher->find_best_teams_match($teams_id);
                 if ($best_match) {
                     $suggestions[$record->id] = $best_match;
                 }
@@ -131,67 +131,6 @@ class suggestion_engine {
         }
         
         return $suggestions;
-    }
-    
-    /**
-     * Find best name match from parsed name variations
-     *
-     * @param array $parsed_names Array of parsed name combinations
-     * @return object|null Best matching user or null
-     */
-    private function find_best_name_match($parsed_names) {
-        $best_match = null;
-        $best_score = 0;
-        
-        foreach ($parsed_names as $name_combo) {
-            foreach ($this->available_users as $user) {
-                $score = $this->calculate_name_similarity($name_combo, $user);
-                
-                if ($score > $best_score && $score >= self::NAME_SIMILARITY_THRESHOLD) {
-                    $best_score = $score;
-                    $best_match = $user;
-                }
-            }
-        }
-        
-        return $best_match;
-    }
-    
-    /**
-     * Calculate similarity between parsed name and user
-     *
-     * @param array $parsed_name Parsed name array with firstname/lastname
-     * @param object $user User object
-     * @return float Similarity score (0-1)
-     */
-    private function calculate_name_similarity($parsed_name, $user) {
-        $firstname_similarity = $this->similarity_score(
-            strtolower($parsed_name['firstname']), 
-            strtolower($user->firstname)
-        );
-        
-        $lastname_similarity = $this->similarity_score(
-            strtolower($parsed_name['lastname']), 
-            strtolower($user->lastname)
-        );
-        
-        // Weight both names equally
-        return ($firstname_similarity + $lastname_similarity) / 2;
-    }
-    
-    /**
-     * Calculate similarity score using Levenshtein distance
-     *
-     * @param string $str1 First string
-     * @param string $str2 Second string
-     * @return float Similarity score (0-1)
-     */
-    private function similarity_score($str1, $str2) {
-        $max_len = max(strlen($str1), strlen($str2));
-        if ($max_len == 0) return 1.0;
-        
-        $distance = levenshtein($str1, $str2);
-        return 1 - ($distance / $max_len);
     }
     
     /**
