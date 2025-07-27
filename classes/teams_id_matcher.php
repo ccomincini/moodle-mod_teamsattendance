@@ -38,7 +38,10 @@ class teams_id_matcher {
     private $name_parser;
     
     /** @var float Similarity threshold for Teams ID matching */
-    const SIMILARITY_THRESHOLD = 0.75;
+    const SIMILARITY_THRESHOLD = 0.85; // Increased from 0.75
+    
+    /** @var array Italian prepositions and articles to handle separately */
+    private $italian_particles = ['di', 'da', 'de', 'del', 'della', 'delle', 'dei', 'degli', 'lo', 'la', 'le', 'il'];
     
     /**
      * Constructor
@@ -103,13 +106,18 @@ class teams_id_matcher {
                     continue;
                 }
                 
-                // Check if lastname appears in teams_id
-                if (strpos($teams_id, $lastname) !== false) {
+                // Try to find lastname with two-phase approach
+                $lastname_match = $this->find_lastname_in_text($teams_id, $lastname);
+                
+                if ($lastname_match['found']) {
                     // Found lastname, now check for firstname or initial
                     $firstname_score = $this->calculate_firstname_compatibility($teams_id, $firstname, $lastname);
                     
-                    if ($firstname_score > $best_score && $firstname_score >= self::SIMILARITY_THRESHOLD) {
-                        $best_score = $firstname_score;
+                    // Boost score for complete lastname matches vs partial
+                    $total_score = $firstname_score * $lastname_match['quality_multiplier'];
+                    
+                    if ($total_score > $best_score && $total_score >= self::SIMILARITY_THRESHOLD) {
+                        $best_score = $total_score;
                         $best_match = $user;
                     }
                 }
@@ -142,8 +150,8 @@ class teams_id_matcher {
                     continue;
                 }
                 
-                // Check if firstname appears in teams_id
-                if (strpos($teams_id, $firstname) !== false) {
+                // Check if firstname appears as whole word in teams_id
+                if ($this->find_whole_word($teams_id, $firstname)) {
                     // Found firstname, now check for lastname or initial
                     $lastname_score = $this->calculate_lastname_compatibility($teams_id, $lastname, $firstname);
                     
@@ -159,6 +167,56 @@ class teams_id_matcher {
     }
     
     /**
+     * Find lastname in text with two-phase approach
+     *
+     * @param string $text Text to search in
+     * @param string $lastname Lastname to search for
+     * @return array Result with 'found' boolean and 'quality_multiplier'
+     */
+    private function find_lastname_in_text($text, $lastname) {
+        // Phase 1: Try to find complete lastname
+        if ($this->find_whole_word($text, $lastname)) {
+            return ['found' => true, 'quality_multiplier' => 1.0]; // Perfect match
+        }
+        
+        // Phase 2: Try without particles (di, da, de, etc.)
+        $lastname_parts = explode(' ', strtolower($lastname));
+        $main_parts = [];
+        
+        foreach ($lastname_parts as $part) {
+            if (!in_array(trim($part), $this->italian_particles) && strlen(trim($part)) > 2) {
+                $main_parts[] = trim($part);
+            }
+        }
+        
+        // Check if any main part is found
+        foreach ($main_parts as $main_part) {
+            if ($this->find_whole_word($text, $main_part)) {
+                return ['found' => true, 'quality_multiplier' => 0.9]; // Good match but not perfect
+            }
+        }
+        
+        return ['found' => false, 'quality_multiplier' => 0];
+    }
+    
+    /**
+     * Find whole word in text (not substring)
+     *
+     * @param string $text Text to search in
+     * @param string $word Word to find
+     * @return bool True if word found as whole word
+     */
+    private function find_whole_word($text, $word) {
+        if (strlen($word) < 2) {
+            return false;
+        }
+        
+        // Use word boundaries to match complete words only
+        $pattern = '/\b' . preg_quote($word, '/') . '\b/i';
+        return preg_match($pattern, $text);
+    }
+    
+    /**
      * Calculate firstname compatibility when lastname is found
      *
      * @param string $teams_id Teams ID to search in
@@ -168,7 +226,7 @@ class teams_id_matcher {
      */
     private function calculate_firstname_compatibility($teams_id, $firstname, $found_lastname) {
         // Check for full firstname match
-        if (strpos($teams_id, $firstname) !== false) {
+        if ($this->find_whole_word($teams_id, $firstname)) {
             return 0.95; // High score for full name match
         }
         
@@ -184,7 +242,7 @@ class teams_id_matcher {
         
         foreach ($patterns as $pattern) {
             if (preg_match($pattern, $teams_id)) {
-                return 0.85; // Good score for initial match
+                return 0.90; // Good score for initial match
             }
         }
         
@@ -193,11 +251,11 @@ class teams_id_matcher {
             $compound_initial = substr($firstname, 0, 1) . '.' . substr($firstname, 1, 1) . '.';
             if (strpos($teams_id, $compound_initial) !== false || 
                 strpos($teams_id, substr($firstname, 0, 1) . substr($firstname, 1, 1)) !== false) {
-                return 0.85; // Good score for compound initial
+                return 0.90; // Good score for compound initial
             }
         }
         
-        return 0.75; // Minimum score when only lastname matches
+        return 0.85; // Minimum score when only lastname matches
     }
     
     /**
@@ -209,9 +267,11 @@ class teams_id_matcher {
      * @return float Compatibility score (0-1)
      */
     private function calculate_lastname_compatibility($teams_id, $lastname, $found_firstname) {
-        // Check for full lastname match
-        if (strpos($teams_id, $lastname) !== false) {
-            return 0.95; // High score for full name match
+        // Try to find lastname with two-phase approach
+        $lastname_match = $this->find_lastname_in_text($teams_id, $lastname);
+        
+        if ($lastname_match['found']) {
+            return 0.95 * $lastname_match['quality_multiplier']; // High score for lastname match
         }
         
         // Check for lastname initial
@@ -225,11 +285,11 @@ class teams_id_matcher {
         
         foreach ($patterns as $pattern) {
             if (preg_match($pattern, $teams_id)) {
-                return 0.80; // Good score for initial match
+                return 0.88; // Good score for initial match
             }
         }
         
-        return 0.75; // Minimum score when only firstname matches
+        return 0.85; // Minimum score when only firstname matches
     }
     
     /**
@@ -332,15 +392,20 @@ class teams_id_matcher {
             $lastname = $this->normalize_name($name_variation['lastname']);
             $firstname = $this->normalize_name($name_variation['firstname']);
             
-            if (strpos($cleaned_teams_id, $lastname) !== false) {
+            $lastname_match = $this->find_lastname_in_text($cleaned_teams_id, $lastname);
+            if ($lastname_match['found']) {
                 $score = $this->calculate_firstname_compatibility($cleaned_teams_id, $firstname, $lastname);
+                $total_score = $score * $lastname_match['quality_multiplier'];
+                
                 $details['lastname_first_results'][] = array(
                     'lastname' => $lastname,
                     'firstname' => $firstname,
                     'found_lastname' => true,
-                    'score' => $score
+                    'lastname_quality' => $lastname_match['quality_multiplier'],
+                    'score' => $score,
+                    'total_score' => $total_score
                 );
-                $details['best_score'] = max($details['best_score'], $score);
+                $details['best_score'] = max($details['best_score'], $total_score);
             }
         }
         
@@ -349,7 +414,7 @@ class teams_id_matcher {
             $lastname = $this->normalize_name($name_variation['lastname']);
             $firstname = $this->normalize_name($name_variation['firstname']);
             
-            if (strpos($cleaned_teams_id, $firstname) !== false) {
+            if ($this->find_whole_word($cleaned_teams_id, $firstname)) {
                 $score = $this->calculate_lastname_compatibility($cleaned_teams_id, $lastname, $firstname);
                 $details['firstname_first_results'][] = array(
                     'lastname' => $lastname,
