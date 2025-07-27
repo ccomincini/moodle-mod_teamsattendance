@@ -27,7 +27,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/mod/teamsattendance/classes/name_parser.php');
 
 /**
- * Handles Teams ID pattern matching using email pattern logic
+ * Handles Teams ID pattern matching using word extraction and pattern generation
  */
 class teams_id_matcher {
     
@@ -71,17 +71,22 @@ class teams_id_matcher {
      * @return object|null Best matching user or null
      */
     public function find_best_teams_match($teams_id) {
-        $clean_id = $this->extract_clean_identifier($teams_id);
-        
-        if (empty($clean_id) || strlen($clean_id) < 3) {
+        // Skip emails
+        if (filter_var($teams_id, FILTER_VALIDATE_EMAIL)) {
             return null;
+        }
+        
+        $candidate_words = $this->extract_candidate_words($teams_id);
+        
+        if (count($candidate_words) < 2) {
+            return null; // Need at least 2 words for name matching
         }
         
         $best_match = null;
         $best_score = 0;
         
         foreach ($this->available_users as $user) {
-            $score = $this->calculate_teams_similarity($clean_id, $user);
+            $score = $this->calculate_teams_similarity($candidate_words, $user);
             
             if ($score > $best_score && $score >= self::SIMILARITY_THRESHOLD) {
                 $best_score = $score;
@@ -93,42 +98,81 @@ class teams_id_matcher {
     }
     
     /**
-     * Extract clean identifier from Teams ID (equivalent to email local_part)
+     * Extract candidate words from Teams ID (preserve names, remove noise)
      *
      * @param string $teams_id Raw Teams ID
-     * @return string Clean identifier
+     * @return array Array of candidate words
      */
-    private function extract_clean_identifier($teams_id) {
-        $clean = strtolower(trim($teams_id));
+    private function extract_candidate_words($teams_id) {
+        $text = strtolower(trim($teams_id));
         
-        // Skip if it's an email
-        if (filter_var($teams_id, FILTER_VALIDATE_EMAIL)) {
-            return '';
+        // Split on common separators
+        $text = preg_replace('/[,\-_()|\[\]{}]/', ' ', $text);
+        
+        // Split into words
+        $words = preg_split('/\s+/', $text);
+        
+        $candidates = [];
+        
+        foreach ($words as $word) {
+            $word = trim($word);
+            
+            // Skip if too short
+            if (strlen($word) < 2) {
+                continue;
+            }
+            
+            // Skip common noise words
+            if ($this->is_noise_word($word)) {
+                continue;
+            }
+            
+            // Clean word (remove dots, keep letters and numbers)
+            $clean_word = preg_replace('/[^a-z0-9]/', '', $word);
+            
+            // Keep words that look like names (at least 2 chars, not all numbers)
+            if (strlen($clean_word) >= 2 && !is_numeric($clean_word)) {
+                $candidates[] = $clean_word;
+            }
         }
         
-        // Remove common separators and keep alphanumeric
-        $clean = preg_replace('/[^a-z0-9\s]/', ' ', $clean);
+        return array_unique($candidates);
+    }
+    
+    /**
+     * Check if word is noise (titles, organizations, etc)
+     *
+     * @param string $word Word to check
+     * @return bool True if noise word
+     */
+    private function is_noise_word($word) {
+        $noise_words = [
+            // Titles
+            'dott', 'dr', 'arch', 'ing', 'geom', 'avv', 'prof', 'sig', 'dott.ssa',
+            'sindaco', 'presidente', 'direttore', 'assessore',
+            
+            // Organizations
+            'comune', 'provincia', 'regione', 'aipo', 'utc', 'uclam',
+            'ufficio', 'tecnico', 'ufficiotecnico', 'protezione', 'civile',
+            'polizia', 'locale', 'cm', 'comunita', 'montana',
+            
+            // Generic
+            'di', 'da', 'del', 'della', 'dei', 'delle', 'il', 'la', 'lo', 'gli', 'le',
+            'e', 'ed', 'o', 'od', 'per', 'con', 'su', 'in', 'a', 'tra', 'fra',
+            'guest', 'meeting', 'partecipante', 'participant', 'user', 'utente'
+        ];
         
-        // Remove multiple spaces
-        $clean = preg_replace('/\s+/', ' ', $clean);
-        
-        // Extract meaningful parts (words >= 2 chars)
-        $parts = array_filter(explode(' ', $clean), function($part) {
-            return strlen($part) >= 2;
-        });
-        
-        // Join parts without spaces for pattern matching
-        return implode('', $parts);
+        return in_array(strtolower($word), $noise_words);
     }
     
     /**
      * Calculate Teams ID similarity using pattern matching
      *
-     * @param string $clean_id Clean Teams identifier
+     * @param array $candidate_words Extracted candidate words
      * @param object $user User object to match against
      * @return float Similarity score (0-1)
      */
-    private function calculate_teams_similarity($clean_id, $user) {
+    private function calculate_teams_similarity($candidate_words, $user) {
         $user_names = $this->name_parser->parse_user_names($user);
         
         $best_score = 0;
@@ -144,37 +188,70 @@ class teams_id_matcher {
                 continue;
             }
             
-            $scores = array();
+            // Test all possible combinations of candidate words
+            $combinations = $this->generate_word_combinations($candidate_words);
             
-            $patterns = $this->generate_patterns($firstname_clean, $lastname_clean);
-            
-            for ($i = 0; $i < count($patterns); $i++) {
-                $pattern = $patterns[$i];
+            foreach ($combinations as $combo) {
+                if (count($combo) < 2) continue;
                 
-                if (empty($pattern)) {
-                    continue;
-                }
+                $scores = [];
                 
-                $similarity = $this->similarity_score($clean_id, $pattern);
+                // Generate patterns from this word combination
+                $patterns = $this->generate_patterns($combo[0], $combo[1]);
                 
-                if ($this->patterns_config[$i]['check_ambiguity'] && $similarity > 0.8) {
-                    if ($this->check_pattern_ambiguity($pattern, $i, $user)) {
-                        $similarity = 0;
+                // Test patterns against user
+                $user_patterns = $this->generate_patterns($firstname_clean, $lastname_clean);
+                
+                for ($i = 0; $i < count($patterns); $i++) {
+                    $pattern = $patterns[$i];
+                    $user_pattern = $user_patterns[$i];
+                    
+                    if (empty($pattern) || empty($user_pattern)) {
+                        continue;
+                    }
+                    
+                    $similarity = $this->similarity_score($pattern, $user_pattern);
+                    
+                    if ($this->patterns_config[$i]['check_ambiguity'] && $similarity > 0.8) {
+                        if ($this->check_pattern_ambiguity($user_pattern, $i, $user)) {
+                            $similarity = 0;
+                        }
+                    }
+                    
+                    if ($similarity > 0) {
+                        $scores[] = $similarity;
                     }
                 }
                 
-                if ($similarity > 0) {
-                    $scores[] = $similarity;
+                if (!empty($scores)) {
+                    $combo_score = max($scores);
+                    $best_score = max($best_score, $combo_score);
                 }
-            }
-            
-            if (!empty($scores)) {
-                $variation_score = max($scores);
-                $best_score = max($best_score, $variation_score);
             }
         }
         
         return $best_score;
+    }
+    
+    /**
+     * Generate all 2-word combinations from candidate words
+     *
+     * @param array $words Array of candidate words
+     * @return array Array of word combinations
+     */
+    private function generate_word_combinations($words) {
+        $combinations = [];
+        
+        // Add all possible 2-word combinations
+        for ($i = 0; $i < count($words); $i++) {
+            for ($j = 0; $j < count($words); $j++) {
+                if ($i !== $j) {
+                    $combinations[] = [$words[$i], $words[$j]];
+                }
+            }
+        }
+        
+        return $combinations;
     }
     
     /**
@@ -185,6 +262,10 @@ class teams_id_matcher {
      * @return array Array of patterns
      */
     private function generate_patterns($firstname_clean, $lastname_clean) {
+        if (empty($firstname_clean) || empty($lastname_clean)) {
+            return array_fill(0, 10, '');
+        }
+        
         return array(
             $firstname_clean . $lastname_clean,
             $lastname_clean . $firstname_clean,
@@ -225,9 +306,8 @@ class teams_id_matcher {
                     continue;
                 }
                 
-                $user_pattern = $this->generate_pattern_for_index($pattern_index, $firstname, $lastname);
-                
-                if ($user_pattern === $pattern) {
+                $user_patterns = $this->generate_patterns($firstname, $lastname);
+                if (isset($user_patterns[$pattern_index]) && $user_patterns[$pattern_index] === $pattern) {
                     $matching_users++;
                     if ($matching_users >= 1) {
                         return true;
@@ -237,30 +317,6 @@ class teams_id_matcher {
         }
         
         return false;
-    }
-    
-    /**
-     * Generate specific pattern by index
-     *
-     * @param int $pattern_index Pattern index
-     * @param string $firstname Cleaned firstname
-     * @param string $lastname Cleaned lastname
-     * @return string Generated pattern
-     */
-    private function generate_pattern_for_index($pattern_index, $firstname, $lastname) {
-        switch ($pattern_index) {
-            case 2:
-            case 8:
-                return $firstname[0] . $lastname;
-            case 3:
-                return $lastname . $firstname[0];
-            case 4:
-                return $firstname . $lastname[0];
-            case 7:
-                return $firstname[0] . $lastname[0];
-            default:
-                return '';
-        }
     }
     
     /**
