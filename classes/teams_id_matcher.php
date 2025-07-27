@@ -27,7 +27,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/mod/teamsattendance/classes/name_parser.php');
 
 /**
- * Handles Teams ID pattern matching using improved word extraction and pattern generation
+ * Handles Teams ID pattern matching with enhanced normalization and initials support
  */
 class teams_id_matcher {
     
@@ -37,8 +37,11 @@ class teams_id_matcher {
     /** @var name_parser Name parser instance */
     private $name_parser;
     
-    /** @var float Similarity threshold for matching - increased to reduce false positives */
+    /** @var float Similarity threshold for matching */
     const SIMILARITY_THRESHOLD = 0.85;
+    
+    /** @var float Similarity threshold for initial matches */
+    const INITIAL_SIMILARITY_THRESHOLD = 0.90;
     
     /**
      * Constructor
@@ -104,7 +107,7 @@ class teams_id_matcher {
             $word = trim($word);
             
             // Skip if too short
-            if (strlen($word) < 2) {
+            if (strlen($word) < 1) {
                 continue;
             }
             
@@ -113,16 +116,49 @@ class teams_id_matcher {
                 continue;
             }
             
-            // Clean word (remove dots, keep letters and numbers)
-            $clean_word = preg_replace('/[^a-z0-9]/', '', $word);
+            // Clean word with enhanced normalization
+            $clean_word = $this->normalize_word($word);
             
-            // Keep words that look like names (at least 2 chars, not all numbers)
-            if (strlen($clean_word) >= 2 && !is_numeric($clean_word)) {
+            // Keep words that look like names (at least 1 char for initials)
+            if (strlen($clean_word) >= 1 && !is_numeric($clean_word)) {
                 $candidates[] = $clean_word;
             }
         }
         
         return array_unique($candidates);
+    }
+    
+    /**
+     * Normalize word with accent handling and apostrophe substitution
+     *
+     * @param string $word Word to normalize
+     * @return string Normalized word
+     */
+    private function normalize_word($word) {
+        // Remove dots but keep letters, numbers, apostrophes
+        $word = preg_replace('/[^a-z0-9\']/', '', $word);
+        
+        // Handle apostrophe substitutions for accented letters
+        $apostrophe_map = [
+            "a'" => 'a', "e'" => 'e', "i'" => 'i', "o'" => 'o', "u'" => 'u',
+            "A'" => 'a', "E'" => 'e', "I'" => 'i', "O'" => 'o', "U'" => 'u'
+        ];
+        
+        foreach ($apostrophe_map as $apostrophe => $replacement) {
+            $word = str_replace($apostrophe, $replacement, $word);
+        }
+        
+        // Remove accents from letters
+        $accent_map = [
+            'à' => 'a', 'á' => 'a', 'â' => 'a', 'ã' => 'a', 'ä' => 'a', 'å' => 'a',
+            'è' => 'e', 'é' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'ì' => 'i', 'í' => 'i', 'î' => 'i', 'ï' => 'i',
+            'ò' => 'o', 'ó' => 'o', 'ô' => 'o', 'õ' => 'o', 'ö' => 'o',
+            'ù' => 'u', 'ú' => 'u', 'û' => 'u', 'ü' => 'u',
+            'ç' => 'c', 'ñ' => 'n'
+        ];
+        
+        return strtr($word, $accent_map);
     }
     
     /**
@@ -152,7 +188,7 @@ class teams_id_matcher {
     }
     
     /**
-     * Calculate Teams ID similarity using improved pattern matching
+     * Calculate Teams ID similarity using enhanced pattern matching
      *
      * @param array $candidate_words Extracted candidate words
      * @param object $user User object to match against
@@ -167,8 +203,8 @@ class teams_id_matcher {
             $firstname = strtolower($names['firstname']);
             $lastname = strtolower($names['lastname']);
             
-            $firstname_clean = preg_replace('/[^a-z0-9]/', '', $firstname);
-            $lastname_clean = preg_replace('/[^a-z0-9]/', '', $lastname);
+            $firstname_clean = $this->normalize_word($firstname);
+            $lastname_clean = $this->normalize_word($lastname);
             
             if (empty($firstname_clean) || empty($lastname_clean)) {
                 continue;
@@ -181,6 +217,13 @@ class teams_id_matcher {
                 continue;
             }
             
+            // Try initial combinations with anti-ambiguity check
+            $initial_score = $this->calculate_initial_match($candidate_words, $firstname_clean, $lastname_clean, $user);
+            if ($initial_score > 0) {
+                $best_score = max($best_score, $initial_score);
+                continue;
+            }
+            
             // Try pattern combinations
             $pattern_score = $this->calculate_pattern_score($candidate_words, $firstname_clean, $lastname_clean);
             $best_score = max($best_score, $pattern_score);
@@ -190,7 +233,7 @@ class teams_id_matcher {
     }
     
     /**
-     * Calculate exact word match score (both first and last name must match)
+     * Calculate exact word match score (both first and last name must match, order flexible)
      *
      * @param array $candidate_words Words from Teams ID
      * @param string $firstname_clean Clean firstname
@@ -213,12 +256,115 @@ class teams_id_matcher {
             }
         }
         
-        // Both names must be found for high score
+        // Both names must be found for high score (order doesn't matter)
         if ($firstname_found && $lastname_found) {
             return 0.95; // Very high score for exact matches
         }
         
         return 0; // No score if not both names found
+    }
+    
+    /**
+     * Calculate initial match score with anti-ambiguity check
+     *
+     * @param array $candidate_words Words from Teams ID
+     * @param string $firstname_clean Clean firstname
+     * @param string $lastname_clean Clean lastname
+     * @param object $user Current user being matched
+     * @return float Score (0-1)
+     */
+    private function calculate_initial_match($candidate_words, $firstname_clean, $lastname_clean, $user) {
+        foreach ($candidate_words as $i => $word1) {
+            foreach ($candidate_words as $j => $word2) {
+                if ($i === $j) continue;
+                
+                // Pattern 1: full firstname + initial lastname
+                if ($this->similarity_score($word1, $firstname_clean) >= 0.9 && 
+                    strlen($word2) === 1 && $word2 === $lastname_clean[0]) {
+                    
+                    if (!$this->is_initial_ambiguous($firstname_clean, $word2, 'lastname', $user)) {
+                        return 0.90;
+                    }
+                }
+                
+                // Pattern 2: initial firstname + full lastname
+                if (strlen($word1) === 1 && $word1 === $firstname_clean[0] && 
+                    $this->similarity_score($word2, $lastname_clean) >= 0.9) {
+                    
+                    if (!$this->is_initial_ambiguous($word1, $lastname_clean, 'firstname', $user)) {
+                        return 0.90;
+                    }
+                }
+                
+                // Pattern 3: full lastname + initial firstname (inverted)
+                if ($this->similarity_score($word1, $lastname_clean) >= 0.9 && 
+                    strlen($word2) === 1 && $word2 === $firstname_clean[0]) {
+                    
+                    if (!$this->is_initial_ambiguous($lastname_clean, $word2, 'firstname', $user)) {
+                        return 0.90;
+                    }
+                }
+                
+                // Pattern 4: initial lastname + full firstname (inverted)
+                if (strlen($word1) === 1 && $word1 === $lastname_clean[0] && 
+                    $this->similarity_score($word2, $firstname_clean) >= 0.9) {
+                    
+                    if (!$this->is_initial_ambiguous($word1, $firstname_clean, 'lastname', $user)) {
+                        return 0.90;
+                    }
+                }
+            }
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Check if initial match would be ambiguous with other users
+     *
+     * @param string $full_name The full name that matches
+     * @param string $initial The initial letter
+     * @param string $initial_type Whether initial is for 'firstname' or 'lastname'
+     * @param object $current_user Current user being matched
+     * @return bool True if ambiguous
+     */
+    private function is_initial_ambiguous($full_name, $initial, $initial_type, $current_user) {
+        $matching_users = 0;
+        
+        foreach ($this->available_users as $user) {
+            if ($user->id === $current_user->id) {
+                continue;
+            }
+            
+            $user_names = $this->name_parser->parse_user_names($user);
+            
+            foreach ($user_names as $names) {
+                $user_firstname = $this->normalize_word(strtolower($names['firstname']));
+                $user_lastname = $this->normalize_word(strtolower($names['lastname']));
+                
+                if ($initial_type === 'firstname') {
+                    // Check if another user has same lastname + different firstname with same initial
+                    if ($this->similarity_score($user_lastname, $full_name) >= 0.9 && 
+                        !empty($user_firstname) && $user_firstname[0] === $initial &&
+                        $this->similarity_score($user_firstname, $full_name) < 0.9) {
+                        $matching_users++;
+                    }
+                } else {
+                    // Check if another user has same firstname + different lastname with same initial
+                    if ($this->similarity_score($user_firstname, $full_name) >= 0.9 && 
+                        !empty($user_lastname) && $user_lastname[0] === $initial &&
+                        $this->similarity_score($user_lastname, $full_name) < 0.9) {
+                        $matching_users++;
+                    }
+                }
+                
+                if ($matching_users >= 1) {
+                    return true; // Ambiguous
+                }
+            }
+        }
+        
+        return false; // Not ambiguous
     }
     
     /**
@@ -244,7 +390,7 @@ class teams_id_matcher {
                 $score1 = ($this->similarity_score($word1, $firstname_clean) + 
                           $this->similarity_score($word2, $lastname_clean)) / 2;
                 
-                // Pattern 2: word1=lastname, word2=firstname
+                // Pattern 2: word1=lastname, word2=firstname (order flexible)
                 $score2 = ($this->similarity_score($word1, $lastname_clean) + 
                           $this->similarity_score($word2, $firstname_clean)) / 2;
                 
