@@ -62,18 +62,57 @@ class teams_id_matcher {
             return null;
         }
         
-        // Parse Teams ID into possible name combinations
-        $teams_names = $this->name_parser->parse_teams_name($teams_id);
+        // Clean and normalize the Teams ID
+        $cleaned_teams_id = $this->normalize_teams_id($teams_id);
         
+        // Phase 1: Search by lastname first (more reliable)
+        $match = $this->find_by_lastname_first($cleaned_teams_id);
+        if ($match) {
+            return $match;
+        }
+        
+        // Phase 2: Search by firstname first (fallback)
+        $match = $this->find_by_firstname_first($cleaned_teams_id);
+        if ($match) {
+            return $match;
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Phase 1: Find match by searching lastname first, then firstname/initial
+     *
+     * @param string $teams_id Cleaned Teams ID
+     * @return object|null Best matching user
+     */
+    private function find_by_lastname_first($teams_id) {
         $best_match = null;
         $best_score = 0;
         
         foreach ($this->available_users as $user) {
-            $score = $this->calculate_teams_similarity($teams_names, $user);
+            // Get all name variations for this user
+            $user_names = $this->name_parser->parse_user_names($user);
             
-            if ($score > $best_score && $score >= self::SIMILARITY_THRESHOLD) {
-                $best_score = $score;
-                $best_match = $user;
+            foreach ($user_names as $name_variation) {
+                $lastname = $this->normalize_name($name_variation['lastname']);
+                $firstname = $this->normalize_name($name_variation['firstname']);
+                
+                // Skip if names are too short
+                if (strlen($lastname) < 2 || strlen($firstname) < 1) {
+                    continue;
+                }
+                
+                // Check if lastname appears in teams_id
+                if (strpos($teams_id, $lastname) !== false) {
+                    // Found lastname, now check for firstname or initial
+                    $firstname_score = $this->calculate_firstname_compatibility($teams_id, $firstname, $lastname);
+                    
+                    if ($firstname_score > $best_score && $firstname_score >= self::SIMILARITY_THRESHOLD) {
+                        $best_score = $firstname_score;
+                        $best_match = $user;
+                    }
+                }
             }
         }
         
@@ -81,173 +120,190 @@ class teams_id_matcher {
     }
     
     /**
-     * Calculate similarity between Teams names and user names
+     * Phase 2: Find match by searching firstname first, then lastname/initial
      *
-     * @param array $teams_names Parsed Teams name variations
-     * @param object $user User object to match against
-     * @return float Similarity score (0-1)
+     * @param string $teams_id Cleaned Teams ID
+     * @return object|null Best matching user
      */
-    private function calculate_teams_similarity($teams_names, $user) {
-        // Parse user names to handle edge cases
-        $user_names = $this->name_parser->parse_user_names($user);
-        
+    private function find_by_firstname_first($teams_id) {
+        $best_match = null;
         $best_score = 0;
         
-        // Test all combinations of Teams names vs User names
-        foreach ($teams_names as $teams_name) {
-            foreach ($user_names as $user_name) {
-                $score = $this->compare_name_pairs($teams_name, $user_name);
-                $best_score = max($best_score, $score);
-            }
-        }
-        
-        return $best_score;
-    }
-    
-    /**
-     * Compare two name pairs using enhanced string matching
-     *
-     * @param array $teams_name Teams name array (firstname, lastname)
-     * @param array $user_name User name array (firstname, lastname)
-     * @return float Similarity score (0-1)
-     */
-    private function compare_name_pairs($teams_name, $user_name) {
-        // Normalize and tokenize names
-        $teams_tokens = $this->tokenize_name($teams_name['firstname'] . ' ' . $teams_name['lastname']);
-        $user_tokens = $this->tokenize_name($user_name['firstname'] . ' ' . $user_name['lastname']);
-        
-        if (empty($teams_tokens) || empty($user_tokens)) {
-            return 0;
-        }
-        
-        return $this->calculate_token_similarity($teams_tokens, $user_tokens);
-    }
-    
-    /**
-     * Tokenize name into normalized word candidates
-     *
-     * @param string $full_name Full name string
-     * @return array Array of normalized tokens
-     */
-    private function tokenize_name($full_name) {
-        // Convert to lowercase and split into words
-        $words = preg_split('/\s+/', trim(strtolower($full_name)));
-        $candidates = array();
-        
-        foreach ($words as $word) {
-            if (empty($word)) {
-                continue;
-            }
+        foreach ($this->available_users as $user) {
+            // Get all name variations for this user
+            $user_names = $this->name_parser->parse_user_names($user);
             
-            // Handle apostrophe substitutions for accented letters
-            $apostrophe_map = [
-                "a'" => 'a', "e'" => 'e', "i'" => 'i', "o'" => 'o', "u'" => 'u',
-                "A'" => 'a', "E'" => 'e', "I'" => 'i', "O'" => 'o', "U'" => 'u'
-            ];
-            
-            foreach ($apostrophe_map as $apostrophe => $replacement) {
-                $word = str_replace($apostrophe, $replacement, $word);
-            }
-            
-            // Remove accents from letters (enhanced with more characters)
-            $accent_map = [
-                'à' => 'a', 'á' => 'a', 'â' => 'a', 'ã' => 'a', 'ä' => 'a', 'å' => 'a',
-                'è' => 'e', 'é' => 'e', 'ê' => 'e', 'ë' => 'e',
-                'ì' => 'i', 'í' => 'i', 'î' => 'i', 'ï' => 'i',
-                'ò' => 'o', 'ó' => 'o', 'ô' => 'o', 'õ' => 'o', 'ö' => 'o',
-                'ù' => 'u', 'ú' => 'u', 'û' => 'u', 'ü' => 'u',
-                'ç' => 'c', 'ñ' => 'n', 'ý' => 'y', 'ÿ' => 'y',
-                'À' => 'a', 'Á' => 'a', 'Â' => 'a', 'Ã' => 'a', 'Ä' => 'a', 'Å' => 'a',
-                'È' => 'e', 'É' => 'e', 'Ê' => 'e', 'Ë' => 'e',
-                'Ì' => 'i', 'Í' => 'i', 'Î' => 'i', 'Ï' => 'i',
-                'Ò' => 'o', 'Ó' => 'o', 'Ô' => 'o', 'Õ' => 'o', 'Ö' => 'o',
-                'Ù' => 'u', 'Ú' => 'u', 'Û' => 'u', 'Ü' => 'u',
-                'Ç' => 'c', 'Ñ' => 'n', 'Ý' => 'y', 'Ÿ' => 'y'
-            ];
-            
-            $word = strtr($word, $accent_map);
-            
-            // Clean word but keep dots for initials like "J.C."
-            $clean_word = preg_replace('/[^a-z0-9\'\.]/', '', $word);
-            
-            // Keep words that look like names (at least 1 char for initials)
-            if (strlen($clean_word) >= 1 && !is_numeric($clean_word)) {
-                // Handle compound initials like "J.C." -> "jc"
-                if (preg_match('/^[a-z]\.?[a-z]\.?$/i', $clean_word)) {
-                    $clean_word = str_replace('.', '', $clean_word);
+            foreach ($user_names as $name_variation) {
+                $lastname = $this->normalize_name($name_variation['lastname']);
+                $firstname = $this->normalize_name($name_variation['firstname']);
+                
+                // Skip if names are too short
+                if (strlen($lastname) < 2 || strlen($firstname) < 2) {
+                    continue;
                 }
-                $candidates[] = $clean_word;
+                
+                // Check if firstname appears in teams_id
+                if (strpos($teams_id, $firstname) !== false) {
+                    // Found firstname, now check for lastname or initial
+                    $lastname_score = $this->calculate_lastname_compatibility($teams_id, $lastname, $firstname);
+                    
+                    if ($lastname_score > $best_score && $lastname_score >= self::SIMILARITY_THRESHOLD) {
+                        $best_score = $lastname_score;
+                        $best_match = $user;
+                    }
+                }
             }
         }
         
-        return array_unique($candidates);
+        return $best_match;
     }
     
     /**
-     * Calculate similarity between two sets of tokens
+     * Calculate firstname compatibility when lastname is found
      *
-     * @param array $tokens1 First set of tokens
-     * @param array $tokens2 Second set of tokens
-     * @return float Similarity score (0-1)
+     * @param string $teams_id Teams ID to search in
+     * @param string $firstname Normalized firstname to look for
+     * @param string $found_lastname Lastname that was already found
+     * @return float Compatibility score (0-1)
      */
-    private function calculate_token_similarity($tokens1, $tokens2) {
-        $total_similarity = 0;
-        $comparisons = 0;
-        
-        foreach ($tokens1 as $token1) {
-            $best_token_similarity = 0;
-            
-            foreach ($tokens2 as $token2) {
-                $similarity = $this->string_similarity($token1, $token2);
-                $best_token_similarity = max($best_token_similarity, $similarity);
-            }
-            
-            $total_similarity += $best_token_similarity;
-            $comparisons++;
+    private function calculate_firstname_compatibility($teams_id, $firstname, $found_lastname) {
+        // Check for full firstname match
+        if (strpos($teams_id, $firstname) !== false) {
+            return 0.95; // High score for full name match
         }
         
-        // Average similarity across all tokens
-        return $comparisons > 0 ? $total_similarity / $comparisons : 0;
+        // Check for initial match (first character)
+        $initial = substr($firstname, 0, 1);
+        
+        // Look for patterns like "J.C." or "J C" or "J" followed by lastname
+        $patterns = [
+            '/\b' . preg_quote($initial, '/') . '\.?\s*' . preg_quote($found_lastname, '/') . '\b/i',
+            '/\b' . preg_quote($found_lastname, '/') . '\s+' . preg_quote($initial, '/') . '\.?\b/i',
+            '/\b' . preg_quote($initial, '/') . '\.?\b.*' . preg_quote($found_lastname, '/') . '/i'
+        ];
+        
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $teams_id)) {
+                return 0.85; // Good score for initial match
+            }
+        }
+        
+        // Check for compound initials like "J.C."
+        if (strlen($firstname) >= 2) {
+            $compound_initial = substr($firstname, 0, 1) . '.' . substr($firstname, 1, 1) . '.';
+            if (strpos($teams_id, $compound_initial) !== false || 
+                strpos($teams_id, substr($firstname, 0, 1) . substr($firstname, 1, 1)) !== false) {
+                return 0.85; // Good score for compound initial
+            }
+        }
+        
+        return 0.75; // Minimum score when only lastname matches
     }
     
     /**
-     * Calculate string similarity using Levenshtein distance with improvements
+     * Calculate lastname compatibility when firstname is found
      *
-     * @param string $str1 First string
-     * @param string $str2 Second string
-     * @return float Similarity score (0-1)
+     * @param string $teams_id Teams ID to search in
+     * @param string $lastname Normalized lastname to look for
+     * @param string $found_firstname Firstname that was already found
+     * @return float Compatibility score (0-1)
      */
-    private function string_similarity($str1, $str2) {
-        // Exact match
-        if ($str1 === $str2) {
-            return 1.0;
+    private function calculate_lastname_compatibility($teams_id, $lastname, $found_firstname) {
+        // Check for full lastname match
+        if (strpos($teams_id, $lastname) !== false) {
+            return 0.95; // High score for full name match
         }
         
-        $len1 = strlen($str1);
-        $len2 = strlen($str2);
+        // Check for lastname initial
+        $initial = substr($lastname, 0, 1);
         
-        // Handle empty strings
-        if ($len1 === 0 || $len2 === 0) {
-            return 0.0;
-        }
+        // Look for patterns with lastname initial
+        $patterns = [
+            '/\b' . preg_quote($found_firstname, '/') . '\s+' . preg_quote($initial, '/') . '\.?\b/i',
+            '/\b' . preg_quote($initial, '/') . '\.?\s*' . preg_quote($found_firstname, '/') . '\b/i'
+        ];
         
-        // Handle initials vs full names (e.g., "j" vs "john")
-        if ($len1 === 1 || $len2 === 1) {
-            $short = $len1 === 1 ? $str1 : $str2;
-            $long = $len1 === 1 ? $str2 : $str1;
-            
-            // Initial match (first character)
-            if (strtolower($short[0]) === strtolower($long[0])) {
-                return 0.8; // High similarity for initial match
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $teams_id)) {
+                return 0.80; // Good score for initial match
             }
-            return 0.0;
         }
         
-        // Standard Levenshtein similarity
-        $max_len = max($len1, $len2);
-        $distance = levenshtein($str1, $str2);
+        return 0.75; // Minimum score when only firstname matches
+    }
+    
+    /**
+     * Normalize Teams ID by cleaning and removing organizational noise
+     *
+     * @param string $teams_id Raw Teams ID
+     * @return string Normalized Teams ID
+     */
+    private function normalize_teams_id($teams_id) {
+        $normalized = strtolower(trim($teams_id));
         
-        return 1 - ($distance / $max_len);
+        // Remove organizational suffixes/prefixes
+        $organizational_patterns = [
+            '/-\s*(comune|provincia|cm|aipo|uclam|prot\.?\s*civile).*$/i',
+            '/\s*-\s*(guest|sindaco|mayor|presidente|direttore).*$/i',
+            '/\((guest|ospite)\)$/i',
+            '/^(dott\.?|dr\.?|arch\.?|ing\.?|geom\.?|avv\.?|prof\.?|c\.te)\s+/i',
+            '/\s+(guest|ospite)$/i'
+        ];
+        
+        foreach ($organizational_patterns as $pattern) {
+            $normalized = preg_replace($pattern, '', $normalized);
+        }
+        
+        // Handle accented characters and apostrophes
+        $normalized = $this->normalize_name($normalized);
+        
+        return trim($normalized);
+    }
+    
+    /**
+     * Normalize name by handling accents, apostrophes and special characters
+     *
+     * @param string $name Name to normalize
+     * @return string Normalized name
+     */
+    private function normalize_name($name) {
+        $normalized = strtolower(trim($name));
+        
+        // Handle apostrophe substitutions for accented letters
+        $apostrophe_map = [
+            "a'" => 'a', "e'" => 'e', "i'" => 'i', "o'" => 'o', "u'" => 'u',
+            "A'" => 'a', "E'" => 'e', "I'" => 'i', "O'" => 'o', "U'" => 'u'
+        ];
+        
+        foreach ($apostrophe_map as $apostrophe => $replacement) {
+            $normalized = str_replace($apostrophe, $replacement, $normalized);
+        }
+        
+        // Remove accents from letters
+        $accent_map = [
+            'à' => 'a', 'á' => 'a', 'â' => 'a', 'ã' => 'a', 'ä' => 'a', 'å' => 'a',
+            'è' => 'e', 'é' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'ì' => 'i', 'í' => 'i', 'î' => 'i', 'ï' => 'i',
+            'ò' => 'o', 'ó' => 'o', 'ô' => 'o', 'õ' => 'o', 'ö' => 'o',
+            'ù' => 'u', 'ú' => 'u', 'û' => 'u', 'ü' => 'u',
+            'ç' => 'c', 'ñ' => 'n', 'ý' => 'y', 'ÿ' => 'y',
+            'À' => 'a', 'Á' => 'a', 'Â' => 'a', 'Ã' => 'a', 'Ä' => 'a', 'Å' => 'a',
+            'È' => 'e', 'É' => 'e', 'Ê' => 'e', 'Ë' => 'e',
+            'Ì' => 'i', 'Í' => 'i', 'Î' => 'i', 'Ï' => 'i',
+            'Ò' => 'o', 'Ó' => 'o', 'Ô' => 'o', 'Õ' => 'o', 'Ö' => 'o',
+            'Ù' => 'u', 'Ú' => 'u', 'Û' => 'u', 'Ü' => 'u',
+            'Ç' => 'c', 'Ñ' => 'n', 'Ý' => 'y', 'Ÿ' => 'y'
+        ];
+        
+        $normalized = strtr($normalized, $accent_map);
+        
+        // Remove punctuation but keep spaces and basic characters
+        $normalized = preg_replace('/[^\w\s]/', ' ', $normalized);
+        
+        // Normalize whitespace
+        $normalized = preg_replace('/\s+/', ' ', trim($normalized));
+        
+        return $normalized;
     }
     
     /**
@@ -258,35 +314,75 @@ class teams_id_matcher {
      * @return array Detailed matching information
      */
     public function get_matching_details($teams_id, $user) {
-        $teams_names = $this->name_parser->parse_teams_name($teams_id);
+        $cleaned_teams_id = $this->normalize_teams_id($teams_id);
         $user_names = $this->name_parser->parse_user_names($user);
         
         $details = array(
             'teams_id' => $teams_id,
+            'cleaned_teams_id' => $cleaned_teams_id,
             'user_fullname' => $user->firstname . ' ' . $user->lastname,
-            'teams_parsed' => $teams_names,
             'user_parsed' => $user_names,
-            'comparisons' => array(),
+            'lastname_first_results' => array(),
+            'firstname_first_results' => array(),
             'best_score' => 0
         );
         
-        foreach ($teams_names as $teams_name) {
-            foreach ($user_names as $user_name) {
-                $score = $this->compare_name_pairs($teams_name, $user_name);
-                
-                $comparison = array(
-                    'teams_name' => $teams_name,
-                    'user_name' => $user_name,
-                    'score' => $score,
-                    'teams_tokens' => $this->tokenize_name($teams_name['firstname'] . ' ' . $teams_name['lastname']),
-                    'user_tokens' => $this->tokenize_name($user_name['firstname'] . ' ' . $user_name['lastname'])
+        // Test lastname-first approach
+        foreach ($user_names as $name_variation) {
+            $lastname = $this->normalize_name($name_variation['lastname']);
+            $firstname = $this->normalize_name($name_variation['firstname']);
+            
+            if (strpos($cleaned_teams_id, $lastname) !== false) {
+                $score = $this->calculate_firstname_compatibility($cleaned_teams_id, $firstname, $lastname);
+                $details['lastname_first_results'][] = array(
+                    'lastname' => $lastname,
+                    'firstname' => $firstname,
+                    'found_lastname' => true,
+                    'score' => $score
                 );
-                
-                $details['comparisons'][] = $comparison;
+                $details['best_score'] = max($details['best_score'], $score);
+            }
+        }
+        
+        // Test firstname-first approach
+        foreach ($user_names as $name_variation) {
+            $lastname = $this->normalize_name($name_variation['lastname']);
+            $firstname = $this->normalize_name($name_variation['firstname']);
+            
+            if (strpos($cleaned_teams_id, $firstname) !== false) {
+                $score = $this->calculate_lastname_compatibility($cleaned_teams_id, $lastname, $firstname);
+                $details['firstname_first_results'][] = array(
+                    'lastname' => $lastname,
+                    'firstname' => $firstname,
+                    'found_firstname' => true,
+                    'score' => $score
+                );
                 $details['best_score'] = max($details['best_score'], $score);
             }
         }
         
         return $details;
+    }
+    
+    // Legacy methods maintained for compatibility
+    private function calculate_teams_similarity($teams_names, $user) {
+        $cleaned_teams_id = '';
+        foreach ($teams_names as $name) {
+            $cleaned_teams_id .= ' ' . $name['firstname'] . ' ' . $name['lastname'];
+        }
+        $cleaned_teams_id = $this->normalize_teams_id($cleaned_teams_id);
+        
+        // Use new matching logic
+        $match = $this->find_by_lastname_first($cleaned_teams_id);
+        if ($match && $match->id == $user->id) {
+            return 0.9;
+        }
+        
+        $match = $this->find_by_firstname_first($cleaned_teams_id);
+        if ($match && $match->id == $user->id) {
+            return 0.8;
+        }
+        
+        return 0;
     }
 }
