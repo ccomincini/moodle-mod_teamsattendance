@@ -27,7 +27,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/mod/teamsattendance/classes/name_parser.php');
 
 /**
- * Handles Teams ID pattern matching using word extraction and pattern generation
+ * Handles Teams ID pattern matching using improved word extraction and pattern generation
  */
 class teams_id_matcher {
     
@@ -37,22 +37,8 @@ class teams_id_matcher {
     /** @var name_parser Name parser instance */
     private $name_parser;
     
-    /** @var float Similarity threshold for matching */
-    const SIMILARITY_THRESHOLD = 0.7;
-    
-    /** @var array Patterns with their ambiguity check requirements */
-    private $patterns_config = [
-        0 => ['name' => 'nomecognome', 'check_ambiguity' => false],
-        1 => ['name' => 'cognomenome', 'check_ambiguity' => false],
-        2 => ['name' => 'n.cognome', 'check_ambiguity' => true],
-        3 => ['name' => 'cognome.n', 'check_ambiguity' => true],
-        4 => ['name' => 'nome.c', 'check_ambiguity' => true],
-        5 => ['name' => 'nome', 'check_ambiguity' => false],
-        6 => ['name' => 'cognome', 'check_ambiguity' => false],
-        7 => ['name' => 'n.c', 'check_ambiguity' => true],
-        8 => ['name' => 'ncognome', 'check_ambiguity' => true],
-        9 => ['name' => 'nomecognome_dup', 'check_ambiguity' => false]
-    ];
+    /** @var float Similarity threshold for matching - increased to reduce false positives */
+    const SIMILARITY_THRESHOLD = 0.85;
     
     /**
      * Constructor
@@ -166,7 +152,7 @@ class teams_id_matcher {
     }
     
     /**
-     * Calculate Teams ID similarity using pattern matching
+     * Calculate Teams ID similarity using improved pattern matching
      *
      * @param array $candidate_words Extracted candidate words
      * @param object $user User object to match against
@@ -188,135 +174,97 @@ class teams_id_matcher {
                 continue;
             }
             
-            // Test all possible combinations of candidate words
-            $combinations = $this->generate_word_combinations($candidate_words);
-            
-            foreach ($combinations as $combo) {
-                if (count($combo) < 2) continue;
-                
-                $scores = [];
-                
-                // Generate patterns from this word combination
-                $patterns = $this->generate_patterns($combo[0], $combo[1]);
-                
-                // Test patterns against user
-                $user_patterns = $this->generate_patterns($firstname_clean, $lastname_clean);
-                
-                for ($i = 0; $i < count($patterns); $i++) {
-                    $pattern = $patterns[$i];
-                    $user_pattern = $user_patterns[$i];
-                    
-                    if (empty($pattern) || empty($user_pattern)) {
-                        continue;
-                    }
-                    
-                    $similarity = $this->similarity_score($pattern, $user_pattern);
-                    
-                    if ($this->patterns_config[$i]['check_ambiguity'] && $similarity > 0.8) {
-                        if ($this->check_pattern_ambiguity($user_pattern, $i, $user)) {
-                            $similarity = 0;
-                        }
-                    }
-                    
-                    if ($similarity > 0) {
-                        $scores[] = $similarity;
-                    }
-                }
-                
-                if (!empty($scores)) {
-                    $combo_score = max($scores);
-                    $best_score = max($best_score, $combo_score);
-                }
+            // Try exact word matches first (highest priority)
+            $exact_score = $this->calculate_exact_word_match($candidate_words, $firstname_clean, $lastname_clean);
+            if ($exact_score > 0) {
+                $best_score = max($best_score, $exact_score);
+                continue;
             }
+            
+            // Try pattern combinations
+            $pattern_score = $this->calculate_pattern_score($candidate_words, $firstname_clean, $lastname_clean);
+            $best_score = max($best_score, $pattern_score);
         }
         
         return $best_score;
     }
     
     /**
-     * Generate all 2-word combinations from candidate words
+     * Calculate exact word match score (both first and last name must match)
      *
-     * @param array $words Array of candidate words
-     * @return array Array of word combinations
+     * @param array $candidate_words Words from Teams ID
+     * @param string $firstname_clean Clean firstname
+     * @param string $lastname_clean Clean lastname
+     * @return float Score (0-1)
      */
-    private function generate_word_combinations($words) {
-        $combinations = [];
+    private function calculate_exact_word_match($candidate_words, $firstname_clean, $lastname_clean) {
+        $firstname_found = false;
+        $lastname_found = false;
         
-        // Add all possible 2-word combinations
-        for ($i = 0; $i < count($words); $i++) {
-            for ($j = 0; $j < count($words); $j++) {
-                if ($i !== $j) {
-                    $combinations[] = [$words[$i], $words[$j]];
-                }
+        foreach ($candidate_words as $word) {
+            // Check firstname match
+            if ($this->similarity_score($word, $firstname_clean) >= 0.9) {
+                $firstname_found = true;
+            }
+            
+            // Check lastname match
+            if ($this->similarity_score($word, $lastname_clean) >= 0.9) {
+                $lastname_found = true;
             }
         }
         
-        return $combinations;
+        // Both names must be found for high score
+        if ($firstname_found && $lastname_found) {
+            return 0.95; // Very high score for exact matches
+        }
+        
+        return 0; // No score if not both names found
     }
     
     /**
-     * Generate all patterns for given names
+     * Calculate pattern-based score (fallback for non-exact matches)
      *
-     * @param string $firstname_clean Cleaned firstname
-     * @param string $lastname_clean Cleaned lastname
-     * @return array Array of patterns
+     * @param array $candidate_words Words from Teams ID
+     * @param string $firstname_clean Clean firstname
+     * @param string $lastname_clean Clean lastname
+     * @return float Score (0-1)
      */
-    private function generate_patterns($firstname_clean, $lastname_clean) {
-        if (empty($firstname_clean) || empty($lastname_clean)) {
-            return array_fill(0, 10, '');
-        }
+    private function calculate_pattern_score($candidate_words, $firstname_clean, $lastname_clean) {
+        $max_score = 0;
         
-        return array(
-            $firstname_clean . $lastname_clean,
-            $lastname_clean . $firstname_clean,
-            $firstname_clean[0] . $lastname_clean,
-            $lastname_clean . $firstname_clean[0],
-            $firstname_clean . $lastname_clean[0],
-            $firstname_clean,
-            $lastname_clean,
-            $firstname_clean[0] . $lastname_clean[0],
-            substr($firstname_clean, 0, 1) . $lastname_clean,
-            $firstname_clean . $lastname_clean
-        );
-    }
-    
-    /**
-     * Check if pattern would match multiple users
-     *
-     * @param string $pattern Pattern to check
-     * @param int $pattern_index Pattern index
-     * @param object $current_user Current user
-     * @return bool True if ambiguous
-     */
-    private function check_pattern_ambiguity($pattern, $pattern_index, $current_user) {
-        $matching_users = 0;
-        
-        foreach ($this->available_users as $user) {
-            if ($user->id === $current_user->id) {
-                continue;
-            }
-            
-            $user_names = $this->name_parser->parse_user_names($user);
-            
-            foreach ($user_names as $names) {
-                $firstname = preg_replace('/[^a-z0-9]/', '', strtolower($names['firstname']));
-                $lastname = preg_replace('/[^a-z0-9]/', '', strtolower($names['lastname']));
+        // Try all possible 2-word combinations
+        for ($i = 0; $i < count($candidate_words); $i++) {
+            for ($j = 0; $j < count($candidate_words); $j++) {
+                if ($i === $j) continue;
                 
-                if (empty($firstname) || empty($lastname)) {
-                    continue;
-                }
+                $word1 = $candidate_words[$i];
+                $word2 = $candidate_words[$j];
                 
-                $user_patterns = $this->generate_patterns($firstname, $lastname);
-                if (isset($user_patterns[$pattern_index]) && $user_patterns[$pattern_index] === $pattern) {
-                    $matching_users++;
-                    if ($matching_users >= 1) {
-                        return true;
-                    }
+                // Pattern 1: word1=firstname, word2=lastname
+                $score1 = ($this->similarity_score($word1, $firstname_clean) + 
+                          $this->similarity_score($word2, $lastname_clean)) / 2;
+                
+                // Pattern 2: word1=lastname, word2=firstname
+                $score2 = ($this->similarity_score($word1, $lastname_clean) + 
+                          $this->similarity_score($word2, $firstname_clean)) / 2;
+                
+                // Take best pattern, but reduce score to prevent false positives
+                $pattern_score = max($score1, $score2) * 0.8; // Penalty for non-exact
+                
+                // Require both words to have reasonable similarity
+                $min_word_score = min(
+                    max($this->similarity_score($word1, $firstname_clean), $this->similarity_score($word1, $lastname_clean)),
+                    max($this->similarity_score($word2, $firstname_clean), $this->similarity_score($word2, $lastname_clean))
+                );
+                
+                // Only consider if both words have some similarity
+                if ($min_word_score >= 0.7) {
+                    $max_score = max($max_score, $pattern_score);
                 }
             }
         }
         
-        return false;
+        return $max_score;
     }
     
     /**
