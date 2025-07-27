@@ -20,9 +20,10 @@ $enrolled_users = get_enrolled_users($course_context, '', 0, 'u.id, u.firstname,
 echo "Enrolled users: " . count($enrolled_users) . "\n";
 
 // Get all Teams IDs from teamsattendance_data for this course
+// Fix: use 'sessionid' instead of 'teamsattendance'
 $sql = "SELECT DISTINCT tad.teams_user_id
         FROM {teamsattendance_data} tad
-        JOIN {teamsattendance} ta ON ta.id = tad.teamsattendance
+        JOIN {teamsattendance} ta ON ta.id = tad.sessionid
         WHERE ta.course = ?
         AND tad.teams_user_id IS NOT NULL
         AND tad.teams_user_id != ''
