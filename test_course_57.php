@@ -3,6 +3,9 @@
  * Test script for integrated 6-phase matching system
  */
 
+// Define CLI_SCRIPT for Moodle CLI requirement
+define('CLI_SCRIPT', true);
+
 // Include Moodle config
 require_once('../../config.php');
 require_once($CFG->dirroot . '/mod/teamsattendance/classes/teams_id_matcher.php');
