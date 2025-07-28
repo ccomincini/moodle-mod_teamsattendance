@@ -1,28 +1,34 @@
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-Thumbs.db
-
 # IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
 
 # Temporary files
 *.tmp
+*.temp
 *.log
+
+# Backup files
 *.bak
+*.backup
 
-# Node.js dependencies
+# Node modules
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
-# Package files (se non necessari)
-package-lock.json
+# Build files
+build/
+dist/
 
-# Build tools
-Gruntfile.js
+# Coverage reports
+coverage/
+
+# Environment files
+.env
+.env.local
+.env.production
