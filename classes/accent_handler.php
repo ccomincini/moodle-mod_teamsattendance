@@ -80,7 +80,7 @@ class accent_handler {
      */
     private function normalize_apostrophes($text) {
         // Normalize different apostrophe types
-        $apostrophe_variants = [''', ''', '`', '´'];
+        $apostrophe_variants = ["'", "'", "`", "´"];
         
         foreach ($apostrophe_variants as $variant) {
             $text = str_replace($variant, "'", $text);
