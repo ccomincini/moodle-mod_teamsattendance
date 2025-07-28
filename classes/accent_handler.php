@@ -1,120 +1,139 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Accent handler utility for Teams attendance
+ *
+ * @package    mod_teamsattendance
+ * @copyright  2025 Invisiblefarm srl
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
+
+/**
+ * Handles accent normalization and apostrophe variations
+ */
+class accent_handler {
+    
     /**
-     * Normalize text handling accents and apostrophes variations
+     * Normalize text by removing accents and handling apostrophes
      *
      * @param string $text Text to normalize
      * @return string Normalized text
      */
-    public function normalize_text_advanced($text) {
+    public function normalize_text($text) {
         $normalized = strtolower(trim($text));
-        
-        // Handle apostrophe substitutions (à->a', è->e', etc.)
-        $apostrophe_map = [
-            "a'" => 'a', "e'" => 'e', "i'" => 'i', "o'" => 'o', "u'" => 'u',
-            "A'" => 'a', "E'" => 'e', "I'" => 'i', "O'" => 'o', "U'" => 'u'
-        ];
-        
-        foreach ($apostrophe_map as $apostrophe => $replacement) {
-            $normalized = str_replace($apostrophe, $replacement, $normalized);
-        }
         
         // Remove accents
         $normalized = $this->remove_accents($normalized);
+        
+        // Handle apostrophes
+        $normalized = $this->normalize_apostrophes($normalized);
         
         return $normalized;
     }
     
     /**
-     * Create regex patterns for name matching with accent/apostrophe variations
+     * Remove accents from text
      *
-     * @param string $name Name to create patterns for
-     * @return array Array of regex patterns
+     * @param string $text Text with accents
+     * @return string Text without accents
      */
-    public function create_accent_patterns($name) {
-        $patterns = array();
-        $base_name = $this->normalize_text_advanced($name);
+    private function remove_accents($text) {
+        $accent_map = [
+            'à' => 'a', 'á' => 'a', 'â' => 'a', 'ã' => 'a', 'ä' => 'a', 'å' => 'a',
+            'è' => 'e', 'é' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'ì' => 'i', 'í' => 'i', 'î' => 'i', 'ï' => 'i',
+            'ò' => 'o', 'ó' => 'o', 'ô' => 'o', 'õ' => 'o', 'ö' => 'o',
+            'ù' => 'u', 'ú' => 'u', 'û' => 'u', 'ü' => 'u',
+            'ç' => 'c', 'ñ' => 'n',
+            'À' => 'A', 'Á' => 'A', 'Â' => 'A', 'Ã' => 'A', 'Ä' => 'A', 'Å' => 'A',
+            'È' => 'E', 'É' => 'E', 'Ê' => 'E', 'Ë' => 'E',
+            'Ì' => 'I', 'Í' => 'I', 'Î' => 'I', 'Ï' => 'I',
+            'Ò' => 'O', 'Ó' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ö' => 'O',
+            'Ù' => 'U', 'Ú' => 'U', 'Û' => 'U', 'Ü' => 'U',
+            'Ç' => 'C', 'Ñ' => 'N'
+        ];
         
-        // Pattern 1: Exact normalized match
-        $patterns[] = '\b' . preg_quote($base_name, '/') . '\b';
-        
-        // Pattern 2: With apostrophes (d'ambrosio)
-        $apostrophe_name = $this->create_apostrophe_variant($base_name);
-        if ($apostrophe_name !== $base_name) {
-            $patterns[] = '\b' . preg_quote($apostrophe_name, '/') . '\b';
-        }
-        
-        // Pattern 3: With separators (d.ambrosio, d-ambrosio, d_ambrosio)
-        $separator_patterns = $this->create_separator_variants($base_name);
-        foreach ($separator_patterns as $pattern) {
-            $patterns[] = $pattern;
-        }
-        
-        return array_unique($patterns);
+        return strtr($text, $accent_map);
     }
     
     /**
-     * Create apostrophe variant of name
+     * Normalize apostrophes and similar characters
      *
-     * @param string $name Normalized name
-     * @return string Name with apostrophe if applicable
+     * @param string $text Text with apostrophes
+     * @return string Text with normalized apostrophes
      */
-    private function create_apostrophe_variant($name) {
-        // Common Italian apostrophe prefixes
-        $prefixes = ['d', 'l', 'dall', 'dell', 'sul', 'nel'];
+    private function normalize_apostrophes($text) {
+        // Normalize different apostrophe types
+        $apostrophe_variants = [''', ''', '`', '´'];
         
-        foreach ($prefixes as $prefix) {
-            if (strpos($name, $prefix) === 0 && strlen($name) > strlen($prefix)) {
-                return $prefix . "'" . substr($name, strlen($prefix));
-            }
+        foreach ($apostrophe_variants as $variant) {
+            $text = str_replace($variant, "'", $text);
         }
         
-        return $name;
+        return $text;
     }
     
     /**
-     * Create separator variants for names with apostrophes
+     * Create variations of name with/without apostrophes
      *
-     * @param string $name Base name
-     * @return array Array of regex patterns
+     * @param string $name Name to create variations for
+     * @return array Array of name variations
      */
-    private function create_separator_variants($name) {
-        $patterns = array();
+    public function create_name_variations($name) {
+        $variations = [$name];
+        $normalized = $this->normalize_text($name);
         
-        // Find potential apostrophe positions
-        $prefixes = ['d', 'l', 'dall', 'dell', 'sul', 'nel'];
+        if ($normalized !== $name) {
+            $variations[] = $normalized;
+        }
         
-        foreach ($prefixes as $prefix) {
-            if (strpos($name, $prefix) === 0 && strlen($name) > strlen($prefix)) {
-                $suffix = substr($name, strlen($prefix));
-                
-                // Create patterns with different separators
-                $separators = ['\\.', '-', '_', ''];
-                
-                foreach ($separators as $sep) {
-                    $pattern = '\b' . preg_quote($prefix, '/') . $sep . preg_quote($suffix, '/') . '\b';
-                    $patterns[] = $pattern;
+        // Handle D'Angelo <-> DAngelo variations
+        if (strpos($name, "'") !== false) {
+            $without_apostrophe = str_replace("'", "", $name);
+            $variations[] = $without_apostrophe;
+            $variations[] = $this->normalize_text($without_apostrophe);
+        } else {
+            // Try adding apostrophes to common prefixes
+            $prefixes = ['d', 'l', 'dal', 'del', 'dell'];
+            foreach ($prefixes as $prefix) {
+                if (stripos($name, $prefix) === 0 && strlen($name) > strlen($prefix)) {
+                    $with_apostrophe = $prefix . "'" . substr($name, strlen($prefix));
+                    $variations[] = $with_apostrophe;
+                    $variations[] = $this->normalize_text($with_apostrophe);
                 }
             }
         }
         
-        return $patterns;
+        return array_unique($variations);
     }
     
     /**
-     * Check if name matches with accent/apostrophe tolerance
+     * Check if two names match considering accent variations
      *
-     * @param string $search_text Text to search in
-     * @param string $name Name to find
-     * @return bool True if found with any variation
+     * @param string $name1 First name
+     * @param string $name2 Second name
+     * @return bool True if names match
      */
-    public function find_name_with_accents($search_text, $name) {
-        $patterns = $this->create_accent_patterns($name);
-        $normalized_text = $this->normalize_text_advanced($search_text);
+    public function names_match($name1, $name2) {
+        $norm1 = $this->normalize_text($name1);
+        $norm2 = $this->normalize_text($name2);
         
-        foreach ($patterns as $pattern) {
-            if (preg_match('/' . $pattern . '/i', $normalized_text)) {
-                return true;
-            }
-        }
-        
-        return false;
+        return $norm1 === $norm2;
     }
+}
