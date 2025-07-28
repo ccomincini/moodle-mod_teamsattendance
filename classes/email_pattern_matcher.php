@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Email pattern matcher for Teams attendance
+ * Email pattern matcher for Teams attendance with accent handling
  *
  * @package    mod_teamsattendance
  * @copyright  2025 Invisiblefarm srl
@@ -25,9 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot . '/mod/teamsattendance/classes/name_parser.php');
+require_once($CFG->dirroot . '/mod/teamsattendance/classes/accent_handler.php');
 
 /**
- * Handles email pattern matching with enhanced cognome-first approach
+ * Handles email pattern matching with enhanced cognome-first approach and accent handling
  */
 class email_pattern_matcher {
     
@@ -36,6 +37,9 @@ class email_pattern_matcher {
     
     /** @var name_parser Name parser instance */
     private $name_parser;
+    
+    /** @var accent_handler Accent handler instance */
+    private $accent_handler;
     
     /** @var float Similarity threshold for email matching */
     const SIMILARITY_THRESHOLD = 0.7;
@@ -74,6 +78,7 @@ class email_pattern_matcher {
     public function __construct($available_users) {
         $this->available_users = $available_users;
         $this->name_parser = new name_parser();
+        $this->accent_handler = new accent_handler();
     }
     
     /**
@@ -150,13 +155,17 @@ class email_pattern_matcher {
         
         // Test against all parsed name variations
         foreach ($user_names as $names) {
-            $firstname = strtolower($names['firstname']);
-            $lastname = strtolower($names['lastname']);
+            // Apply accent normalization to user names
+            $firstname = $this->accent_handler->normalize_text($names['firstname']);
+            $lastname = $this->accent_handler->normalize_text($names['lastname']);
+            
+            // Apply accent normalization to email part
+            $local_part_normalized = $this->accent_handler->normalize_text($local_part);
             
             // Remove non-alphanumeric characters and normalize
-            $local_part_clean = preg_replace('/[^a-z0-9]/', '', strtolower($local_part));
-            $firstname_clean = preg_replace('/[^a-z0-9]/', '', $firstname);
-            $lastname_clean = preg_replace('/[^a-z0-9]/', '', $lastname);
+            $local_part_clean = preg_replace('/[^a-z0-9]/', '', strtolower($local_part_normalized));
+            $firstname_clean = preg_replace('/[^a-z0-9]/', '', strtolower($firstname));
+            $lastname_clean = preg_replace('/[^a-z0-9]/', '', strtolower($lastname));
             
             if (empty($firstname_clean) || empty($lastname_clean)) {
                 continue;
@@ -271,7 +280,6 @@ class email_pattern_matcher {
         }
         
         // Try with common separators
-        $separators = ['.', '-', '_', ''];
         $local_variants = [
             $local_part,
             str_replace(['.', '-', '_'], '', $local_part), // Remove all separators
@@ -314,8 +322,12 @@ class email_pattern_matcher {
             $user_names = $this->name_parser->parse_user_names($user);
             
             foreach ($user_names as $names) {
-                $firstname = preg_replace('/[^a-z0-9]/', '', strtolower($names['firstname']));
-                $lastname = preg_replace('/[^a-z0-9]/', '', strtolower($names['lastname']));
+                // Apply accent normalization
+                $firstname = $this->accent_handler->normalize_text($names['firstname']);
+                $lastname = $this->accent_handler->normalize_text($names['lastname']);
+                
+                $firstname = preg_replace('/[^a-z0-9]/', '', strtolower($firstname));
+                $lastname = preg_replace('/[^a-z0-9]/', '', strtolower($lastname));
                 
                 if (empty($firstname) || empty($lastname)) {
                     continue;
@@ -349,9 +361,14 @@ class email_pattern_matcher {
         $details = array();
         
         foreach ($user_names as $names) {
-            $firstname_clean = preg_replace('/[^a-z0-9]/', '', strtolower($names['firstname']));
-            $lastname_clean = preg_replace('/[^a-z0-9]/', '', strtolower($names['lastname']));
-            $local_part_clean = preg_replace('/[^a-z0-9]/', '', strtolower($local_part));
+            // Apply accent normalization
+            $firstname = $this->accent_handler->normalize_text($names['firstname']);
+            $lastname = $this->accent_handler->normalize_text($names['lastname']);
+            $local_part_normalized = $this->accent_handler->normalize_text($local_part);
+            
+            $firstname_clean = preg_replace('/[^a-z0-9]/', '', strtolower($firstname));
+            $lastname_clean = preg_replace('/[^a-z0-9]/', '', strtolower($lastname));
+            $local_part_clean = preg_replace('/[^a-z0-9]/', '', strtolower($local_part_normalized));
             
             if (empty($firstname_clean) || empty($lastname_clean)) {
                 continue;
@@ -367,7 +384,8 @@ class email_pattern_matcher {
                     'similarity' => $similarity,
                     'priority' => $config['priority'],
                     'ambiguity_check' => $config['check_ambiguity'],
-                    'would_suggest' => $similarity >= self::SIMILARITY_THRESHOLD
+                    'would_suggest' => $similarity >= self::SIMILARITY_THRESHOLD,
+                    'accent_normalized' => true
                 );
             }
         }
