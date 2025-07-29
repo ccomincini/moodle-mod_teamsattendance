@@ -55,6 +55,24 @@ function render_unassigned_interface($context) {
         font-size: 14px;
         color: #666;
     }
+    .action-column {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        align-items: stretch;
+    }
+    .manual-select-container {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+    }
+    .manual-user-select {
+        flex: 1;
+        min-width: 120px;
+    }
+    .assign-btn {
+        white-space: nowrap;
+    }
     </style>';
     
     $output .= '<div class="teamsattendance-performance-container">';
@@ -231,21 +249,29 @@ function render_initial_records_table($initial_data) {
         }
         $output .= '</td>';
         
-        // Actions
+        // Actions - SEMPRE mostra entrambi i controlli
         $output .= '<td>';
+        $output .= '<div class="action-column">';
+        
         if ($record['has_suggestion']) {
+            // Mostra pulsante suggerimento
             $output .= '<button class="btn btn-sm btn-success apply-suggestion-btn" data-record-id="' . $record['id'] . '" data-user-id="' . $record['suggestion']['user']->id . '">';
             $output .= get_string('apply_suggestion', 'teamsattendance');
             $output .= '</button>';
-        } else {
-            $output .= '<select class="form-control form-control-sm manual-user-select" data-record-id="' . $record['id'] . '">';
-            $output .= '<option value="">' . get_string('select_user', 'teamsattendance') . '</option>';
-            $output .= '<!-- Users will be loaded by JavaScript -->';
-            $output .= '</select>';
-            $output .= '<button class="btn btn-sm btn-primary assign-btn" data-record-id="' . $record['id'] . '" disabled>';
-            $output .= get_string('assign', 'teamsattendance');
-            $output .= '</button>';
         }
+        
+        // SEMPRE mostra select manuale (con e senza suggerimenti)
+        $output .= '<div class="manual-select-container">';
+        $output .= '<select class="form-control form-control-sm manual-user-select" data-record-id="' . $record['id'] . '">';
+        $output .= '<option value="">' . get_string('select_user', 'teamsattendance') . '</option>';
+        $output .= '<!-- Users will be loaded by JavaScript -->';
+        $output .= '</select>';
+        $output .= '<button class="btn btn-sm btn-primary assign-btn" data-record-id="' . $record['id'] . '" disabled>';
+        $output .= get_string('assign', 'teamsattendance');
+        $output .= '</button>';
+        $output .= '</div>';
+        
+        $output .= '</div>';
         $output .= '</td>';
         
         $output .= '</tr>';
