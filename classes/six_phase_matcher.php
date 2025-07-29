@@ -41,12 +41,86 @@ class six_phase_matcher {
     /** @var array Anti-ambiguity cache */
     private $ambiguity_cache;
     
+    /** @var array Processing statistics */
+    private $statistics;
+    
     public function __construct($users) {
         $this->users = $users;
         $this->teams_matcher = new teams_id_matcher($users);
         $this->email_matcher = new email_pattern_matcher($users);
         $this->name_parser = new name_parser();
         $this->ambiguity_cache = array();
+        $this->statistics = array(
+            'total_processed' => 0,
+            'matches_found' => 0,
+            'phase_breakdown' => array()
+        );
+    }
+    
+    /**
+     * Process all records using 6-phase system
+     *
+     * @param array $unassigned_records Array of unassigned records
+     * @return array Suggestions organized by type
+     */
+    public function process_all_records($unassigned_records) {
+        $suggestions = array();
+        
+        foreach ($unassigned_records as $record) {
+            $this->statistics['total_processed']++;
+            
+            $teams_id = trim($record->teams_user_id);
+            $match = $this->find_best_match($teams_id, $record->id);
+            
+            if ($match) {
+                $this->statistics['matches_found']++;
+                
+                $phase = $match['phase'];
+                if (!isset($this->statistics['phase_breakdown'][$phase])) {
+                    $this->statistics['phase_breakdown'][$phase] = 0;
+                }
+                $this->statistics['phase_breakdown'][$phase]++;
+                
+                $suggestions[$record->id] = array(
+                    'user' => $match['user'],
+                    'type' => $this->get_match_type($match['phase']),
+                    'priority' => $match['phase'],
+                    'confidence' => $match['confidence']
+                );
+            }
+        }
+        
+        return $suggestions;
+    }
+    
+    /**
+     * Get match type based on phase
+     *
+     * @param int $phase Phase number
+     * @return string Match type
+     */
+    private function get_match_type($phase) {
+        switch ($phase) {
+            case 1:
+            case 3:
+            case 4:
+            case 5:
+            case 6:
+                return 'name';
+            case 2:
+                return 'email';
+            default:
+                return 'unknown';
+        }
+    }
+    
+    /**
+     * Get processing statistics
+     *
+     * @return array Statistics
+     */
+    public function get_statistics() {
+        return $this->statistics;
     }
     
     /**
