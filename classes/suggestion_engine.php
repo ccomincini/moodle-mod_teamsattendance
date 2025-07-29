@@ -35,14 +35,8 @@ class suggestion_engine {
     /** @var six_phase_matcher Six-phase matching engine */
     private $six_phase_matcher;
     
-    /** @var teams_id_matcher Teams ID pattern matching component */
-    private $teams_matcher;
-    
     /** @var array Available users for assignment */
     private $available_users;
-    
-    /** @var float Similarity threshold for Teams ID matching */
-    const TEAMS_SIMILARITY_THRESHOLD = 0.7;
     
     /** @var float Similarity threshold for email matching */
     const EMAIL_SIMILARITY_THRESHOLD = 0.7;
@@ -64,38 +58,17 @@ class suggestion_engine {
      * @return array Suggestions organized by type
      */
     public function generate_suggestions($unassigned_records) {
-        $name_suggestions = $this->get_name_based_suggestions($unassigned_records);
-        $email_suggestions = $this->get_email_based_suggestions($unassigned_records, $name_suggestions);
-        
-        return $this->merge_suggestions_with_types($name_suggestions, $email_suggestions);
+        return $this->six_phase_matcher->process_all_records($unassigned_records);
     }
     
     /**
-     * Get name-based suggestions using Teams ID pattern matching
+     * Get matching statistics from six-phase engine
      *
-     * @param array $unassigned_records Array of unassigned records
-     * @return array Name-based suggestions
+     * @param array $suggestions Array of suggestions
+     * @return array Statistics array
      */
-    private function get_name_based_suggestions($unassigned_records) {
-        $suggestions = array();
-        
-        foreach ($unassigned_records as $record) {
-            if ($this->was_suggestion_applied($record->id)) {
-                continue;
-            }
-            
-            $teams_id = trim($record->teams_user_id);
-            
-            // Use Teams ID pattern matcher for non-email IDs
-            if (!filter_var($teams_id, FILTER_VALIDATE_EMAIL)) {
-                $best_match = $this->teams_matcher->find_best_teams_match($teams_id);
-                if ($best_match) {
-                    $suggestions[$record->id] = $best_match;
-                }
-            }
-        }
-        
-        return $suggestions;
+    public function get_matching_statistics($suggestions) {
+        return $this->six_phase_matcher->get_statistics();
     }
     
     /**
@@ -106,30 +79,7 @@ class suggestion_engine {
      * @return array Email-based suggestions
      */
     private function get_email_based_suggestions($unassigned_records, $name_suggestions) {
-        $suggestions = array();
-        
-        foreach ($unassigned_records as $record) {
-            // Skip if already has a name-based suggestion
-            if (isset($name_suggestions[$record->id])) {
-                continue;
-            }
-            
-            if ($this->was_suggestion_applied($record->id)) {
-                continue;
-            }
-            
-            $teams_user_id = trim($record->teams_user_id);
-            
-            // Check if teams_user_id looks like an email
-            if (filter_var($teams_user_id, FILTER_VALIDATE_EMAIL)) {
-                $best_match = $this->email_matcher->find_best_email_match($teams_user_id);
-                if ($best_match) {
-                    $suggestions[$record->id] = $best_match;
-                }
-            }
-        }
-        
-        return $suggestions;
+        return array();
     }
     
     /**
