@@ -38,9 +38,6 @@ class email_pattern_matcher {
     /** @var name_parser Name parser instance */
     private $name_parser;
     
-    /** @var accent_handler Accent handler instance */
-    private $accent_handler;
-    
     /**
      * Constructor
      *
@@ -49,7 +46,6 @@ class email_pattern_matcher {
     public function __construct($available_users) {
         $this->available_users = $available_users;
         $this->name_parser = new name_parser();
-        $this->accent_handler = new accent_handler();
     }
     
     /**
@@ -83,15 +79,15 @@ class email_pattern_matcher {
      * @return object|null Best match or null
      */
     private function find_exact_pattern_match($local_part) {
-        $local_normalized = $this->accent_handler->normalize_text($local_part);
+        $local_normalized = accent_handler::normalize($local_part);
         $local_clean = preg_replace('/[^a-z0-9]/', '', strtolower($local_normalized));
         
         foreach ($this->available_users as $user) {
             $user_names = $this->name_parser->parse_user_names($user);
             
             foreach ($user_names as $names) {
-                $firstname = $this->accent_handler->normalize_text($names['firstname']);
-                $lastname = $this->accent_handler->normalize_text($names['lastname']);
+                $firstname = accent_handler::normalize($names['firstname']);
+                $lastname = accent_handler::normalize($names['lastname']);
                 
                 $firstname_clean = preg_replace('/[^a-z0-9]/', '', strtolower($firstname));
                 $lastname_clean = preg_replace('/[^a-z0-9]/', '', strtolower($lastname));
@@ -128,7 +124,7 @@ class email_pattern_matcher {
      * @return object|null Best match or null if ambiguous
      */
     private function find_initial_pattern_match($local_part) {
-        $local_normalized = $this->accent_handler->normalize_text($local_part);
+        $local_normalized = accent_handler::normalize($local_part);
         $local_clean = preg_replace('/[^a-z0-9]/', '', strtolower($local_normalized));
         
         // Test initial patterns
@@ -168,8 +164,8 @@ class email_pattern_matcher {
             $user_names = $this->name_parser->parse_user_names($user);
             
             foreach ($user_names as $names) {
-                $firstname = $this->accent_handler->normalize_text($names['firstname']);
-                $lastname = $this->accent_handler->normalize_text($names['lastname']);
+                $firstname = accent_handler::normalize($names['firstname']);
+                $lastname = accent_handler::normalize($names['lastname']);
                 
                 $firstname_clean = preg_replace('/[^a-z0-9]/', '', strtolower($firstname));
                 $lastname_clean = preg_replace('/[^a-z0-9]/', '', strtolower($lastname));
@@ -265,7 +261,7 @@ class email_pattern_matcher {
         }
         
         $local_part = $email_parts[0];
-        $local_normalized = $this->accent_handler->normalize_text($local_part);
+        $local_normalized = accent_handler::normalize($local_part);
         $local_clean = preg_replace('/[^a-z0-9]/', '', strtolower($local_normalized));
         
         $analysis = [
@@ -282,8 +278,8 @@ class email_pattern_matcher {
             $user_names = $this->name_parser->parse_user_names($user);
             
             foreach ($user_names as $names) {
-                $firstname = $this->accent_handler->normalize_text($names['firstname']);
-                $lastname = $this->accent_handler->normalize_text($names['lastname']);
+                $firstname = accent_handler::normalize($names['firstname']);
+                $lastname = accent_handler::normalize($names['lastname']);
                 
                 $firstname_clean = preg_replace('/[^a-z0-9]/', '', strtolower($firstname));
                 $lastname_clean = preg_replace('/[^a-z0-9]/', '', strtolower($lastname));
