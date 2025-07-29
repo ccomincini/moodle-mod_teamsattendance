@@ -413,30 +413,42 @@ function($, Ajax, Notification, Str) {
             html += '</td>';
 
             html += '<td>';
-            if (record.has_suggestion) {
+            html += '<div class="action-column d-flex flex-column gap-2">';
+            
+            // SUGGESTION BUTTON - sempre mostrato, disabilitato se non ha suggestion
+            if (record.has_suggestion && record.suggestion) {
                 html += '<button class="btn btn-sm btn-success apply-suggestion-btn" ';
                 html += 'data-record-id="' + record.id + '" ';
                 html += 'data-user-id="' + record.suggestion.user.id + '">';
                 html += (this.strings.apply_suggestion || 'Applica suggerimento');
                 html += '</button>';
             } else {
-                html += '<select class="form-control form-control-sm manual-user-select" ';
-                html += 'data-record-id="' + record.id + '">';
-                html += '<option value="">' + (this.strings.select_user || 'Seleziona utente') + '</option>';
-
-                for (var i = 0; i < this.availableUsers.length; i++) {
-                    var user = this.availableUsers[i];
-                    html += '<option value="' + user.id + '">';
-                    html += this.escapeHtml(user.name);
-                    html += '</option>';
-                }
-
-                html += '</select>';
-                html += ' <button class="btn btn-sm btn-primary manual-assign-btn" ';
-                html += 'data-record-id="' + record.id + '" disabled>';
-                html += (this.strings.assign || 'Assegna');
+                html += '<button class="btn btn-sm btn-secondary apply-suggestion-btn" disabled>';
+                html += (this.strings.no_suggestion || 'Nessun suggerimento');
                 html += '</button>';
             }
+            
+            // MANUAL SELECT - sempre mostrato
+            html += '<div class="d-flex gap-1">';
+            html += '<select class="form-control form-control-sm manual-user-select flex-grow-1" ';
+            html += 'data-record-id="' + record.id + '">';
+            html += '<option value="">' + (this.strings.select_user || 'Seleziona utente') + '</option>';
+
+            for (var i = 0; i < this.availableUsers.length; i++) {
+                var user = this.availableUsers[i];
+                html += '<option value="' + user.id + '">';
+                html += this.escapeHtml(user.name);
+                html += '</option>';
+            }
+
+            html += '</select>';
+            html += '<button class="btn btn-sm btn-primary manual-assign-btn" ';
+            html += 'data-record-id="' + record.id + '" disabled>';
+            html += (this.strings.assign || 'Assegna');
+            html += '</button>';
+            html += '</div>';
+            
+            html += '</div>';
             html += '</td>';
 
             html += '</tr>';
@@ -561,7 +573,9 @@ function($, Ajax, Notification, Str) {
             $('.apply-suggestion-btn').on('click', function(e) {
                 var recordId = $(this).data('record-id');
                 var userId = $(this).data('user-id');
-                self.applySingleSuggestion(recordId, userId, $(this));
+                if (userId) {
+                    self.applySingleSuggestion(recordId, userId, $(this));
+                }
             });
 
             $('.manual-user-select').on('change', function(e) {
@@ -653,7 +667,7 @@ function($, Ajax, Notification, Str) {
                 var row = $('tr[data-record-id="' + recordId + '"]');
 
                 var button = row.find('.apply-suggestion-btn');
-                if (button.length) {
+                if (button.length && !button.prop('disabled')) {
                     assignments[recordId] = button.data('user-id');
                 } else {
                     var select = row.find('.manual-user-select');
