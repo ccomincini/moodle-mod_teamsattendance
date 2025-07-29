@@ -146,7 +146,8 @@ class suggestion_engine {
         foreach ($suggestions as $suggestion) {
             if ($suggestion['type'] === 'name') {
                 $stats['name_based']++;
-            } else {\n                $stats['email_based']++;
+            } else {
+                $stats['email_based']++;
             }
             
             if ($suggestion['confidence'] === 'high') {
