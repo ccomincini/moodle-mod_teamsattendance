@@ -6,20 +6,23 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot . '/mod/teamsattendance/classes/name_parser.php');
+require_once($CFG->dirroot . '/mod/teamsattendance/classes/accent_handler.php');
 
 /**
- * 6-phase matching system as requested
+ * 6-phase matching system with accent handling
  */
 class six_phase_matcher {
     
     private $available_users;
     private $name_parser;
+    private $accent_handler;
     private $matched_users = array(); // Track already matched users
     private $stop_words = ['di', 'da', 'de', 'del', 'della', 'delle', 'dei', 'degli', 'lo', 'la', 'le', 'il', 'a', 'in', 'con', 'su', 'per', 'tra', 'fra'];
     
     public function __construct($available_users) {
         $this->available_users = $available_users;
         $this->name_parser = new name_parser();
+        $this->accent_handler = new accent_handler();
     }
     
     /**
@@ -143,16 +146,25 @@ class six_phase_matcher {
     }
     
     private function normalize($text) {
-        return strtolower(trim(preg_replace('/[^a-zA-Z\s]/', '', $text)));
+        // Use accent_handler for proper normalization
+        $normalized = $this->accent_handler->normalize_text($text);
+        // Remove non-alphabetic characters except spaces
+        return strtolower(trim(preg_replace('/[^a-zA-Z\s]/', '', $normalized)));
     }
     
     private function find_word($text, $word) {
         if (in_array($word, $this->stop_words)) return false;
-        return preg_match('/\b' . preg_quote($word, '/') . '\b/i', $text);
+        
+        // Normalize both text and word for comparison
+        $normalized_text = $this->accent_handler->normalize_text($text);
+        $normalized_word = $this->accent_handler->normalize_text($word);
+        
+        return preg_match('/\b' . preg_quote($normalized_word, '/') . '\b/i', $normalized_text);
     }
     
     private function find_initial($text, $initial) {
-        return preg_match('/\b' . preg_quote($initial, '/') . '\.?\b/i', $text);
+        $normalized_text = $this->accent_handler->normalize_text($text);
+        return preg_match('/\b' . preg_quote($initial, '/') . '\.?\b/i', $normalized_text);
     }
     
     private function is_ambiguous_lastname_initial($lastname, $initial) {
