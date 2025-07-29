@@ -31,7 +31,7 @@ require_once($CFG->dirroot . '/mod/teamsattendance/classes/accent_handler.php');
 require_once($CFG->dirroot . '/mod/teamsattendance/classes/name_parser_dedup.php');
 
 /**
- * Teams ID matcher using advanced 6-phase matching system and email pattern matching with uniqueness control
+ * Teams ID matcher using advanced 6-phase matching system and email pattern matching
  */
 class teams_id_matcher {
     
@@ -59,7 +59,7 @@ class teams_id_matcher {
      * @param string $teams_id Teams identifier (can be name or email)
      * @return object|null Best matching user
      */
-    public function find_best_match($teams_id) {
+    public function find_best_teams_match($teams_id) {
         // Skip empty IDs
         if (empty($teams_id)) {
             return null;
@@ -78,40 +78,10 @@ class teams_id_matcher {
     }
     
     /**
-     * Find best match using 6-phase system (legacy method name - maintained for compatibility)
+     * Legacy method name - maintained for compatibility
      */
     public function find_by_teams_id($teams_id) {
-        return $this->find_best_match($teams_id);
-    }
-    
-    /**
-     * Find email match with detailed information
-     *
-     * @param string $email Email address to match
-     * @return array Detailed matching information
-     */
-    public function find_email_with_details($email) {
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return array(
-                'match' => null,
-                'is_email' => false,
-                'email' => $email,
-                'error' => 'Invalid email format'
-            );
-        }
-        
-        $match = $this->email_pattern_matcher->find_best_email_match($email);
-        
-        return array(
-            'match' => $match,
-            'is_email' => true,
-            'email' => $email,
-            'patterns_tested' => $match ? $this->email_pattern_matcher->get_pattern_details(
-                explode('@', strtolower($email))[0], 
-                $match
-            ) : array(),
-            'statistics' => $this->email_pattern_matcher->get_matching_statistics()
-        );
+        return $this->find_best_teams_match($teams_id);
     }
     
     /**
@@ -127,24 +97,18 @@ class teams_id_matcher {
             'is_email' => filter_var($teams_id, FILTER_VALIDATE_EMAIL),
             'match_result' => null,
             'match_method' => null,
-            'confidence' => 0,
-            'processing_stats' => array()
+            'confidence' => 0
         );
         
         if ($details['is_email']) {
             // Email matching details
-            $email_details = $this->find_email_with_details($teams_id);
-            $details['match_result'] = $email_details['match'];
+            $match = $this->email_pattern_matcher->find_best_email_match($teams_id);
+            $details['match_result'] = $match;
             $details['match_method'] = 'email_pattern_matching';
-            $details['email_patterns'] = $email_details['patterns_tested'];
-            $details['email_statistics'] = $email_details['statistics'];
+            $details['email_analysis'] = $this->email_pattern_matcher->get_pattern_analysis($teams_id);
             
-            if ($email_details['match']) {
-                $details['confidence'] = 0.9; // High confidence for email matches
-                $details['processing_stats']['email_match_found'] = true;
-            } else {
-                $details['confidence'] = 0;
-                $details['processing_stats']['email_match_found'] = false;
+            if ($match) {
+                $details['confidence'] = 0.95; // High confidence for email matches
             }
         } else {
             // Name matching details using six-phase system
@@ -154,11 +118,7 @@ class teams_id_matcher {
             
             if ($match) {
                 $details['confidence'] = 0.95; // Very high confidence for six-phase matches
-                $details['processing_stats']['six_phase_match_found'] = true;
             } else {
-                $details['confidence'] = 0;
-                $details['processing_stats']['six_phase_match_found'] = false;
-                
                 // Try legacy methods for additional information
                 $legacy_lastname_match = $this->find_by_lastname_first($teams_id);
                 $legacy_firstname_match = $this->find_by_firstname_first($teams_id);
@@ -175,28 +135,6 @@ class teams_id_matcher {
         }
         
         return $details;
-    }
-    
-    /**
-     * Get overall matching statistics
-     */
-    public function get_system_statistics() {
-        return array(
-            'total_available_users' => count($this->available_users),
-            'deduplication_applied' => true,
-            'email_matching_stats' => $this->email_pattern_matcher->get_matching_statistics(),
-            'six_phase_enabled' => true,
-            'legacy_fallback_enabled' => true
-        );
-    }
-    
-    /**
-     * Clear all caches (useful for testing and batch processing)
-     */
-    public function clear_all_caches() {
-        $this->email_pattern_matcher->clear_cache();
-        // six_phase_matcher doesn't have persistent cache, but we reset its internal state
-        $this->six_phase_matcher = new six_phase_matcher($this->available_users);
     }
     
     /**
@@ -242,36 +180,6 @@ class teams_id_matcher {
     }
     
     /**
-     * Legacy method maintained for compatibility
-     */
-    private function calculate_teams_similarity($teams_names, $user) {
-        $cleaned_teams_id = '';
-        foreach ($teams_names as $name) {
-            $cleaned_teams_id .= ' ' . $name['firstname'] . ' ' . $name['lastname'];
-        }
-        $cleaned_teams_id = trim($cleaned_teams_id);
-        
-        // Use new matching logic
-        $match = $this->find_best_match($cleaned_teams_id);
-        if ($match && $match->id == $user->id) {
-            return 0.95; // High confidence with new system
-        }
-        
-        // Fallback to legacy methods
-        $match = $this->find_by_lastname_first($cleaned_teams_id);
-        if ($match && $match->id == $user->id) {
-            return 0.9;
-        }
-        
-        $match = $this->find_by_firstname_first($cleaned_teams_id);
-        if ($match && $match->id == $user->id) {
-            return 0.8;
-        }
-        
-        return 0;
-    }
-    
-    /**
      * Check if lastname-first pattern matches
      */
     private function matches_lastname_first($teams_name, $user_name) {
@@ -299,39 +207,5 @@ class teams_id_matcher {
                 stripos($user_firstname, $teams_firstname) !== false) &&
                (stripos($teams_lastname, $user_lastname) !== false || 
                 stripos($user_lastname, $teams_lastname) !== false);
-    }
-    
-    /**
-     * Calculate basic match score
-     */
-    private function calculate_match_score($teams_name, $user_name) {
-        $lastname_sim = $this->string_similarity(
-            $this->accent_handler->normalize_text($teams_name['lastname']),
-            $this->accent_handler->normalize_text($user_name['lastname'])
-        );
-        $firstname_sim = $this->string_similarity(
-            $this->accent_handler->normalize_text($teams_name['firstname']),
-            $this->accent_handler->normalize_text($user_name['firstname'])
-        );
-        
-        return ($lastname_sim + $firstname_sim) / 2;
-    }
-    
-    /**
-     * Calculate string similarity using Levenshtein distance
-     */
-    private function string_similarity($str1, $str2) {
-        $max_len = max(strlen($str1), strlen($str2));
-        if ($max_len == 0) return 1.0;
-        
-        $distance = levenshtein($str1, $str2);
-        return 1 - ($distance / $max_len);
-    }
-    
-    /**
-     * Normalize Teams ID for matching
-     */
-    private function normalize_teams_id($teams_id) {
-        return $this->accent_handler->normalize_text($teams_id);
     }
 }
