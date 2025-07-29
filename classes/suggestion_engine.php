@@ -24,16 +24,16 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->dirroot . '/mod/teamsattendance/classes/email_pattern_matcher.php');
-require_once($CFG->dirroot . '/mod/teamsattendance/classes/teams_id_matcher.php');
+require_once($CFG->dirroot . '/mod/teamsattendance/classes/six_phase_matcher.php');
+
 
 /**
  * Main suggestion engine that coordinates matching logic
  */
 class suggestion_engine {
     
-    /** @var email_pattern_matcher Email pattern matching component */
-    private $email_matcher;
+    /** @var six_phase_matcher Six-phase matching engine */
+    private $six_phase_matcher;
     
     /** @var teams_id_matcher Teams ID pattern matching component */
     private $teams_matcher;
@@ -54,8 +54,7 @@ class suggestion_engine {
      */
     public function __construct($available_users) {
         $this->available_users = $available_users;
-        $this->email_matcher = new email_pattern_matcher($available_users);
-        $this->teams_matcher = new teams_id_matcher($available_users);
+        $this->six_phase_matcher = new six_phase_matcher($available_users);
     }
     
     /**
