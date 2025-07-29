@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Email pattern matcher for Teams attendance with accent handling
+ * Email pattern matcher for Teams attendance with accent handling and uniqueness control
  *
  * @package    mod_teamsattendance
  * @copyright  2025 Invisiblefarm srl
@@ -28,7 +28,7 @@ require_once($CFG->dirroot . '/mod/teamsattendance/classes/name_parser.php');
 require_once($CFG->dirroot . '/mod/teamsattendance/classes/accent_handler.php');
 
 /**
- * Handles email pattern matching with enhanced cognome-first approach and accent handling
+ * Handles email pattern matching with enhanced cognome-first approach, accent handling and uniqueness control
  */
 class email_pattern_matcher {
     
@@ -41,33 +41,42 @@ class email_pattern_matcher {
     /** @var accent_handler Accent handler instance */
     private $accent_handler;
     
-    /** @var float Similarity threshold for email matching */
-    const SIMILARITY_THRESHOLD = 0.7;
+    /** @var float Similarity threshold for email matching - raised to reduce false positives */
+    const SIMILARITY_THRESHOLD = 0.85;
+    
+    /** @var float Confidence threshold for ambiguity check */
+    const CONFIDENCE_THRESHOLD = 0.9;
+    
+    /** @var float Minimum score difference to prefer one match over another */
+    const SCORE_DIFFERENCE_THRESHOLD = 0.15;
+    
+    /** @var array Cache for already processed matches to ensure uniqueness */
+    private $match_cache = array();
     
     /** @var array Email patterns prioritized by cognome-first approach */
     private $patterns_config = [
         // Phase 1: Cognome-first patterns (higher priority)
-        0 => ['name' => 'cognomenome', 'check_ambiguity' => false, 'priority' => 1],
-        1 => ['name' => 'cognome.nome', 'check_ambiguity' => false, 'priority' => 1],
-        2 => ['name' => 'cognome_nome', 'check_ambiguity' => false, 'priority' => 1],
-        3 => ['name' => 'cognome.n', 'check_ambiguity' => true, 'priority' => 1],
-        4 => ['name' => 'cognome-n', 'check_ambiguity' => true, 'priority' => 1],
-        5 => ['name' => 'cognome', 'check_ambiguity' => false, 'priority' => 1],
+        0 => ['name' => 'cognomenome', 'check_ambiguity' => false, 'priority' => 1, 'weight' => 1.0],
+        1 => ['name' => 'cognome.nome', 'check_ambiguity' => false, 'priority' => 1, 'weight' => 1.0],
+        2 => ['name' => 'cognome_nome', 'check_ambiguity' => false, 'priority' => 1, 'weight' => 1.0],
+        3 => ['name' => 'cognome.n', 'check_ambiguity' => true, 'priority' => 1, 'weight' => 0.9],
+        4 => ['name' => 'cognome-n', 'check_ambiguity' => true, 'priority' => 1, 'weight' => 0.9],
+        5 => ['name' => 'cognome', 'check_ambiguity' => true, 'priority' => 1, 'weight' => 0.8],
         
         // Phase 2: Nome-first patterns (standard priority)
-        6 => ['name' => 'nomecognome', 'check_ambiguity' => false, 'priority' => 2],
-        7 => ['name' => 'nome.cognome', 'check_ambiguity' => false, 'priority' => 2],
-        8 => ['name' => 'nome_cognome', 'check_ambiguity' => false, 'priority' => 2],
-        9 => ['name' => 'n.cognome', 'check_ambiguity' => true, 'priority' => 2],
-        10 => ['name' => 'n-cognome', 'check_ambiguity' => true, 'priority' => 2],
-        11 => ['name' => 'nome.c', 'check_ambiguity' => true, 'priority' => 2],
-        12 => ['name' => 'nome', 'check_ambiguity' => false, 'priority' => 2],
+        6 => ['name' => 'nomecognome', 'check_ambiguity' => false, 'priority' => 2, 'weight' => 1.0],
+        7 => ['name' => 'nome.cognome', 'check_ambiguity' => false, 'priority' => 2, 'weight' => 1.0],
+        8 => ['name' => 'nome_cognome', 'check_ambiguity' => false, 'priority' => 2, 'weight' => 1.0],
+        9 => ['name' => 'n.cognome', 'check_ambiguity' => true, 'priority' => 2, 'weight' => 0.9],
+        10 => ['name' => 'n-cognome', 'check_ambiguity' => true, 'priority' => 2, 'weight' => 0.9],
+        11 => ['name' => 'nome.c', 'check_ambiguity' => true, 'priority' => 2, 'weight' => 0.8],
+        12 => ['name' => 'nome', 'check_ambiguity' => true, 'priority' => 2, 'weight' => 0.7],
         
-        // Phase 3: Special patterns (lower priority)
-        13 => ['name' => 'n.c', 'check_ambiguity' => true, 'priority' => 3],
-        14 => ['name' => 'ncognome', 'check_ambiguity' => true, 'priority' => 3],
-        15 => ['name' => 'nomec', 'check_ambiguity' => true, 'priority' => 3],
-        16 => ['name' => 'c.nome', 'check_ambiguity' => true, 'priority' => 3]
+        // Phase 3: Special patterns (lower priority - more restrictive)
+        13 => ['name' => 'n.c', 'check_ambiguity' => true, 'priority' => 3, 'weight' => 0.6],
+        14 => ['name' => 'ncognome', 'check_ambiguity' => true, 'priority' => 3, 'weight' => 0.7],
+        15 => ['name' => 'nomec', 'check_ambiguity' => true, 'priority' => 3, 'weight' => 0.7],
+        16 => ['name' => 'c.nome', 'check_ambiguity' => true, 'priority' => 3, 'weight' => 0.6]
     ];
     
     /**
@@ -79,10 +88,11 @@ class email_pattern_matcher {
         $this->available_users = $available_users;
         $this->name_parser = new name_parser();
         $this->accent_handler = new accent_handler();
+        $this->match_cache = array();
     }
     
     /**
-     * Find best email match for a Teams email address with cognome-first approach
+     * Find best email match for a Teams email address with uniqueness control
      *
      * @param string $teams_email Full email address
      * @return object|null Best matching user or null
@@ -95,63 +105,130 @@ class email_pattern_matcher {
         
         $local_part = $email_parts[0]; // Part before @
         
-        // Phase 1: Try cognome-first patterns (priority 1)
-        $match = $this->find_match_by_priority($local_part, 1);
-        if ($match) {
-            return $match;
+        // Check if we already processed this email
+        if (isset($this->match_cache[$teams_email])) {
+            return $this->match_cache[$teams_email];
         }
         
-        // Phase 2: Try nome-first patterns (priority 2)
-        $match = $this->find_match_by_priority($local_part, 2);
-        if ($match) {
-            return $match;
-        }
+        // Collect all potential matches with scores
+        $all_candidates = $this->collect_all_candidates($local_part);
         
-        // Phase 3: Try special patterns (priority 3)
-        $match = $this->find_match_by_priority($local_part, 3);
-        if ($match) {
-            return $match;
-        }
+        // Apply uniqueness control
+        $best_match = $this->apply_uniqueness_control($all_candidates, $teams_email);
         
-        return null;
-    }
-    
-    /**
-     * Find match by pattern priority level
-     *
-     * @param string $local_part Email local part
-     * @param int $priority Priority level to search
-     * @return object|null Best matching user for this priority level
-     */
-    private function find_match_by_priority($local_part, $priority) {
-        $best_match = null;
-        $best_score = 0;
-        
-        foreach ($this->available_users as $user) {
-            $score = $this->calculate_email_similarity_by_priority($local_part, $user, $priority);
-            
-            if ($score > $best_score && $score >= self::SIMILARITY_THRESHOLD) {
-                $best_score = $score;
-                $best_match = $user;
-            }
-        }
+        // Cache the result
+        $this->match_cache[$teams_email] = $best_match;
         
         return $best_match;
     }
     
     /**
-     * Calculate email similarity for specific priority level patterns
+     * Collect all potential matches across all priority levels
+     *
+     * @param string $local_part Email local part
+     * @return array Array of candidate matches with scores and metadata
+     */
+    private function collect_all_candidates($local_part) {
+        $candidates = array();
+        
+        foreach ($this->available_users as $user) {
+            // Calculate scores for all priority levels
+            for ($priority = 1; $priority <= 3; $priority++) {
+                $score_data = $this->calculate_detailed_similarity($local_part, $user, $priority);
+                
+                if ($score_data['score'] >= self::SIMILARITY_THRESHOLD) {
+                    $candidates[] = array(
+                        'user' => $user,
+                        'score' => $score_data['score'],
+                        'priority' => $priority,
+                        'pattern_used' => $score_data['pattern_used'],
+                        'is_ambiguous' => $score_data['is_ambiguous'],
+                        'confidence' => $score_data['confidence']
+                    );
+                }
+            }
+        }
+        
+        // Sort by priority first, then by score
+        usort($candidates, function($a, $b) {
+            if ($a['priority'] != $b['priority']) {
+                return $a['priority'] - $b['priority'];
+            }
+            return $b['score'] - $a['score'];
+        });
+        
+        return $candidates;
+    }
+    
+    /**
+     * Apply uniqueness control to prevent false positives
+     *
+     * @param array $candidates All candidate matches
+     * @param string $teams_email Original teams email for logging
+     * @return object|null Best unique match
+     */
+    private function apply_uniqueness_control($candidates, $teams_email) {
+        if (empty($candidates)) {
+            return null;
+        }
+        
+        // If only one candidate, check if it's confident enough
+        if (count($candidates) === 1) {
+            $candidate = $candidates[0];
+            if ($candidate['is_ambiguous'] && $candidate['confidence'] < self::CONFIDENCE_THRESHOLD) {
+                // Single match but low confidence and potentially ambiguous
+                return null;
+            }
+            return $candidate['user'];
+        }
+        
+        // Multiple candidates - apply disambiguation logic
+        $best_candidate = $candidates[0];
+        $second_best = $candidates[1];
+        
+        // Check if the best candidate is significantly better than the second
+        $score_difference = $best_candidate['score'] - $second_best['score'];
+        
+        // If both candidates are of the same priority level
+        if ($best_candidate['priority'] === $second_best['priority']) {
+            // Require significant score difference
+            if ($score_difference < self::SCORE_DIFFERENCE_THRESHOLD) {
+                // Too close - ambiguous match
+                return null;
+            }
+        }
+        
+        // Check for name ambiguity on the best candidate
+        if ($best_candidate['is_ambiguous']) {
+            if ($this->check_advanced_name_ambiguity($candidates[0], $candidates)) {
+                return null;
+            }
+        }
+        
+        // Additional check: ensure the user hasn't been matched by another email
+        if ($this->is_user_already_matched($best_candidate['user'], $teams_email)) {
+            return null;
+        }
+        
+        return $best_candidate['user'];
+    }
+    
+    /**
+     * Calculate detailed similarity with enhanced metadata
      *
      * @param string $local_part Email local part (before @)
      * @param object $user User object to match against
      * @param int $priority Priority level to test
-     * @return float Similarity score (0-1)
+     * @return array Detailed similarity data
      */
-    private function calculate_email_similarity_by_priority($local_part, $user, $priority) {
+    private function calculate_detailed_similarity($local_part, $user, $priority) {
         // Parse user names to handle various edge cases
         $user_names = $this->name_parser->parse_user_names($user);
         
         $best_score = 0;
+        $best_pattern = '';
+        $is_ambiguous = false;
+        $confidence = 0;
         
         // Test against all parsed name variations
         foreach ($user_names as $names) {
@@ -171,8 +248,6 @@ class email_pattern_matcher {
                 continue;
             }
             
-            $scores = array();
-            
             // Test only patterns for this priority level
             foreach ($this->patterns_config as $i => $config) {
                 if ($config['priority'] !== $priority) {
@@ -188,27 +263,136 @@ class email_pattern_matcher {
                 // Calculate basic similarity
                 $similarity = $this->similarity_score($local_part_clean, $pattern);
                 
-                // Apply anti-ambiguity logic for specific patterns
-                if ($config['check_ambiguity'] && $similarity > 0.8) {
-                    if ($this->check_name_ambiguity($pattern, $i, $user)) {
-                        // Don't suggest this match - ambiguous
-                        $similarity = 0;
-                    }
-                }
+                // Apply pattern weight
+                $weighted_score = $similarity * $config['weight'];
                 
-                if ($similarity > 0) {
-                    $scores[] = $similarity;
+                if ($weighted_score > $best_score) {
+                    $best_score = $weighted_score;
+                    $best_pattern = $config['name'];
+                    $is_ambiguous = $config['check_ambiguity'];
+                    
+                    // Calculate confidence based on pattern type and score
+                    $confidence = $this->calculate_confidence($similarity, $config);
                 }
-            }
-            
-            // Get the best score for this name variation at this priority
-            if (!empty($scores)) {
-                $variation_score = max($scores);
-                $best_score = max($best_score, $variation_score);
             }
         }
         
-        return $best_score;
+        return array(
+            'score' => $best_score,
+            'pattern_used' => $best_pattern,
+            'is_ambiguous' => $is_ambiguous,
+            'confidence' => $confidence
+        );
+    }
+    
+    /**
+     * Calculate confidence score for a match
+     *
+     * @param float $similarity Basic similarity score
+     * @param array $config Pattern configuration
+     * @return float Confidence score (0-1)
+     */
+    private function calculate_confidence($similarity, $config) {
+        $base_confidence = $similarity;
+        
+        // Adjust based on pattern characteristics
+        if (!$config['check_ambiguity']) {
+            // Non-ambiguous patterns get higher confidence
+            $base_confidence *= 1.1;
+        }
+        
+        // Adjust based on pattern weight
+        $base_confidence *= $config['weight'];
+        
+        // Ensure confidence is within bounds
+        return min(1.0, max(0.0, $base_confidence));
+    }
+    
+    /**
+     * Advanced name ambiguity check with multiple candidates context
+     *
+     * @param array $candidate Primary candidate to check
+     * @param array $all_candidates All candidates for context
+     * @return bool True if ambiguous (should reject), false if safe
+     */
+    private function check_advanced_name_ambiguity($candidate, $all_candidates) {
+        // Count how many users would match with similar patterns and scores
+        $similar_matches = 0;
+        $threshold = $candidate['score'] - 0.1; // Allow some tolerance
+        
+        foreach ($all_candidates as $other_candidate) {
+            if ($other_candidate['user']->id === $candidate['user']->id) {
+                continue;
+            }
+            
+            if ($other_candidate['score'] >= $threshold && 
+                $other_candidate['pattern_used'] === $candidate['pattern_used']) {
+                $similar_matches++;
+            }
+        }
+        
+        // If we have multiple users with very similar scores and same pattern type
+        return $similar_matches >= 1;
+    }
+    
+    /**
+     * Check if a user has already been matched by another email
+     *
+     * @param object $user User to check
+     * @param string $current_email Current email being processed
+     * @return bool True if user already matched elsewhere
+     */
+    private function is_user_already_matched($user, $current_email) {
+        foreach ($this->match_cache as $email => $matched_user) {
+            if ($email !== $current_email && 
+                $matched_user && 
+                $matched_user->id === $user->id) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Find match by pattern priority level (legacy method - kept for compatibility)
+     *
+     * @param string $local_part Email local part
+     * @param int $priority Priority level to search
+     * @return object|null Best matching user for this priority level
+     */
+    private function find_match_by_priority($local_part, $priority) {
+        $candidates = array();
+        
+        foreach ($this->available_users as $user) {
+            $score_data = $this->calculate_detailed_similarity($local_part, $user, $priority);
+            
+            if ($score_data['score'] >= self::SIMILARITY_THRESHOLD) {
+                $candidates[] = array(
+                    'user' => $user,
+                    'score' => $score_data['score'],
+                    'is_ambiguous' => $score_data['is_ambiguous'],
+                    'confidence' => $score_data['confidence']
+                );
+            }
+        }
+        
+        if (empty($candidates)) {
+            return null;
+        }
+        
+        // Sort by score
+        usort($candidates, function($a, $b) {
+            return $b['score'] - $a['score'];
+        });
+        
+        $best = $candidates[0];
+        
+        // Apply ambiguity check for single priority level
+        if ($best['is_ambiguous'] && $best['confidence'] < self::CONFIDENCE_THRESHOLD) {
+            return null;
+        }
+        
+        return $best['user'];
     }
     
     /**
@@ -304,7 +488,7 @@ class email_pattern_matcher {
     }
     
     /**
-     * Check if a pattern would match multiple users (ambiguity check)
+     * Legacy check if a pattern would match multiple users (kept for compatibility)
      *
      * @param string $pattern The email pattern to check
      * @param int $pattern_index The index of the pattern
@@ -377,28 +561,59 @@ class email_pattern_matcher {
             foreach ($this->patterns_config as $i => $config) {
                 $pattern = $this->generate_pattern_by_index($i, $firstname_clean, $lastname_clean);
                 $similarity = $this->similarity_score($local_part_clean, $pattern);
+                $weighted_score = $similarity * $config['weight'];
                 
                 $details[] = array(
                     'pattern_name' => $config['name'],
                     'pattern_value' => $pattern,
                     'similarity' => $similarity,
+                    'weighted_score' => $weighted_score,
                     'priority' => $config['priority'],
+                    'weight' => $config['weight'],
                     'ambiguity_check' => $config['check_ambiguity'],
-                    'would_suggest' => $similarity >= self::SIMILARITY_THRESHOLD,
-                    'accent_normalized' => true
+                    'would_suggest' => $weighted_score >= self::SIMILARITY_THRESHOLD,
+                    'accent_normalized' => true,
+                    'confidence' => $this->calculate_confidence($similarity, $config)
                 );
             }
         }
         
-        // Sort by priority and similarity
+        // Sort by priority and weighted score
         usort($details, function($a, $b) {
             if ($a['priority'] != $b['priority']) {
                 return $a['priority'] - $b['priority'];
             }
-            return $b['similarity'] - $a['similarity'];
+            return $b['weighted_score'] - $a['weighted_score'];
         });
         
         return $details;
+    }
+    
+    /**
+     * Get matching statistics for debugging
+     *
+     * @return array Statistics about current matching state
+     */
+    public function get_matching_statistics() {
+        return array(
+            'cached_matches' => count($this->match_cache),
+            'similarity_threshold' => self::SIMILARITY_THRESHOLD,
+            'confidence_threshold' => self::CONFIDENCE_THRESHOLD,
+            'score_difference_threshold' => self::SCORE_DIFFERENCE_THRESHOLD,
+            'total_patterns' => count($this->patterns_config),
+            'patterns_by_priority' => array(
+                1 => count(array_filter($this->patterns_config, function($p) { return $p['priority'] === 1; })),
+                2 => count(array_filter($this->patterns_config, function($p) { return $p['priority'] === 2; })),
+                3 => count(array_filter($this->patterns_config, function($p) { return $p['priority'] === 3; }))
+            )
+        );
+    }
+    
+    /**
+     * Clear match cache (useful for testing)
+     */
+    public function clear_cache() {
+        $this->match_cache = array();
     }
     
     /**
@@ -409,15 +624,15 @@ class email_pattern_matcher {
      * @return float Similarity score (0-1)
      */
     private function calculate_email_similarity($local_part, $user) {
-        // Use new priority-based approach but return single score
+        // Use new detailed approach but return single score
         $max_score = 0;
         
         for ($priority = 1; $priority <= 3; $priority++) {
-            $score = $this->calculate_email_similarity_by_priority($local_part, $user, $priority);
-            $max_score = max($max_score, $score);
+            $score_data = $this->calculate_detailed_similarity($local_part, $user, $priority);
+            $max_score = max($max_score, $score_data['score']);
             
             // Early exit on high confidence match
-            if ($score >= 0.9) {
+            if ($score_data['score'] >= 0.9) {
                 break;
             }
         }
