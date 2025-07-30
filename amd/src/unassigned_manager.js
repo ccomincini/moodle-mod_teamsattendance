@@ -22,16 +22,17 @@ function($, Ajax, Notification, Str) {
         this.cmId = config.cmId;
         this.sesskey = config.sesskey || M.cfg.sesskey;
         this.strings = config.strings || {};
-        this.availableUsers = [];
+        this.availableUsers = config.available_users || []; // FIX: Inizializza con dati dal PHP
 
         console.log('MANAGER INIT: constructor called with config:', config);
         console.log('MANAGER INIT: initial filter from URL:', this.currentFilter);
+        console.log('MANAGER INIT: initial available users count:', this.availableUsers.length);
         
         // Store reference in global scope for debugging
         window.unassignedManager = this;
 
         this.init();
-        this.loadAvailableUsers();
+        this.loadAvailableUsers(); // Carica comunque per aggiornamenti
     };
 
     UnassignedRecordsManager.prototype = {
@@ -213,15 +214,6 @@ function($, Ajax, Notification, Str) {
                 console.log('EVENT TRIGGERED: change event on', event.target.id, 'new value:', $(this).val());
                 self.applyCurrentSettings();
             });
-
-            // Test binding immediately
-            console.log('BIND EVENTS: testing event binding...');
-            setTimeout(function() {
-                var filterEvents = $._data($('#filter-select')[0], 'events');
-                var pageSizeEvents = $._data($('#page-size-select')[0], 'events');
-                console.log('BIND EVENTS: filter events bound:', filterEvents ? Object.keys(filterEvents) : 'NONE');
-                console.log('BIND EVENTS: pagesize events bound:', pageSizeEvents ? Object.keys(pageSizeEvents) : 'NONE');
-            }, 100);
 
             // Bulk assign button
             $('#bulk-assign-btn').on('click', function() {
