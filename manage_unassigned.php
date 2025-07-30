@@ -238,8 +238,75 @@ if (!empty($response_data['records'])) {
                 break;
             
             case 'get_available_users':
-                echo json_encode(array('success' => true, 'users' => $available_users));
-                break;    
+                // DEBUG: Log della query e risultati
+                error_log("DEBUG AVAILABLE USERS: sessionid = " . $teamsattendance->id);
+                
+                // Ottiene tutti i record di questa sessione per debug
+                $all_session_records = $DB->get_records('teamsattendance_data', 
+                    array('sessionid' => $teamsattendance->id), 
+                    '', 
+                    'id, teams_user_id, userid, manually_assigned'
+                );
+                
+                error_log("DEBUG AVAILABLE USERS: total records in session = " . count($all_session_records));
+                
+                $assigned_count = 0;
+                $unassigned_count = 0;
+                foreach ($all_session_records as $record) {
+                    if ($record->userid && $record->userid > 0) {
+                        $assigned_count++;
+                        error_log("DEBUG AVAILABLE USERS: assigned - teams_user_id: {$record->teams_user_id}, userid: {$record->userid}, manual: {$record->manually_assigned}");
+                    } else {
+                        $unassigned_count++;
+                    }
+                }
+                
+                error_log("DEBUG AVAILABLE USERS: assigned records = $assigned_count, unassigned = $unassigned_count");
+                
+                // Query originale per utenti assegnati
+                $debug_assigned_userids = $DB->get_fieldset_select('teamsattendance_data', 
+                    'DISTINCT userid', 
+                    'sessionid = ? AND userid IS NOT NULL AND userid > 0', 
+                    array($teamsattendance->id)
+                );
+                
+                error_log("DEBUG AVAILABLE USERS: assigned userids = " . json_encode($debug_assigned_userids));
+                
+                // Ottiene tutti gli utenti iscritti al corso
+                $debug_context = context_course::instance($course->id);
+                $debug_enrolled_users = get_enrolled_users($debug_context, '', 0, 'u.id, u.firstname, u.lastname', 'u.lastname ASC, u.firstname ASC');
+                
+                error_log("DEBUG AVAILABLE USERS: total enrolled users = " . count($debug_enrolled_users));
+                
+                // Prepara l'elenco degli utenti disponibili (non ancora assegnati)
+                $debug_available_users = array();
+                foreach ($debug_enrolled_users as $user) {
+                    if (!in_array($user->id, $debug_assigned_userids)) {
+                        $debug_available_users[] = array(
+                            'id' => $user->id,
+                            'name' => $user->lastname . ' ' . $user->firstname,
+                            'firstname' => $user->firstname,
+                            'lastname' => $user->lastname
+                        );
+                        error_log("DEBUG AVAILABLE USERS: available user - id: {$user->id}, name: {$user->firstname} {$user->lastname}");
+                    } else {
+                        error_log("DEBUG AVAILABLE USERS: excluded user - id: {$user->id}, name: {$user->firstname} {$user->lastname} (already assigned)");
+                    }
+                }
+                
+                error_log("DEBUG AVAILABLE USERS: final available users count = " . count($debug_available_users));
+                
+                // Ordina gli utenti disponibili per cognome e nome
+                usort($debug_available_users, function($a, $b) {
+                    $firstname_cmp = strcasecmp($a['firstname'], $b['firstname']);
+                    if ($firstname_cmp === 0) {
+                        return strcasecmp($a['lastname'], $b['lastname']);
+                    }
+                    return $firstname_cmp;
+                });
+                
+                echo json_encode(array('success' => true, 'users' => $debug_available_users));
+                break;
             
             case 'get_statistics':
                 $unassigned_records = $performance_handler->get_all_unassigned_records();
