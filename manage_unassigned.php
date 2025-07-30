@@ -80,11 +80,10 @@ if ($per_page <= 0) {
     $per_page = 20;
 }
 
-// Ottiene gli utenti disponibili per l'assegnazione manuale
+// SOLUZIONE: Limita rigorosamente agli utenti del corso CORRENTE
 $context = context_course::instance($course->id);
-$enrolled_users = get_enrolled_users($context, '', 0, 'u.id, u.firstname, u.lastname', 'u.lastname ASC, u.firstname ASC');
 
-// QUERY MIGLIORATA: Usa query più robusta per trovare utenti assegnati
+// Query per utenti assegnati in questa sessione
 $sql_assigned = "SELECT DISTINCT tad.userid
                 FROM {teamsattendance_data} tad
                 JOIN {user} u ON u.id = tad.userid
@@ -94,7 +93,21 @@ $sql_assigned = "SELECT DISTINCT tad.userid
                 AND u.deleted = 0";
 $assigned_userids = $DB->get_fieldset_sql($sql_assigned, array($teamsattendance->id));
 
-error_log("DEBUG IMPROVED: Found " . count($assigned_userids) . " assigned users with JOIN query");
+// Query RISTRETTA: Solo utenti EFFETTIVAMENTE iscritti a QUESTO corso
+$sql_enrolled = "SELECT DISTINCT u.id, u.firstname, u.lastname
+                FROM {user} u
+                JOIN {user_enrolments} ue ON ue.userid = u.id
+                JOIN {enrol} e ON e.id = ue.enrolid AND e.courseid = ?
+                WHERE u.deleted = 0 
+                AND u.suspended = 0
+                AND ue.status = 0
+                AND e.status = 0
+                ORDER BY u.lastname ASC, u.firstname ASC";
+$enrolled_users = $DB->get_records_sql($sql_enrolled, array($course->id));
+
+error_log("DEBUG RESTRICTED: Course ID = " . $course->id);
+error_log("DEBUG RESTRICTED: Found " . count($assigned_userids) . " assigned users");
+error_log("DEBUG RESTRICTED: Found " . count($enrolled_users) . " enrolled users in THIS course");
 
 // Prepara l'elenco degli utenti disponibili (non ancora assegnati)
 $available_users = array();
@@ -109,7 +122,7 @@ foreach ($enrolled_users as $user) {
     }
 }
 
-error_log("DEBUG IMPROVED: Final available users count = " . count($available_users));
+error_log("DEBUG RESTRICTED: Final available users count = " . count($available_users));
 
 // Ordina gli utenti disponibili per cognome e nome
 usort($available_users, function($a, $b) {
@@ -238,7 +251,7 @@ if ($ajax) {
                 break;
             
             case 'get_available_users':
-                // Usa la stessa query migliorata
+                // Usa la stessa logica ristretta
                 $ajax_sql_assigned = "SELECT DISTINCT tad.userid
                                     FROM {teamsattendance_data} tad
                                     JOIN {user} u ON u.id = tad.userid
@@ -248,10 +261,21 @@ if ($ajax) {
                                     AND u.deleted = 0";
                 $ajax_assigned_userids = $DB->get_fieldset_sql($ajax_sql_assigned, array($teamsattendance->id));
                 
-                error_log("DEBUG AJAX: Found " . count($ajax_assigned_userids) . " assigned users");
+                // Query RISTRETTA per utenti iscritti al corso
+                $ajax_sql_enrolled = "SELECT DISTINCT u.id, u.firstname, u.lastname
+                                    FROM {user} u
+                                    JOIN {user_enrolments} ue ON ue.userid = u.id
+                                    JOIN {enrol} e ON e.id = ue.enrolid AND e.courseid = ?
+                                    WHERE u.deleted = 0 
+                                    AND u.suspended = 0
+                                    AND ue.status = 0
+                                    AND e.status = 0
+                                    ORDER BY u.lastname ASC, u.firstname ASC";
+                $ajax_enrolled_users = $DB->get_records_sql($ajax_sql_enrolled, array($course->id));
                 
-                $ajax_context = context_course::instance($course->id);
-                $ajax_enrolled_users = get_enrolled_users($ajax_context, '', 0, 'u.id, u.firstname, u.lastname', 'u.lastname ASC, u.firstname ASC');
+                error_log("DEBUG AJAX RESTRICTED: Course ID = " . $course->id);
+                error_log("DEBUG AJAX RESTRICTED: Found " . count($ajax_assigned_userids) . " assigned users");
+                error_log("DEBUG AJAX RESTRICTED: Found " . count($ajax_enrolled_users) . " enrolled users in THIS course");
                 
                 $ajax_available_users = array();
                 foreach ($ajax_enrolled_users as $user) {
@@ -265,7 +289,7 @@ if ($ajax) {
                     }
                 }
                 
-                error_log("DEBUG AJAX: Final available users count = " . count($ajax_available_users));
+                error_log("DEBUG AJAX RESTRICTED: Final available users count = " . count($ajax_available_users));
                 
                 usort($ajax_available_users, function($a, $b) {
                     $firstname_cmp = strcasecmp($a['firstname'], $b['firstname']);
