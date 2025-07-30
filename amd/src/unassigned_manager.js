@@ -361,15 +361,12 @@ function($, Ajax, Notification, Str) {
             if (filteredUsers.length === 0) {
                 html = '<div class="user-option text-muted p-2">Nessun utente trovato</div>';
             } else {
-                filteredUsers.slice(0, 20).forEach(function(user) {
+                filteredUsers.forEach(function(user) {
                     html += '<div class="user-option p-2" data-user-id="' + user.id + '" ';
                     html += 'style="cursor: pointer; border-bottom: 1px solid #eee;">';
                     html += self.escapeHtml(user.name);
                     html += '</div>';
                 });
-                if (filteredUsers.length > 20) {
-                    html += '<div class="text-muted p-2"><small>... e altri ' + (filteredUsers.length - 20) + '</small></div>';
-                }
             }
 
             dropdown.html(html);
