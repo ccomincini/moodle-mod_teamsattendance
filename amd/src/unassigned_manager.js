@@ -15,42 +15,30 @@ function($, Ajax, Notification, Str) {
      */
     var UnassignedRecordsManager = function(config) {
         this.currentPage = 0;
-        this.currentFilter = this.getFilterFromURL(); // READ FROM URL
-        this.currentPageSize = 50; // Default 50
+        this.currentFilter = this.getFilterFromURL();
+        this.currentPageSize = 50;
         this.selectedRecords = new Set();
         this.isLoading = false;
         this.cmId = config.cmId;
         this.sesskey = config.sesskey || M.cfg.sesskey;
         this.strings = config.strings || {};
-        this.availableUsers = config.available_users || []; // FIX: Inizializza con dati dal PHP
+        this.availableUsers = config.available_users || [];
 
         console.log('MANAGER INIT: constructor called with config:', config);
-        console.log('MANAGER INIT: initial filter from URL:', this.currentFilter);
         console.log('MANAGER INIT: initial available users count:', this.availableUsers.length);
         
-        // Store reference in global scope for debugging
         window.unassignedManager = this;
-
         this.init();
-        this.loadAvailableUsers(); // Carica comunque per aggiornamenti
+        this.loadAvailableUsers();
     };
 
     UnassignedRecordsManager.prototype = {
-        /**
-         * Get filter parameter from current URL
-         * @return {string} Filter value from URL or 'all' as default
-         */
         getFilterFromURL: function() {
             var urlParams = new URLSearchParams(window.location.search);
             var filter = urlParams.get('filter');
-            console.log('GET FILTER FROM URL:', filter);
             return filter || 'all';
         },
 
-        /**
-         * Update URL with current filter without reloading page
-         * @param {string} filter Filter value
-         */
         updateURL: function(filter) {
             var url = new URL(window.location);
             if (filter && filter !== 'all') {
@@ -58,21 +46,15 @@ function($, Ajax, Notification, Str) {
             } else {
                 url.searchParams.delete('filter');
             }
-            console.log('UPDATE URL: new URL will be:', url.toString());
             window.history.replaceState({}, '', url);
         },
 
-        /**
-         * Update statistics counters
-         */
         updateStatistics: function() {
             var self = this;
-            console.log('UPDATE STATISTICS: called');
             $.ajax({
                 url: window.location.href,
                 data: {ajax: 1, action: 'get_statistics'},
                 success: function(response) {
-                    console.log('UPDATE STATISTICS: response:', response);
                     if (response.success) {
                         var data = response.data;
                         $('#name-suggestions-count').text(data.name_suggestions);
@@ -84,38 +66,22 @@ function($, Ajax, Notification, Str) {
             });
         },
         
-        /**
-         * Initialize the manager
-         */
         init: function() {
-            console.log('MANAGER INIT: starting initialization...');
             this.syncSelectValues();
             this.bindEvents();
             this.loadPage(0);
             this.updateStatistics();
-            console.log('MANAGER INIT: initialization complete');
         },
 
-        /**
-         * Sync select values with current state
-         */
         syncSelectValues: function() {
-            console.log('SYNC VALUES: filter =', this.currentFilter, 'pageSize =', this.currentPageSize);
             $('#filter-select').val(this.currentFilter);
             $('#page-size-select').val(this.currentPageSize);
-            console.log('SYNC VALUES: after sync - filter select value:', $('#filter-select').val());
-            console.log('SYNC VALUES: after sync - pagesize select value:', $('#page-size-select').val());
         },
 
-        /**
-         * Get current filters as object
-         * @return {Object} Current filters
-         */
         getCurrentFilters: function() {
             var filters = {};
             
             if (this.currentFilter !== 'all') {
-                // Convert URL filter format to backend format
                 switch (this.currentFilter) {
                     case 'name_suggestions':
                         filters.suggestion_type = 'name_based';
@@ -129,133 +95,61 @@ function($, Ajax, Notification, Str) {
                 }
             }
             
-            console.log('GET CURRENT FILTERS: currentFilter =', this.currentFilter, 'converted filters =', filters);
             return filters;
         },
 
-        /**
-         * Apply current settings from both selects
-         */
         applyCurrentSettings: function() {
-            console.log('APPLY SETTINGS: === START ===');
-            
-            // Read current values from both selects
             var newFilter = $('#filter-select').val();
             var pageSizeValue = $('#page-size-select').val();
             
-            console.log('APPLY SETTINGS: reading from DOM - filter:', newFilter, 'pageSize:', pageSizeValue);
-            console.log('APPLY SETTINGS: previous values - filter:', this.currentFilter, 'pageSize:', this.currentPageSize);
-            
-            // *** CACHE INVALIDATION FIX ***
-            // Check if filter changed - if so, clear cache
             var filterChanged = (newFilter !== this.currentFilter);
-            var pageSizeChanged = false;
-            
-            // Check if page size changed
-            var newPageSizeNum;
-            if (pageSizeValue === 'all') {
-                newPageSizeNum = 999999;
-            } else {
-                newPageSizeNum = parseInt(pageSizeValue);
-            }
-            pageSizeChanged = (newPageSizeNum !== this.currentPageSize);
+            var newPageSizeNum = pageSizeValue === 'all' ? 999999 : parseInt(pageSizeValue);
+            var pageSizeChanged = (newPageSizeNum !== this.currentPageSize);
             
             if (filterChanged || pageSizeChanged) {
-                console.log('APPLY SETTINGS: CLEARING CACHE due to changes - filter changed:', filterChanged, 'pageSize changed:', pageSizeChanged);
-                sessionStorage.clear(); // Clear all cache when filters or page size change
+                sessionStorage.clear();
             }
             
             this.currentFilter = newFilter;
-            
-            // Update URL to reflect current filter
             this.updateURL(this.currentFilter);
-            
-            // Handle "all" pagesize
             this.currentPageSize = newPageSizeNum;
-            
-            console.log('APPLY SETTINGS: new values set - filter:', this.currentFilter, 'pageSize:', this.currentPageSize);
-            
-            // Reset to first page
             this.currentPage = 0;
             this.selectedRecords.clear();
             this.updateBulkButton();
             
-            console.log('APPLY SETTINGS: about to call loadPage(0) with force refresh...');
-            
-            // Load data with current settings - FORCE REFRESH to bypass cache
-            this.loadPage(0, true); // Force refresh = true
+            this.loadPage(0, true);
             this.updateStatistics();
-            
-            console.log('APPLY SETTINGS: === END ===');
         },
 
-        /**
-         * Bind event handlers
-         */
         bindEvents: function() {
             var self = this;
             
-            console.log('BIND EVENTS: starting to bind events...');
-            
-            // Check if elements exist before binding
-            if ($('#filter-select').length === 0) {
-                console.error('BIND EVENTS: #filter-select not found!');
-                return;
-            }
-            if ($('#page-size-select').length === 0) {
-                console.error('BIND EVENTS: #page-size-select not found!');
-                return;
-            }
-            
-            console.log('BIND EVENTS: elements found, binding change events...');
-
-            // Both selects trigger the same update function
             $('#filter-select, #page-size-select').on('change', function(event) {
-                console.log('EVENT TRIGGERED: change event on', event.target.id, 'new value:', $(this).val());
                 self.applyCurrentSettings();
             });
 
-            // Bulk assign button
             $('#bulk-assign-btn').on('click', function() {
-                console.log('BULK ASSIGN: button clicked, selected records:', self.selectedRecords.size);
                 if (self.selectedRecords.size > 0) {
                     self.performBulkAssignment();
                 }
             });
-            
-            console.log('BIND EVENTS: events binding complete');
         },
 
-        /**
-         * Load available users
-         */
         loadAvailableUsers: function() {
             var self = this;
-            console.log('LOAD USERS: requesting available users...');
             $.ajax({
                 url: window.location.href,
                 data: {ajax: 1, action: 'get_available_users'},
                 success: function(response) {
-                    console.log('LOAD USERS: response:', response);
                     if (response.success) {
                         self.availableUsers = response.users;
-                        console.log('LOAD USERS: loaded', self.availableUsers.length, 'users');
                     }
-                },
-                error: function(xhr, status, error) {
-                    console.error('LOAD USERS: error:', error);
                 }
             });
         },
 
-        /**
-         * Load a page of records
-         * @param {number} page Page number
-         * @param {boolean} forceRefresh Force refresh from server
-         */
         loadPage: function(page, forceRefresh) {
             if (this.isLoading) {
-                console.log('LOAD PAGE: already loading, skipping...');
                 return;
             }
 
@@ -266,24 +160,16 @@ function($, Ajax, Notification, Str) {
             var filters = this.getCurrentFilters();
             var actualPageSize = this.currentPageSize === 999999 ? 'all' : this.currentPageSize;
             
-            console.log('LOAD PAGE: === AJAX REQUEST START ===');
-            console.log('LOAD PAGE: page =', page, 'pageSize =', actualPageSize);
-            console.log('LOAD PAGE: filters =', filters);
-            console.log('LOAD PAGE: forceRefresh =', forceRefresh);
-            
             var filtersHash = JSON.stringify(filters);
             var cacheKey = 'page_' + page + '_' + filtersHash + '_' + actualPageSize;
 
             if (!forceRefresh && sessionStorage.getItem(cacheKey)) {
-                console.log('LOAD PAGE: using cached data for key:', cacheKey);
                 var cachedData = JSON.parse(sessionStorage.getItem(cacheKey));
                 this.renderPage(cachedData);
                 this.isLoading = false;
                 $('#loading-indicator').hide();
                 return;
             }
-
-            console.log('LOAD PAGE: making AJAX request (no cache or force refresh)...');
             
             $.ajax({
                 url: window.location.href,
@@ -297,34 +183,24 @@ function($, Ajax, Notification, Str) {
                     sesskey: this.sesskey
                 },
                 success: function(response) {
-                    console.log('LOAD PAGE: AJAX success, response:', response);
                     if (response.success) {
                         sessionStorage.setItem(cacheKey, JSON.stringify(response.data));
                         self.renderPage(response.data);
-                        console.log('LOAD PAGE: rendered', response.data.records.length, 'records');
                     } else {
-                        console.error('LOAD PAGE: server error:', response.error);
                         self.showError('Failed to load data: ' + (response.error || 'Unknown error'));
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.error('LOAD PAGE: AJAX error:', error, 'status:', status, 'xhr:', xhr);
                     self.showError('Connection error: ' + error);
                 },
                 complete: function() {
-                    console.log('LOAD PAGE: === AJAX REQUEST END ===');
                     self.isLoading = false;
                     $('#loading-indicator').hide();
                 }
             });
         },
 
-        /**
-         * Render page data
-         * @param {Object} data Page data
-         */
         renderPage: function(data) {
-            console.log('RENDER PAGE: rendering data for page', data.pagination.page);
             this.currentPage = data.pagination.page;
             this.renderTable(data.records);
             this.renderPagination(data.pagination);
@@ -332,12 +208,7 @@ function($, Ajax, Notification, Str) {
             this.bindTableEvents();
         },
 
-        /**
-         * Render records table
-         * @param {Array} records Array of records
-         */
         renderTable: function(records) {
-            console.log('RENDER TABLE: rendering', records.length, 'records');
             var html = '<div class="table-responsive">';
             html += '<table class="table table-striped table-hover">';
             html += '<thead class="thead-dark">';
@@ -365,11 +236,6 @@ function($, Ajax, Notification, Str) {
             $('#records-container').html(html);
         },
 
-        /**
-         * Render a table row
-         * @param {Object} record Record data
-         * @return {string} HTML string
-         */
         renderTableRow: function(record) {
             var rowClass = 'suggestion-none-row';
             if (record.has_suggestion && record.suggestion) {
@@ -407,7 +273,7 @@ function($, Ajax, Notification, Str) {
             html += '<td>';
             html += '<div class="action-column d-flex flex-column gap-2">';
             
-            // SUGGESTION BUTTON - sempre mostrato, disabilitato se non ha suggestion
+            // SUGGESTION BUTTON
             if (record.has_suggestion && record.suggestion) {
                 html += '<button class="btn btn-sm btn-success apply-suggestion-btn" ';
                 html += 'data-record-id="' + record.id + '" ';
@@ -420,20 +286,11 @@ function($, Ajax, Notification, Str) {
                 html += '</button>';
             }
             
-            // MANUAL SELECT - sempre mostrato
-            html += '<div class="d-flex gap-1">';
-            html += '<select class="form-control form-control-sm manual-user-select flex-grow-1" ';
-            html += 'data-record-id="' + record.id + '">';
-            html += '<option value="">' + (this.strings.select_user || 'Seleziona utente') + '</option>';
-
-            for (var i = 0; i < this.availableUsers.length; i++) {
-                var user = this.availableUsers[i];
-                html += '<option value="' + user.id + '">';
-                html += this.escapeHtml(user.name);
-                html += '</option>';
-            }
-
-            html += '</select>';
+            // SEARCHABLE USER SELECT
+            html += '<div class="searchable-select-container" data-record-id="' + record.id + '" style="position: relative;">';
+            html += '<input type="text" class="form-control form-control-sm user-search-input" ';
+            html += 'placeholder="Cerca utente..." style="margin-bottom: 2px;">';
+            html += '<div class="search-results-dropdown" style="display: none; max-height: 150px; overflow-y: auto; border: 1px solid #ccc; background: white; position: absolute; z-index: 1000; width: 100%;"></div>';
             html += '<button class="btn btn-sm btn-primary manual-assign-btn" ';
             html += 'data-record-id="' + record.id + '" disabled>';
             html += (this.strings.assign || 'Assegna');
@@ -447,9 +304,85 @@ function($, Ajax, Notification, Str) {
             return html;
         },
 
-        /**
-         * Render pagination controls
-         */
+        initSearchableDropdown: function(container) {
+            var self = this;
+            var recordId = container.data('record-id');
+            var input = container.find('.user-search-input');
+            var dropdown = container.find('.search-results-dropdown');
+            var assignBtn = container.find('.manual-assign-btn');
+            var selectedUserId = null;
+
+            input.on('focus', function() {
+                self.updateSearchResults(dropdown, '', assignBtn);
+                dropdown.show();
+            });
+
+            input.on('blur', function() {
+                setTimeout(function() {
+                    dropdown.hide();
+                }, 200);
+            });
+
+            input.on('input', function() {
+                var query = $(this).val();
+                self.updateSearchResults(dropdown, query, assignBtn);
+                selectedUserId = null;
+                assignBtn.prop('disabled', true);
+            });
+
+            dropdown.on('click', '.user-option', function() {
+                var userId = $(this).data('user-id');
+                var userName = $(this).text();
+                selectedUserId = userId;
+                input.val(userName);
+                dropdown.hide();
+                assignBtn.prop('disabled', false);
+            });
+
+            assignBtn.on('click', function() {
+                if (selectedUserId) {
+                    self.applySingleSuggestion(recordId, selectedUserId, $(this));
+                }
+            });
+        },
+
+        updateSearchResults: function(dropdown, query, assignBtn) {
+            var self = this;
+            var filteredUsers = this.availableUsers;
+
+            if (query.trim()) {
+                var queryLower = query.toLowerCase();
+                filteredUsers = this.availableUsers.filter(function(user) {
+                    return user.name.toLowerCase().indexOf(queryLower) !== -1;
+                });
+            }
+
+            var html = '';
+            if (filteredUsers.length === 0) {
+                html = '<div class="user-option text-muted p-2">Nessun utente trovato</div>';
+            } else {
+                filteredUsers.slice(0, 20).forEach(function(user) {
+                    html += '<div class="user-option p-2" data-user-id="' + user.id + '" ';
+                    html += 'style="cursor: pointer; border-bottom: 1px solid #eee;">';
+                    html += self.escapeHtml(user.name);
+                    html += '</div>';
+                });
+                if (filteredUsers.length > 20) {
+                    html += '<div class="text-muted p-2"><small>... e altri ' + (filteredUsers.length - 20) + '</small></div>';
+                }
+            }
+
+            dropdown.html(html);
+
+            dropdown.find('.user-option').on('mouseenter', function() {
+                $(this).css('background-color', '#f8f9fa');
+            }).on('mouseleave', function() {
+                $(this).css('background-color', 'white');
+            });
+
+            dropdown.show();
+        },
+
         renderPagination: function(pagination) {
             var self = this;
             
@@ -460,7 +393,6 @@ function($, Ajax, Notification, Str) {
             
             var html = '<nav aria-label="Pagination">';
             
-            // Show pagination only if not showing all and multiple pages
             if (!pagination.show_all && pagination.total_pages > 1) {
                 html += '<ul class="pagination justify-content-center">';
 
@@ -486,7 +418,6 @@ function($, Ajax, Notification, Str) {
                 html += '</ul>';
             }
 
-            // Info display
             html += '<div class="text-center mt-2">';
             
             if (pagination.show_all || this.currentPageSize === 999999) {
@@ -503,7 +434,6 @@ function($, Ajax, Notification, Str) {
 
             $('#pagination-container').html(html);
 
-            // Bind pagination clicks
             if (!pagination.show_all && pagination.total_pages > 1) {
                 $('.page-link').on('click', function(e) {
                     e.preventDefault();
@@ -515,9 +445,6 @@ function($, Ajax, Notification, Str) {
             }
         },
 
-        /**
-         * Bind table event handlers
-         */
         bindTableEvents: function() {
             var self = this;
 
@@ -570,44 +497,17 @@ function($, Ajax, Notification, Str) {
                 }
             });
 
-            $('.manual-user-select').on('change', function(e) {
-                var userId = $(this).val();
-                var recordId = $(this).data('record-id');
-                var assignBtn = $(this).siblings('.manual-assign-btn');
-
-                if (userId) {
-                    assignBtn.prop('disabled', false);
-                } else {
-                    assignBtn.prop('disabled', true);
-                }
-            });
-
-            $('.manual-assign-btn').on('click', function(e) {
-                var recordId = $(this).data('record-id');
-                var select = $(this).siblings('.manual-user-select');
-                var userId = select.val();
-
-                if (userId) {
-                    self.applySingleSuggestion(recordId, userId, $(this));
-                }
+            $('.searchable-select-container').each(function() {
+                self.initSearchableDropdown($(this));
             });
         },
 
-        /**
-         * Update bulk assignment button
-         */
         updateBulkButton: function() {
             var count = this.selectedRecords.size;
             $('#bulk-assign-btn').prop('disabled', count === 0);
             $('#bulk-assign-btn').text((this.strings.apply_selected || 'Applica selezionati') + ' (' + count + ')');
         },
 
-        /**
-         * Apply single suggestion
-         * @param {number} recordId Record ID
-         * @param {number} userId User ID
-         * @param {jQuery} button Button element
-         */
         applySingleSuggestion: function(recordId, userId, button) {
             var self = this;
             button.prop('disabled', true).text((this.strings.applying || 'Applicando') + '...');
@@ -642,9 +542,6 @@ function($, Ajax, Notification, Str) {
             });
         },
 
-        /**
-         * Perform bulk assignment
-         */
         performBulkAssignment: function() {
             if (this.selectedRecords.size === 0) {
                 return;
@@ -661,11 +558,6 @@ function($, Ajax, Notification, Str) {
                 var button = row.find('.apply-suggestion-btn');
                 if (button.length && !button.prop('disabled')) {
                     assignments[recordId] = button.data('user-id');
-                } else {
-                    var select = row.find('.manual-user-select');
-                    if (select.length && select.val()) {
-                        assignments[recordId] = select.val();
-                    }
                 }
             });
 
@@ -708,50 +600,26 @@ function($, Ajax, Notification, Str) {
             });
         },
 
-        /**
-         * Format duration in seconds to human readable format
-         * @param {number} seconds Duration in seconds
-         * @return {string} Formatted duration
-         */
         formatDuration: function(seconds) {
             var hours = Math.floor(seconds / 3600);
             var minutes = Math.floor((seconds % 3600) / 60);
             return hours + 'h ' + minutes + 'm';
         },
 
-        /**
-         * Escape HTML to prevent XSS
-         * @param {string} text Text to escape
-         * @return {string} Escaped text
-         */
         escapeHtml: function(text) {
             var div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         },
 
-        /**
-         * Show success message
-         * @param {string} message Success message
-         */
         showSuccess: function(message) {
             this.showToast(message, 'success', 5000);
         },
 
-        /**
-         * Show error message
-         * @param {string} message Error message
-         */
         showError: function(message) {
             this.showToast(message, 'danger', 8000);
         },
 
-        /**
-         * Show toast notification
-         * @param {string} message Message to show
-         * @param {string} type Alert type (success, danger, warning, info)
-         * @param {number} duration Duration in milliseconds
-         */
         showToast: function(message, type, duration) {
             var toast = $('<div class="alert alert-' + type + ' alert-dismissible fade show position-fixed" style="top: 20px; right: 20px; z-index: 9999;"><button type="button" class="close" data-dismiss="alert">&times;</button>' + message + '</div>');
             $('body').append(toast);
@@ -762,11 +630,6 @@ function($, Ajax, Notification, Str) {
     };
 
     return {
-        /**
-         * Initialize the unassigned records manager
-         * @param {Object} config Configuration object
-         * @return {UnassignedRecordsManager} Manager instance
-         */
         init: function(config) {
             return new UnassignedRecordsManager(config);
         }
