@@ -84,12 +84,17 @@ if ($per_page <= 0) {
 $context = context_course::instance($course->id);
 $enrolled_users = get_enrolled_users($context, '', 0, 'u.id, u.firstname, u.lastname', 'u.lastname ASC, u.firstname ASC');
 
-// Ottiene gli utenti già assegnati per questa sessione
-$assigned_userids = $DB->get_fieldset_select('teamsattendance_data', 
-    'DISTINCT userid', 
-    'sessionid = ? AND userid IS NOT NULL AND userid > 0', 
-    array($teamsattendance->id)
-);
+// QUERY MIGLIORATA: Usa query più robusta per trovare utenti assegnati
+$sql_assigned = "SELECT DISTINCT tad.userid
+                FROM {teamsattendance_data} tad
+                JOIN {user} u ON u.id = tad.userid
+                WHERE tad.sessionid = ? 
+                AND tad.userid IS NOT NULL 
+                AND tad.userid > 0
+                AND u.deleted = 0";
+$assigned_userids = $DB->get_fieldset_sql($sql_assigned, array($teamsattendance->id));
+
+error_log("DEBUG IMPROVED: Found " . count($assigned_userids) . " assigned users with JOIN query");
 
 // Prepara l'elenco degli utenti disponibili (non ancora assegnati)
 $available_users = array();
@@ -103,6 +108,8 @@ foreach ($enrolled_users as $user) {
         );
     }
 }
+
+error_log("DEBUG IMPROVED: Final available users count = " . count($available_users));
 
 // Ordina gli utenti disponibili per cognome e nome
 usort($available_users, function($a, $b) {
@@ -189,13 +196,6 @@ if ($ajax) {
                     $response_data['records'][] = $record_data;
                 }
 
-error_log("RESPONSE DEBUG: sending " . count($response_data['records']) . " records to frontend");
-if (!empty($response_data['records'])) {
-    $first_record = $response_data['records'][0];
-    error_log("RESPONSE DEBUG: first record suggestion_type = " . (isset($first_record['suggestion_type']) ? $first_record['suggestion_type'] : 'NOT_SET'));
-}
-
-
                 echo json_encode(array('success' => true, 'data' => $response_data));
                 break;
                 
@@ -238,66 +238,36 @@ if (!empty($response_data['records'])) {
                 break;
             
             case 'get_available_users':
-                // DEBUG: Log della query e risultati
-                error_log("DEBUG AVAILABLE USERS: sessionid = " . $teamsattendance->id);
+                // Usa la stessa query migliorata
+                $ajax_sql_assigned = "SELECT DISTINCT tad.userid
+                                    FROM {teamsattendance_data} tad
+                                    JOIN {user} u ON u.id = tad.userid
+                                    WHERE tad.sessionid = ? 
+                                    AND tad.userid IS NOT NULL 
+                                    AND tad.userid > 0
+                                    AND u.deleted = 0";
+                $ajax_assigned_userids = $DB->get_fieldset_sql($ajax_sql_assigned, array($teamsattendance->id));
                 
-                // Ottiene tutti i record di questa sessione per debug
-                $all_session_records = $DB->get_records('teamsattendance_data', 
-                    array('sessionid' => $teamsattendance->id), 
-                    '', 
-                    'id, teams_user_id, userid, manually_assigned'
-                );
+                error_log("DEBUG AJAX: Found " . count($ajax_assigned_userids) . " assigned users");
                 
-                error_log("DEBUG AVAILABLE USERS: total records in session = " . count($all_session_records));
+                $ajax_context = context_course::instance($course->id);
+                $ajax_enrolled_users = get_enrolled_users($ajax_context, '', 0, 'u.id, u.firstname, u.lastname', 'u.lastname ASC, u.firstname ASC');
                 
-                $assigned_count = 0;
-                $unassigned_count = 0;
-                foreach ($all_session_records as $record) {
-                    if ($record->userid && $record->userid > 0) {
-                        $assigned_count++;
-                        error_log("DEBUG AVAILABLE USERS: assigned - teams_user_id: {$record->teams_user_id}, userid: {$record->userid}, manual: {$record->manually_assigned}");
-                    } else {
-                        $unassigned_count++;
-                    }
-                }
-                
-                error_log("DEBUG AVAILABLE USERS: assigned records = $assigned_count, unassigned = $unassigned_count");
-                
-                // Query originale per utenti assegnati
-                $debug_assigned_userids = $DB->get_fieldset_select('teamsattendance_data', 
-                    'DISTINCT userid', 
-                    'sessionid = ? AND userid IS NOT NULL AND userid > 0', 
-                    array($teamsattendance->id)
-                );
-                
-                error_log("DEBUG AVAILABLE USERS: assigned userids = " . json_encode($debug_assigned_userids));
-                
-                // Ottiene tutti gli utenti iscritti al corso
-                $debug_context = context_course::instance($course->id);
-                $debug_enrolled_users = get_enrolled_users($debug_context, '', 0, 'u.id, u.firstname, u.lastname', 'u.lastname ASC, u.firstname ASC');
-                
-                error_log("DEBUG AVAILABLE USERS: total enrolled users = " . count($debug_enrolled_users));
-                
-                // Prepara l'elenco degli utenti disponibili (non ancora assegnati)
-                $debug_available_users = array();
-                foreach ($debug_enrolled_users as $user) {
-                    if (!in_array($user->id, $debug_assigned_userids)) {
-                        $debug_available_users[] = array(
+                $ajax_available_users = array();
+                foreach ($ajax_enrolled_users as $user) {
+                    if (!in_array($user->id, $ajax_assigned_userids)) {
+                        $ajax_available_users[] = array(
                             'id' => $user->id,
                             'name' => $user->lastname . ' ' . $user->firstname,
                             'firstname' => $user->firstname,
                             'lastname' => $user->lastname
                         );
-                        error_log("DEBUG AVAILABLE USERS: available user - id: {$user->id}, name: {$user->firstname} {$user->lastname}");
-                    } else {
-                        error_log("DEBUG AVAILABLE USERS: excluded user - id: {$user->id}, name: {$user->firstname} {$user->lastname} (already assigned)");
                     }
                 }
                 
-                error_log("DEBUG AVAILABLE USERS: final available users count = " . count($debug_available_users));
+                error_log("DEBUG AJAX: Final available users count = " . count($ajax_available_users));
                 
-                // Ordina gli utenti disponibili per cognome e nome
-                usort($debug_available_users, function($a, $b) {
+                usort($ajax_available_users, function($a, $b) {
                     $firstname_cmp = strcasecmp($a['firstname'], $b['firstname']);
                     if ($firstname_cmp === 0) {
                         return strcasecmp($a['lastname'], $b['lastname']);
@@ -305,7 +275,7 @@ if (!empty($response_data['records'])) {
                     return $firstname_cmp;
                 });
                 
-                echo json_encode(array('success' => true, 'users' => $debug_available_users));
+                echo json_encode(array('success' => true, 'users' => $ajax_available_users));
                 break;
             
             case 'get_statistics':
