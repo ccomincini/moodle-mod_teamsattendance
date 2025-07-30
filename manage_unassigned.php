@@ -474,6 +474,7 @@ $js_config = array(
     'defaultPageSize' => 50,
     'cmId' => $cm->id,
     'sesskey' => sesskey(),
+    'available_users' => $available_users, // AGGIUNTA: Passa utenti disponibili al JavaScript
     'strings' => array(
         'teams_user_id' => get_string('teams_user_id', 'teamsattendance'),
         'attendance_duration' => get_string('attendance_duration', 'teamsattendance'),
