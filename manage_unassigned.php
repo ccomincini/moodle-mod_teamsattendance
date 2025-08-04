@@ -469,12 +469,11 @@ $template_context = (object) array(
 // Renderizza l'interfaccia usando il template
 echo render_unassigned_interface($template_context);
 
-// Inizializza JavaScript con la configurazione e la dimensione pagina predefinita
+// Inizializza JavaScript con la configurazione minima (senza available_users)
 $js_config = array(
     'defaultPageSize' => 50,
     'cmId' => $cm->id,
     'sesskey' => sesskey(),
-    'available_users' => $available_users, // AGGIUNTA: Passa utenti disponibili al JavaScript
     'strings' => array(
         'teams_user_id' => get_string('teams_user_id', 'teamsattendance'),
         'attendance_duration' => get_string('attendance_duration', 'teamsattendance'),
